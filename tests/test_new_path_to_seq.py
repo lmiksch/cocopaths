@@ -3,8 +3,9 @@ from copaths.new_path_to_seq import (graph,
                                      node,
                                      build_graph,
                                      create_domain_seq)
-                                     
-from copaths.convert_functions import (find_connected_modules,path_to_pairtablepath)
+from copaths.convert_functions import find_connected_modules, path_to_pairtablepath
+                                       
+
 from copaths.inequality_solver import inequality_solver
 
 
@@ -100,7 +101,7 @@ def test_inequality_solver():
 
 def test_create_domain_seq():
         
-        afp_1 = [".","()",".()","()()",".()()"]
+        afp_1 = [[1,0],[2,2,1],[3,0,3,2],[4,4,3,2,1],[5,0,3,2,5,4],[6,6,3,2,5,4,1]]
 
         afp_graph = build_graph(afp_1)
 

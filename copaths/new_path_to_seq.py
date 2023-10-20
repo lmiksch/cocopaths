@@ -1,3 +1,6 @@
+from typing import Any
+
+
 try:
     from collections import deque
     from convert_functions import (path_to_pairtablepath, find_connected_modules)
@@ -7,7 +10,7 @@ except:
     pass
 
 class node():
-    def __init__(self,name,prefix ="",suffix ="",complement= False,max_weight = 1,neighbors = None,connected = None):
+    def __init__(self,name,prefix ="",suffix ="",complement= False,max_weight = 0,neighbors = None,connected = None):
         self.name = name
         self.prefix = prefix
         self.middle = ""
@@ -81,7 +84,7 @@ class graph():
         
         for node in self.graph:
             for neighbor in node.neighbors:
-                self.edges[(node.name , neighbor.name)] = 0
+                self.edges[(node.name , neighbor.name)] = 0 #default weight of edge is 1 since they will always bind with middle domain
 
 
         #Remove duplicate edges
@@ -187,6 +190,9 @@ class graph():
                 print("\nBegin ineq inactive edges:",inactive_edges)
                 current_edge = active_edges.pop()
                 print(f"Current Edge: {current_edge}")
+
+        
+
                 l_node = current_edge[0]
                 r_node = current_edge[1]
                 
@@ -220,7 +226,65 @@ class graph():
             final_inequalities.append(f"{left} > {right}")
 
         return(final_inequalities)
+    
+    def get_weights(self,afp):
         
+        assigned_edges = {}
+        for x,step in enumerate(afp): 
+            collected_edges = self.get_current_edges(x)
+            print("-"*50)
+            print("\nCollected Edges",collected_edges)
+            print("Current Step:",step)
+            active_edges = []
+            inactive_edges = []
+            
+
+            for edge in collected_edges:
+                if step[edge[0]] == edge[1] and step[int(edge[1])] == int(edge[0]) and edge not in assigned_edges:
+                    active_edges.append(edge)
+                else:
+                    inactive_edges.append(edge)
+
+            active_edges.sort(key= lambda x: (x[1]))
+            print("Active Edges",active_edges)
+            print("Inactive Edges",inactive_edges)  
+
+            
+
+            while len(active_edges) != 0: 
+                print("\nBegin weighting edges:",inactive_edges)
+                current_edge = active_edges.pop()
+                print(f"Current Edge: {current_edge}")
+
+                l_node = self.get_node_by_name(current_edge[0])
+                r_node = self.get_node_by_name(current_edge[1])
+                print(f"Left weight {l_node.max_weight,l_node}")
+                print(f"right weight {r_node.max_weight,r_node}")
+                edge_weight = max(l_node.max_weight,r_node.max_weight) + 1
+                self.edges[current_edge] = edge_weight
+                print("Edge Weight: ", edge_weight)
+
+                l_node.max_weight = edge_weight
+                r_node.max_weight = edge_weight
+                print(f"Left weight {l_node.max_weight,l_node}")
+                print(f"right weight {r_node.max_weight,r_node}")
+                assigned_edges[current_edge] = True
+            
+
+
+                
+            print("-"*50)
+        
+
+        print(self.edges)
+        
+
+    def get_node_by_name(self, node_name):
+        for node in self.graph:
+            if node.name == node_name:
+                return node
+        return None
+
         
     def add_weights_to_graph(self,edge_weights):
         
@@ -304,18 +368,17 @@ def build_graph(afp):
     print("\nBipartite Check Complete:")
     for x in afp_graph.graph:
         print(x)
-
+    """
     inequalities = afp_graph.get_inequalities(afp=pairtable_afp)
 
     
     final_edges = afp_graph.get_current_edges(len(pairtable_afp))
     print("\n Final Inequalities",inequalities)
     inequalities_solutions = inequality_solver.inequality_solver(inequalities,final_edges)
-
-    print(inequalities_solutions)
+    """
+    afp_graph.get_weights(afp=pairtable_afp)
     print("\n")
 
-    afp_graph.add_weights_to_graph(inequalities_solutions)
 
     return afp_graph
 
@@ -387,15 +450,15 @@ def create_domain_seq(graph):
 if __name__ == "__main__":
     #afp = [[1, 0], [2, 2, 1], [3, 0, 3, 2], [4, 4, 3, 2, 1]]
 
-    #afp = [[1,0],[2,2,1],[3,0,3,2],[4,4,3,2,1],[5,0,3,2,5,4],[6,6,3,2,5,4,1]]
+    afp = [[1,0],[2,2,1],[3,0,3,2],[4,4,3,2,1],[5,0,3,2,5,4],[6,6,3,2,5,4,1]]
     #afp = [[1,0],[2,2,1],[3,0,3,2],[4,4,3,2,1],[5,5,0,4,3,1]] currently 
     #afp = [".","()",".()","(())","(.())","(())()",".()(())",".(.(()))"]
-    afp = [".","()",".()","()()",".()()"]
+    #afp = [".","()",".()","()()",".()()"]
     #afp = [".","()","().","()()","().()","()(())"]
     
     afp_graph = build_graph(afp)
 
-
+    
     
     
     create_domain_seq(afp_graph)
