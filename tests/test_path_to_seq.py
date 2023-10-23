@@ -1,12 +1,10 @@
 import pytest
-from copaths.new_path_to_seq import (graph,
-                                     node,
-                                     build_graph,
-                                     create_domain_seq)
-from copaths.convert_functions import find_connected_modules, path_to_pairtablepath
-                                       
 
-from copaths.inequality_solver import inequality_solver
+from copaths.path_to_seq import (graph,
+                                     node,
+                                     build_graph)
+from copaths.convert_functions import find_connected_modules, path_to_pairtablepath
+                                      
 
 
 def test_get_edges():
@@ -29,7 +27,7 @@ def test_get_edges():
 def test_bipartite_check():
 
     afp = [[1, 0], [2, 2, 1], [3, 0, 3, 2], [4, 4, 3, 2, 1]]
-    right_edges = {(1,2),(2,3),(1,4)}
+    
     g = graph()
     g.create_nodes_from_pairtable(afp)
 
@@ -81,7 +79,17 @@ def test_bipartite_check():
 
     pass
 
-# Add more test cases as needed
+
+def test_pseudoknot_attack():
+    afp = [".","()",".()","(())",".(())"]
+
+    afp_graph = build_graph(afp)
+
+    #afp_graph.create_domain_seq()
+
+    pass 
+
+
 
 # If you need to test the graph and build_graph functions:
 def test_graph():
@@ -90,25 +98,52 @@ def test_graph():
     g.create_nodes_from_pairtable(afp)
     assert len(g.graph) == len(afp)
 
-def test_inequality_solver():
-    ineq1 = ['(2, 3) > (1, 2)', '(4, 5) > (1, 4)']
-    edges1 = [(1, 2), (1, 4), (2, 3), (4, 5), (1, 6)]
-
-    solution1 = {(1, 2): 1, (1, 4): 1, (2, 3): 2, (4, 5): 2,(1, 6): 1}
-    assert inequality_solver(ineq1,edges1) == solution1
-    ineq2 = 2
-    pass
-
 def test_create_domain_seq():
         
         afp_1 = [[1,0],[2,2,1],[3,0,3,2],[4,4,3,2,1],[5,0,3,2,5,4],[6,6,3,2,5,4,1]]
 
         afp_graph = build_graph(afp_1)
 
-        create_domain_seq(afp_graph)
+        afp_graph.create_domain_seq()
         domain_seq = afp_graph.get_domain_seq()
 
-        assert domain_seq == [' m0* ', 'a m0 b', 'c* b* m0* a* e*', 'g e a m0 b c j', 'j* c* b* m0* a* e* g*']
+        assert domain_seq == [' m0* ', 'a m0 b', 'b* m0* a*', 'c m0 d', 'd* m0* c*', ' m0 '], f"Create Domain_seq 1 failed: Result: {domain_seq} Solution:  [' m0* ', 'a m0 b', 'c* b* m0* a* e*', 'g e a m0 b c j', 'j* c* b* m0* a* e* g*']"
+        
+        
+        afp_2 = [[1, 0], [2, 2, 1], [3, 2, 1, 0], [4, 4, 3, 2, 1]]
+
+        afp_graph = build_graph(afp_2)
+
+        afp_graph.create_domain_seq()
+        domain_seq = afp_graph.get_domain_seq()
+
+
+
+        assert domain_seq == ['a* b* m0* c* d*', 'c m0 a', ' m0* ', 'd c m0 b a'], f"Create domain_seq 2 failed Result: {domain_seq}, Solution ['a* b* m0* c* d*', 'c m0 a', ' m0* ', 'd c m0 b a']"
+
+
+        afp_3 = [".","()","().","()()","().()","()(())"]
+
+        afp_graph = build_graph(afp_3)
+
+        afp_graph.create_domain_seq()
+        domain_seq = afp_graph.get_domain_seq()
+
+
+        assert domain_seq == [' m0* ', ' m0 ', ' m1* ', 'a m1 b', 'b* m1* a*', ' m1 '], f"Create domain_seq 3 failed Result: {domain_seq}, Solution: [' m0* ', ' m0 ', ' m1* ', 'a m1 b', 'b* m1* a*', ' m1 ']"
+
+
+        afp_4 = [".","()","().","()()","()().","()()()","()()()."]
+
+
+        afp_graph = build_graph(afp_4)
+
+        afp_graph.create_domain_seq()
+        domain_seq = afp_graph.get_domain_seq()
+        print(domain_seq)
+
+        assert domain_seq == [' m0* ', ' m0 ', ' m1* ', ' m1 ', ' m2* ', ' m2 ', ' m3* '], f"Create domain_seq 4 failed Result: {domain_seq},Solution: "
+
 
         pass
 

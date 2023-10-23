@@ -3,14 +3,13 @@ from typing import Any
 
 try:
     from collections import deque
-    from convert_functions import (path_to_pairtablepath, find_connected_modules)
+    from copaths.convert_functions import (path_to_pairtablepath, find_connected_modules)
     import string
-    import inequality_solver
 except:
     pass
 
 class node():
-    def __init__(self,name,prefix ="",suffix ="",complement= False,max_weight = 0,neighbors = None,connected = None):
+    def __init__(self,name,prefix ="",suffix ="",complement= False,max_weight = 1,neighbors = None,connected = None):
         self.name = name
         self.prefix = prefix
         self.middle = ""
@@ -102,14 +101,9 @@ class graph():
         visited_nodes[node] = True
         node.complement = complement
         
-        #print("is bipartite\n")
-        #print("\nVisited Nodes")
-        #for x in visited_nodes.keys():
-            #print("visitded nodes",x)
-        #print("")
+        
         for neighbor in node.neighbors:
-            #print("node: ",node)
-            #print("neighbor: ",neighbor)
+            
             if neighbor.name not in connected:
                 
                 continue  # Skip neighbors not in the specified connected components
@@ -128,17 +122,11 @@ class graph():
 
     def bipartite_check(self, connected_components):
         visited_nodes = {}
-        
         for x, connected in enumerate(connected_components):
-           # print("\nFollowing component will be analyzed", connected)    
             for node in self.graph: 
-                #print("nodename",node.name)
-                #print("node name in connected",node.name in connected)
                 if node.name in connected and node not in visited_nodes:
-                    #print("here")
                     node.connected = x
                     if not self.is_bipartite_dfs(node, visited_nodes, True, connected,x):
-                        #print("h2")
                         return False
 
         return True
@@ -155,17 +143,16 @@ class graph():
 
 
     def get_inequalities(self,afp):
+        """Creates Inequalities based on the abstract folding path and the graph
+        currently not used due to the get_weights function
+        """
         
         inequalities = []
 
         for x,step in enumerate(afp): 
             collected_edges = self.get_current_edges(x)
-            print("-"*50)
-            print("\nCollected Edges",collected_edges)
-            print("Current Step:",step)
             active_edges = []
             inactive_edges = []
-            
             for edge in collected_edges:
                 if step[edge[0]] == edge[1] and step[int(edge[1])] == int(edge[0]):
                     active_edges.append(edge)
@@ -173,51 +160,37 @@ class graph():
                     inactive_edges.append(edge)
 
             active_edges.sort(key= lambda x: (x[1]))
-            print("Active Edges",active_edges)
-            print("Inactive Edges",inactive_edges)  
-
             
+
             #Remove inactive edges which were allready defined
             if len(inequalities) > 0:    
                 for ineq in inequalities:
                     result = [[act, inact] for inact in inactive_edges for act in active_edges if ineq[0] == act and ineq[1] == inact]
-                    print(f"For ineq: {ineq} was following result found: {result}")
                     if result:
-                        print(f"Remove following edge {result[0][1]} due to result being {result}")
                         inactive_edges.remove(result[0][1])
 
             while len(inactive_edges) != 0: 
-                print("\nBegin ineq inactive edges:",inactive_edges)
+                
                 current_edge = active_edges.pop()
-                print(f"Current Edge: {current_edge}")
-
-        
-
+                
                 l_node = current_edge[0]
                 r_node = current_edge[1]
-                
-                
-
+    
                 neighbor_edge = [edge for edge in inactive_edges if edge[0] == r_node or edge[1] == r_node]
 
-                print(f"R neighbor edge {neighbor_edge}")
                 for edge in neighbor_edge:
                     inequalities.append([current_edge,edge])
                     inactive_edges.remove(edge)
 
                 neighbor_edge = [edge for edge in inactive_edges if edge[0] == l_node or edge[1] == l_node]
 
-                print(f"L neighbor edge: {neighbor_edge}")
+                
                 for edge in neighbor_edge:
                     inequalities.append([current_edge,edge])
                     inactive_edges.remove(edge)
-            print("-"*50)
-                
-
-            print(f"\nInequalities {inequalities}")
-
+            
         final_inequalities = []
-        print("\nResulting Inequalties: ",inequalities)
+        
         for ineq in inequalities:
             left = ineq[0]
             right = ineq[1]
@@ -227,23 +200,39 @@ class graph():
 
         return(final_inequalities)
     
+
+    
     def get_weights(self,afp):
         
         assigned_edges = {}
-        for x,step in enumerate(afp): 
+        for x,step in enumerate(afp[1:],start=1): 
             collected_edges = self.get_current_edges(x)
-            print("-"*50)
+            print("--"*50)
+            print(f"\nAssigned Edges: {assigned_edges}\n")
             print("\nCollected Edges",collected_edges)
             print("Current Step:",step)
             active_edges = []
             inactive_edges = []
             
-
+            
             for edge in collected_edges:
-                if step[edge[0]] == edge[1] and step[int(edge[1])] == int(edge[0]) and edge not in assigned_edges:
+                if step[edge[0]] == edge[1] and step[int(edge[1])] == int(edge[0]):# and edge not in assigned_edges:
+            
                     active_edges.append(edge)
                 else:
                     inactive_edges.append(edge)
+            
+            for edge in assigned_edges:
+                if edge in active_edges:
+                    
+                    for inactive_edge in inactive_edges:
+                        print("inactive edge",inactive_edge)
+                        if inactive_edge[0] in edge or edge[1] in edge:
+                            print("removed")
+                            inactive_edges.remove(inactive_edge)
+                            break
+                          
+            
 
             active_edges.sort(key= lambda x: (x[1]))
             print("Active Edges",active_edges)
@@ -251,29 +240,35 @@ class graph():
 
             
 
-            while len(active_edges) != 0: 
+            while len(inactive_edges) != 0: 
                 print("\nBegin weighting edges:",inactive_edges)
                 current_edge = active_edges.pop()
                 print(f"Current Edge: {current_edge}")
+                
+                if current_edge not in assigned_edges:
 
-                l_node = self.get_node_by_name(current_edge[0])
-                r_node = self.get_node_by_name(current_edge[1])
-                print(f"Left weight {l_node.max_weight,l_node}")
-                print(f"right weight {r_node.max_weight,r_node}")
-                edge_weight = max(l_node.max_weight,r_node.max_weight) + 1
-                self.edges[current_edge] = edge_weight
-                print("Edge Weight: ", edge_weight)
+                    l_node = self.get_node_by_name(current_edge[0])
+                    r_node = self.get_node_by_name(current_edge[1])
+                    print(f"Left weight {l_node.max_weight,l_node}")
+                    print(f"right weight {r_node.max_weight,r_node}")
+                    edge_weight = max(l_node.max_weight,r_node.max_weight) + 1
+                    self.edges[current_edge] = edge_weight
+                    print("Edge Weight: ", edge_weight,"for edge;",current_edge)
 
-                l_node.max_weight = edge_weight
-                r_node.max_weight = edge_weight
-                print(f"Left weight {l_node.max_weight,l_node}")
-                print(f"right weight {r_node.max_weight,r_node}")
-                assigned_edges[current_edge] = True
-            
+                    l_node.max_weight = edge_weight
+                    r_node.max_weight = edge_weight
+                    print(f"Left weight {l_node.max_weight,l_node}")
+                    print(f"right weight {r_node.max_weight,r_node}")
+                    assigned_edges[current_edge] = True
+
+                for edge in inactive_edges:
+                    print("current inactive edge",edge)
+                    if edge[0] in current_edge or edge[1] in current_edge:
+                        inactive_edges.remove(edge)
 
 
                 
-            print("-"*50)
+            print("--"*50)
         
 
         print(self.edges)
@@ -314,6 +309,59 @@ class graph():
             domain_seq.append(str(" ".join(node.prefix) + " " + node.middle + " " + " ".join(node.suffix)))
         
         return domain_seq
+    
+    def create_domain_seq(self):
+    
+        domains = list(string.ascii_lowercase)
+        domains += [x + z for x in string.ascii_lowercase for z in string.ascii_lowercase if 'l' not in (x, z) and 'm' not in (x, z)]
+        
+        visited_nodes = {}
+        for node in self.graph:
+            
+            current_node = node
+            visited_nodes[current_node] = True
+            print("____________________"*3)
+            print(f"\n Current Node:  {current_node}\n")
+            current_node.middle = "m" + str(node.connected)
+
+            if current_node.max_weight > 1 and len(current_node.prefix) < current_node.max_weight - 1:
+                prefix = domains[:current_node.max_weight - 1 - len(current_node.prefix)] + list(current_node.prefix)
+                domains = domains[current_node.max_weight - 1 - len(current_node.prefix):]
+                current_node.prefix = prefix
+
+                suffix = list(current_node.suffix) + domains[:current_node.max_weight - 1 - len(current_node.suffix)] 
+                domains = domains[current_node.max_weight - 1 - len(current_node.suffix):]
+                current_node.suffix = suffix
+            print("current Node",current_node)
+            
+            for neighbor in current_node.neighbors:
+                if neighbor not in visited_nodes and neighbor.connected == current_node.connected:
+                    
+                    print(f"graph edges :{self.edges}\n")
+                    shared_weight = self.edges[(min(current_node.name, neighbor.name), max(current_node.name, neighbor.name))]
+                    print(f"Shared Weight: {shared_weight}, Edges:{(current_node.name,neighbor.name)}")
+                    neighbor.prefix = current_node.suffix[:shared_weight - 1][::-1]
+                    neighbor.suffix = current_node.prefix[:shared_weight - 1][::-1]
+                    
+                    
+                    
+                
+
+                    print(neighbor)
+            
+        
+
+        #Need to implement complementary domains 
+
+        for node in self.graph:
+            if node.complement:
+                node.prefix = [str(domain) + "*" for domain in node.prefix]
+                node.middle += "*"
+                node.suffix = [str(domain) + "*" for domain in node.suffix]
+
+        print("\nFinished\n")
+        self.print_nodes()
+        print("done")
 
 """Modules in Graph as nodes first initialize 
 
@@ -382,66 +430,7 @@ def build_graph(afp):
 
     return afp_graph
 
-def create_domain_seq(graph):
-    """
-    for connected in connected_components:
-        print(connected_components)"""
-    
-    domains = list(string.ascii_lowercase)
-    domains += [x + z for x in string.ascii_lowercase for z in string.ascii_lowercase if 'l' not in (x, z) and 'm' not in (x, z)]
-    
-    visited_nodes = {}
-    for node in graph.graph:
-        
-        current_node = node
-        visited_nodes[current_node] = True
-        print("____________________"*3)
-        print(f"\n Current Node:  {current_node}\n")
-        current_node.middle = "m" + str(node.connected)
-
-        if current_node.max_weight > 1 and len(current_node.prefix) < current_node.max_weight - 1:
-            prefix = domains[:current_node.max_weight - 1 - len(current_node.prefix)] + list(current_node.prefix)
-            domains = domains[current_node.max_weight - 1 - len(current_node.prefix):]
-            current_node.prefix = prefix
-
-            suffix = list(current_node.suffix) + domains[:current_node.max_weight - 1 - len(current_node.suffix)] 
-            domains = domains[current_node.max_weight - 1 - len(current_node.suffix):]
-            current_node.suffix = suffix
-        print("current Node",current_node)
-        
-        for neighbor in current_node.neighbors:
-            if neighbor not in visited_nodes and neighbor.connected == current_node.connected:
-                
-                print(f"graph edges :{graph.edges}\n")
-                shared_weight = graph.edges[(min(current_node.name, neighbor.name), max(current_node.name, neighbor.name))]
-                print(f"Shared Weight: {shared_weight}, Edges:{(current_node.name,neighbor.name)}")
-                neighbor.prefix = current_node.suffix[:shared_weight][::-1]
-                neighbor.suffix = current_node.prefix[:shared_weight][::-1]
-                
-                
-                
-                
-                #break
-            
-
-                print(neighbor)
-        
-    
-
-    #Need to implement complementary domains 
-
-    for node in graph.graph:
-        if node.complement:
-            node.prefix = [str(domain) + "*" for domain in node.prefix]
-            node.middle += "*"
-            node.suffix = [str(domain) + "*" for domain in node.suffix]
-
-
-    graph.print_nodes()
-    print("done")
-
-
-    def main():
+def main():
         #write import
         print("main")
 
@@ -450,18 +439,23 @@ def create_domain_seq(graph):
 if __name__ == "__main__":
     #afp = [[1, 0], [2, 2, 1], [3, 0, 3, 2], [4, 4, 3, 2, 1]]
 
-    afp = [[1,0],[2,2,1],[3,0,3,2],[4,4,3,2,1],[5,0,3,2,5,4],[6,6,3,2,5,4,1]]
+    #afp = [[1,0],[2,2,1],[3,0,3,2],[4,4,3,2,1],[5,0,3,2,5,4],[6,6,3,2,5,4,1]]
     #afp = [[1,0],[2,2,1],[3,0,3,2],[4,4,3,2,1],[5,5,0,4,3,1]] currently 
     #afp = [".","()",".()","(())","(.())","(())()",".()(())",".(.(()))"]
     #afp = [".","()",".()","()()",".()()"]
-    #afp = [".","()","().","()()","().()","()(())"]
     
-    afp_graph = build_graph(afp)
+    afp = [".","()","().","()()","().()","()(())"]
+    afp = [".","()",".()","()()",".()()","(()())"]
+    afp = [".","()","().","(())"]
 
+
+    afp_graph = build_graph(afp)
+    print("\n")
+    afp_graph.print_nodes()
+    print("\n\n\nStarting with Domain Sequence\n\n\n")
     
     
-    
-    create_domain_seq(afp_graph)
+    afp_graph.create_domain_seq()
     domain_seq = afp_graph.get_domain_seq()
 
     print("___________"*3)
