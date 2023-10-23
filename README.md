@@ -5,4 +5,4 @@
 - copat
 - CoFoldify
 - CoTranscripter
--CoPathCompiler
+- CoPathCompiler
