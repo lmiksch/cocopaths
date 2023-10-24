@@ -3,6 +3,17 @@
 This module contains all the different convert functions which can be used to convert outputs into different annotations. 
 """
 
+def is_balanced_structure(s):
+    stack = []
+    for char in s:
+        if char == '(':
+            stack.append('(')
+        elif char == ')':
+            if not stack:
+                return False  # Unmatched closing parenthesis
+            stack.pop()
+    
+    return len(stack) == 0
 
 def path_to_pairtablepath(path):
     """ Function which turns a structural path in dot bracket annotation into a pairtable path
@@ -326,97 +337,6 @@ def differnt_l_domains(domain_seq):
     return " ".join(split_seq)
 
 
-"""
-def afp_to_domainfp(afp,domain_seq):
-    Takes an abstract folding path and a domain level sequence and converts it into a domain level path 
-        Example: 
-            afp: [["."],["()"],[".()"],["()()"]],domain_seq="b l b* a* l a b c d l d* c* b*"
-
-            returns [[".."],["(.).."],["..((.))..."],["(.)...(((.)))"]]
-    
-    domain_fp = [[] for _ in afp]
-    domain_seq = domain_seq.split()
-
-    for x,cur_path in enumerate(afp):
-
-        print(x)
-        print(cur_path[0])
-
-        module_index = -1
-        path = ""
-        
-        for i,domain in enumerate(domain_seq):
-            print("\n")
-            #print("module index", module_index)
-            print("domain",domain)
-            if domain == "l":
-                path += "."
-                module_index += 1
-
-                if module_index == x:
-                    print("done with folding step")
-                    domain_fp[x].append(path)
-                    break 
-                else:
-                    print("test1:",module_index,x)
-                
-                    
-
-            print(cur_path[0][module_index+1])
-            if cur_path[0][module_index+1] == ".":
-                path += "."
-
-
-            elif cur_path[0][module_index + 1] == "(" and domain != "l": 
-                print("(--------------------")
-                
-                j = i
-                k = x -1
-                while k <= len(afp[x]):
-                    print(k)
-                    print("her:",cur_path[0][k])
-                    if cur_path[0][k] == ")":
-                        print(domain_seq[i],domain_seq[j])
-                        if is_star_pair(domain_seq[i],domain_seq[j]):
-                            print("success")
-                            path += "("
-                            print(path)
-                            break
-                    j += 1
-                    if domain_seq[j] == "l":
-
-                        k += 1 
-                
-
-
-            elif cur_path[0][module_index + 1] == ")" and domain != "l":
-                print("xxxxxxxxxx)")
-                
-                j = i - 1
-                k = x 
-                while  0 <= k:
-                    print("k = ",k)
-                    print("her:",cur_path[0][k])
-
-                    if cur_path[0][k] == ")":
-                        print(domain_seq[i],domain_seq[j])
-                        if is_star_pair(domain_seq[i],domain_seq[j]):
-                            print("success",path,"end path")
-                            path += ")"
-                            print("success",path,"end path")
-                            break
-                    
-                    j -= 1
-                    if domain_seq[j] == "l":
-
-                        k -= 1 
-                path += "."
-        print("---------------------------------------------")
-        print("Path:",path)
-        domain_fp[x].append(path)
-
-    return domain_fp
-"""
 
 
 def afp_to_domainfp(afp,domain_seq):

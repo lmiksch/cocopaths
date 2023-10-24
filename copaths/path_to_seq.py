@@ -1,16 +1,17 @@
 from typing import Any
 import logging
 import argparse
-
+import re
 
 try:
     from collections import deque
-    from copaths.convert_functions import (path_to_pairtablepath, find_connected_modules)
+    from copaths.convert_functions import (path_to_pairtablepath, find_connected_modules,is_balanced_structure)
     import string
 except:
     pass
 
 #______define_logger______#
+
 logger = logging.getLogger('copaths')
 console_handler = logging.StreamHandler()
 formatter = logging.Formatter('# %(levelname)s - %(message)s')
@@ -47,6 +48,8 @@ class graph():
         self.graph = {}
         self.edges = dict()
 
+#_________Graph_creation________#
+
     def add_node(self,node):
          if node not in self.graph:
               self.graph[node] = []
@@ -75,8 +78,7 @@ class graph():
         dfs_recursive(start_node)
 
     def print_nodes(self):
-        for node in self.graph:
-            print(node)
+        return "\n".join([str(node) for node in self.graph])
 
     def create_edges(self,afp,nodes):
         for step in afp[::-1]:
@@ -103,6 +105,8 @@ class graph():
                 unique_edges[edge] = self.edges[edge]
 
         self.edges = unique_edges
+
+#_________Bipartite_check________#
 
     def is_bipartite_dfs(self, node, visited_nodes, complement, connected,x):
         visited_nodes[node] = True
@@ -202,7 +206,9 @@ class graph():
             final_inequalities.append(f"{left} > {right}")
 
         return(final_inequalities)
-        
+
+#_________Weights_and_domainseq______#
+
     def get_weights(self,afp):
         
         assigned_edges = {}
@@ -381,7 +387,9 @@ class graph():
 
         logger.debug("\nFinished\n")
         logger.debug(self.print_nodes())
-        
+
+#_________Legal_folding_path_checks_______#
+
     def cycle_detection(self):
         visited = set()
         
@@ -419,7 +427,20 @@ class graph():
                         return True
                     
             return False
-                
+    
+    def different_substructures_detection(self,pairtable):
+        """Detects if an occuring substructure was allready defined and can therfore not be used
+        
+        """
+
+
+        for x,step in enumerate(pairtable[1:],start = 1):
+            for i in range(1,len(step)):
+                for struct in pairtable[1:x]: 
+                    x = 2
+
+
+
 
       
 """Modules in Graph as nodes first initialize 
@@ -457,7 +478,7 @@ def build_graph(afp):
 
     afp_graph.create_edges(pairtable_afp,nodes)
     
-    #Print the graph after adding edges
+    
     logger.info("Graph after adding edges:")
     logger.info(afp_graph.print_nodes())
     afp_graph.get_edges()
@@ -467,7 +488,7 @@ def build_graph(afp):
     if afp_graph.cycle_detection():
         raise SystemExit("Cycle in graph detected. Currently no viable solutions for this case.")
     
-   # print("Edges: ", afp_graph.edges)
+    logger.info(f"Edges: {afp_graph.edges}")
 
     connected_components = find_connected_modules(pairtable_afp)
     logger.info("\nFollowing Nodes are connected:")
@@ -500,8 +521,18 @@ def set_verbosity(console_handler,verbosity):
     elif verbosity >= 3:
         console_handler.setLevel(logging.DEBUG)
 
-def input_parser(input):
-    print("I need some work")
+def input_parser(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+            lines = [line.strip() for line in lines if re.match(r'^[0-9,().]*$', line) and not line.startswith('#')]
+            return lines
+    except FileNotFoundError:
+        print(f"Error: The file '{file_path}' was not found.")
+        return []
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+        return []
 
 def main():
         #_________________Argparse_________________#
@@ -530,10 +561,11 @@ def main():
             while True:
                 print("\n")
                 print(f"Current Input: {afp}")
-                user_input = input("Please input a folding path, or use '@' to exit and '$' to finish and continue: ")
+                print("Please input a folding path in dot-bracket annotation or use '$' to finish and continue or use '@' to exit :")
+                user_input = input()
                 # Check for exit conditions
                 if user_input == "@":
-                    print("Exiting copaths")
+                    print("\nExiting copaths")
                     exit()
                 elif user_input == "$":
                     print(f"\n\nFinal Input:\n{afp}\n\n")
@@ -543,17 +575,23 @@ def main():
                     print("Input cleared")
                     continue
                 
+                if is_balanced_structure(user_input):
 
-                if len(user_input) == len(afp) + 1:
-                    afp.append(user_input)
+                    # Check if the user input contains only ".", "(", and ")"
+                    
+                    if all(char == "." or char in ("(", ")") for char in user_input):
+                        if len(user_input) == len(afp) + 1:
+                            afp.append(user_input)
+                        else:
+                            print("Please add 1 character per step")
+                    else:
+                        print("Error: Invalid character in the folding path. Only '.', '(', and ')' are allowed.")
                 else:
-                    print("Please add just 1 Char per step")
-            
+                    print("Structure is not balanced -> closing/opening brackets don't match")
+                     
         else:
             afp = input_parser(args.input)
-            
-            print("Sorry currently only manual entry of folding paths")
-            exit()
+            print(f"\n\nInput folding path:\n{afp}\n\n")
 
 
         #_________________Creation of Graph_________________#
