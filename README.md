@@ -33,7 +33,7 @@ For development purpose:
 $ pip -e .
 ```
 
-afterwards use pytest to verify that all test are working:
+afterwards use pytest to verify that all tests are working:
 ```bash
 $ pytest
 ```
