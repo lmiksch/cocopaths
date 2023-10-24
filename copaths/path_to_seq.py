@@ -1,4 +1,6 @@
 from typing import Any
+import logging
+import argparse
 
 
 try:
@@ -7,6 +9,15 @@ try:
     import string
 except:
     pass
+
+#______define_logger______#
+logger = logging.getLogger('copaths')
+console_handler = logging.StreamHandler()
+formatter = logging.Formatter('# %(levelname)s - %(message)s')
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
+
+
 
 class node():
     def __init__(self,name,prefix ="",suffix ="",complement= False,max_weight = 1,neighbors = None,connected = None):
@@ -35,7 +46,7 @@ class graph():
     def __init__(self):
         self.graph = {}
         self.edges = dict()
-    
+
     def add_node(self,node):
          if node not in self.graph:
               self.graph[node] = []
@@ -44,7 +55,6 @@ class graph():
         if node2 not in node1.neighbors:
             node1.neighbors.add(node2)  
             node2.neighbors.add(node1)  
-
 
     def create_nodes_from_pairtable(self,pairtable):
         for x in range(1,pairtable[-1][0] + 1):
@@ -56,7 +66,7 @@ class graph():
 
         def dfs_recursive(node):
             visited.add(node.name)
-            print(node.name)
+            logger.debug(node.name)
 
             for neighbor in node.neighbors:
                 if neighbor.data not in visited:
@@ -83,7 +93,7 @@ class graph():
         
         for node in self.graph:
             for neighbor in node.neighbors:
-                self.edges[(node.name , neighbor.name)] = 0 #default weight of edge is 1 since they will always bind with middle domain
+                self.edges[(node.name , neighbor.name)] = 1 #default weight of edge is 1 since they will always bind with middle domain
 
 
         #Remove duplicate edges
@@ -93,9 +103,6 @@ class graph():
                 unique_edges[edge] = self.edges[edge]
 
         self.edges = unique_edges
-
-
-    
 
     def is_bipartite_dfs(self, node, visited_nodes, complement, connected,x):
         visited_nodes[node] = True
@@ -131,17 +138,13 @@ class graph():
 
         return True
 
-
-
-
     def get_current_edges(self,step_number):
         current_edges = []
         for edge in self.edges:
             if edge[1] <= step_number + 1:
                 current_edges.append(edge)
         return current_edges
-
-
+        
     def get_inequalities(self,afp):
         """Creates Inequalities based on the abstract folding path and the graph
         currently not used due to the get_weights function
@@ -199,18 +202,16 @@ class graph():
             final_inequalities.append(f"{left} > {right}")
 
         return(final_inequalities)
-    
-
-    
+        
     def get_weights(self,afp):
         
         assigned_edges = {}
         for x,step in enumerate(afp[1:],start=1): 
             collected_edges = self.get_current_edges(x)
-            print("--"*50)
-            print(f"\nAssigned Edges: {assigned_edges}\n")
-            print("\nCollected Edges",collected_edges)
-            print("Current Step:",step)
+            logger.debug("--"*50)
+            logger.debug(f"\nAssigned Edges: {assigned_edges}\n")
+            logger.debug(f"\nCollected Edges: {collected_edges}")
+            logger.debug(f"Current Step: step")
             active_edges = []
             inactive_edges = []
             
@@ -226,61 +227,75 @@ class graph():
                 if edge in active_edges:
                     
                     for inactive_edge in inactive_edges:
-                        print("inactive edge",inactive_edge)
-                        if inactive_edge[0] in edge or edge[1] in edge:
-                            print("removed")
+                        logger.debug(f"inactive edge {inactive_edge,edge}")
+                        if inactive_edge[0] in edge or inactive_edge[1] in edge:
+                            logger.debug("removed")
                             inactive_edges.remove(inactive_edge)
                             break
                           
             
 
             active_edges.sort(key= lambda x: (x[1]))
-            print("Active Edges",active_edges)
-            print("Inactive Edges",inactive_edges)  
+            logger.debug(f"Active Edges: {active_edges}")
+            logger.debug(f"Inactive Edges: {inactive_edges}")  
 
             
 
             while len(inactive_edges) != 0: 
-                print("\nBegin weighting edges:",inactive_edges)
+                logger.debug("\nBegin weighting edges:",inactive_edges)
                 current_edge = active_edges.pop()
-                print(f"Current Edge: {current_edge}")
+                logger.debug(f"Current Edge: {current_edge}")
                 
-                if current_edge not in assigned_edges:
+                inactive_flag = False
+                for edge in inactive_edges:
+                    if edge[0] in current_edge or edge[1] in current_edge:
+                        inactive_flag = True
+                        logger.debug(f"Inactive edge influences edge {edge}")
+
+                if current_edge not in assigned_edges and inactive_flag:
 
                     l_node = self.get_node_by_name(current_edge[0])
                     r_node = self.get_node_by_name(current_edge[1])
-                    print(f"Left weight {l_node.max_weight,l_node}")
-                    print(f"right weight {r_node.max_weight,r_node}")
+                    logger.debug(f"Left weight {l_node.max_weight,l_node}")
+                    logger.debug(f"right weight {r_node.max_weight,r_node}")
                     edge_weight = max(l_node.max_weight,r_node.max_weight) + 1
                     self.edges[current_edge] = edge_weight
-                    print("Edge Weight: ", edge_weight,"for edge;",current_edge)
+                    logger.debug(f"Edge Weight: {edge_weight} for edge: {current_edge}")
 
                     l_node.max_weight = edge_weight
                     r_node.max_weight = edge_weight
-                    print(f"Left weight {l_node.max_weight,l_node}")
-                    print(f"right weight {r_node.max_weight,r_node}")
+                    logger.debug(f"Left weight {l_node.max_weight,l_node}")
+                    logger.debug(f"Right weight {r_node.max_weight,r_node}")
                     assigned_edges[current_edge] = True
 
+                    
+
+                edges_to_remove = []
+
                 for edge in inactive_edges:
-                    print("current inactive edge",edge)
+                    logger.debug(f"current inactive edge {edge}")
                     if edge[0] in current_edge or edge[1] in current_edge:
-                        inactive_edges.remove(edge)
+                        edges_to_remove.append(edge)
+
+                for edge in edges_to_remove:
+                    inactive_edges.remove(edge)
+                    logger.debug(f"Removed edge: {edge}")
+                    if edge not in assigned_edges:
+                        assigned_edges[current_edge] = True
 
 
                 
-            print("--"*50)
+            logger.debug("--"*50)
         
 
-        print(self.edges)
+        logger.debug(self.edges)
         
-
     def get_node_by_name(self, node_name):
         for node in self.graph:
             if node.name == node_name:
                 return node
         return None
 
-        
     def add_weights_to_graph(self,edge_weights):
         
         max_weights = {}
@@ -288,13 +303,13 @@ class graph():
             for node in edge:
                 max_weights[node] = max(max_weights.get(node, 0), weight)
                 self.edges[edge] = weight
-        print(max_weights)
+        logger.debug(max_weights)
 
                 
         for node in self.graph:
             if node.name in max_weights:
                 node.max_weight = max_weights[node.name]
-        self.print_nodes()
+        logger.debug(self.print_nodes())
     
     def get_domain_seq(self):
         """Returns the domain level sequence of the abstract folding path in form of a List.
@@ -302,11 +317,11 @@ class graph():
         Returns:
             domain_seq(list): domain level sequence
         """
-
+        self.create_domain_seq()
         domain_seq = []
 
-        for node in self.graph:
-            domain_seq.append(str(" ".join(node.prefix) + " " + node.middle + " " + " ".join(node.suffix)))
+        for x,node in enumerate(self.graph):
+            domain_seq.append(str(" ".join(node.prefix) + " " + node.middle + " " + " ".join(node.suffix) + " " + "l" + str(x)))
         
         return domain_seq
     
@@ -320,8 +335,8 @@ class graph():
             
             current_node = node
             visited_nodes[current_node] = True
-            print("____________________"*3)
-            print(f"\n Current Node:  {current_node}\n")
+            logger.debug("____________________"*3)
+            logger.debug(f"\n Current Node:  {current_node}\n")
             current_node.middle = "m" + str(node.connected)
 
             if current_node.max_weight > 1 and len(current_node.prefix) < current_node.max_weight - 1:
@@ -332,22 +347,27 @@ class graph():
                 suffix = list(current_node.suffix) + domains[:current_node.max_weight - 1 - len(current_node.suffix)] 
                 domains = domains[current_node.max_weight - 1 - len(current_node.suffix):]
                 current_node.suffix = suffix
-            print("current Node",current_node)
+            logger.debug(f"Current Node: {current_node}")
             
             for neighbor in current_node.neighbors:
                 if neighbor not in visited_nodes and neighbor.connected == current_node.connected:
                     
-                    print(f"graph edges :{self.edges}\n")
+                    logger.debug(f"graph edges :{self.edges}\n")
                     shared_weight = self.edges[(min(current_node.name, neighbor.name), max(current_node.name, neighbor.name))]
-                    print(f"Shared Weight: {shared_weight}, Edges:{(current_node.name,neighbor.name)}")
-                    neighbor.prefix = current_node.suffix[:shared_weight - 1][::-1]
-                    neighbor.suffix = current_node.prefix[:shared_weight - 1][::-1]
+                    logger.debug(f"Shared Weight: {shared_weight}, Edges:{(current_node.name,neighbor.name)}")
                     
+
+                    if shared_weight > 1:    
+                        logger.debug(f"\n\nPrefix: {current_node.prefix}\n\n")
+                        logger.debug(f"\n\nSuffix: {current_node.suffix}\n\n")
+                        neighbor.prefix = current_node.suffix[:shared_weight - 1][::-1]
+                        neighbor.suffix = current_node.prefix[- (shared_weight - 1):][::-1]
+                        
                     
                     
                 
 
-                    print(neighbor)
+                    logger.debug(neighbor)
             
         
 
@@ -359,10 +379,49 @@ class graph():
                 node.middle += "*"
                 node.suffix = [str(domain) + "*" for domain in node.suffix]
 
-        print("\nFinished\n")
-        self.print_nodes()
-        print("done")
+        logger.debug("\nFinished\n")
+        logger.debug(self.print_nodes())
+        
+    def cycle_detection(self):
+        visited = set()
+        
+        def dfs(node, parent):
+            visited.add(node)
 
+            for neighbor in node.neighbors:
+                if neighbor != parent:
+                    if neighbor in visited or dfs(neighbor, node):
+                        return True
+
+            return False
+
+        for node in self.graph:
+            if node not in visited:
+                if dfs(node, None):
+                    return True
+
+        return False
+    
+    def pseudoknot_attack_detection(self,pairtable):
+            
+            
+            for x in range(1,len(pairtable)-1):
+                secured_domains = []
+                
+                for i,j in enumerate(pairtable[x][1:],start=1):
+                    if j > i+1:
+                        secured_domains.append((i +1,j))
+
+                
+
+                for tuple in secured_domains:
+                    if pairtable[x][tuple[0]:tuple[1]] != pairtable[x+1][tuple[0]:tuple[1]]:
+                        return True
+                    
+            return False
+                
+
+      
 """Modules in Graph as nodes first initialize 
 
 
@@ -379,85 +438,145 @@ def build_graph(afp):
         pairtable_afp = path_to_pairtablepath(afp)
     else:
         pairtable_afp = afp
-    print(pairtable_afp)
+    logger.debug(pairtable_afp)
 
-
+    
     afp_graph = graph()
+
+    if afp_graph.pseudoknot_attack_detection(pairtable_afp):
+        raise SystemExit("Pseudoknot attack detected. Choose a path without Pseudoknot attacks")
+    
     afp_graph.create_nodes_from_pairtable(pairtable_afp)
 
-    #print(afp_graph)
-
-    print("Graph after adding all Nodes")
-    afp_graph.print_nodes()
+    
+    logger.info("Graph after adding all Nodes")
+    logger.info(afp_graph.print_nodes())
 
     nodes = list(afp_graph.graph.keys())
     nodes.insert(0,0)
 
     afp_graph.create_edges(pairtable_afp,nodes)
     
-    # Print the graph after adding edges
-    print("Graph after adding edges:")
-    afp_graph.print_nodes()
+    #Print the graph after adding edges
+    logger.info("Graph after adding edges:")
+    logger.info(afp_graph.print_nodes())
     afp_graph.get_edges()
+
+
+    #Check if there are cycles present in the graph
+    if afp_graph.cycle_detection():
+        raise SystemExit("Cycle in graph detected. Currently no viable solutions for this case.")
     
-    print("Edges: ", afp_graph.edges)
+   # print("Edges: ", afp_graph.edges)
 
     connected_components = find_connected_modules(pairtable_afp)
-    print("\nFollowing Nodes are connected:")
+    logger.info("\nFollowing Nodes are connected:")
     for component in connected_components:
         nodes_in_component = set()
         for node_index in component:
             nodes_in_component.add(nodes[node_index])
-        print(component)
+        logger.debug(component)
 
     if not afp_graph.bipartite_check(connected_components):
         raise ImportError("Graph not Bipartite can't design domain level sequence. Check your input")
 
-    print("\nBipartite Check Complete:")
-    for x in afp_graph.graph:
-        print(x)
-    """
-    inequalities = afp_graph.get_inequalities(afp=pairtable_afp)
-
+    #print("\nBipartite Check Complete:")
+    #for x in afp_graph.graph:
+        #print(x)
     
-    final_edges = afp_graph.get_current_edges(len(pairtable_afp))
-    print("\n Final Inequalities",inequalities)
-    inequalities_solutions = inequality_solver.inequality_solver(inequalities,final_edges)
-    """
     afp_graph.get_weights(afp=pairtable_afp)
-    print("\n")
 
 
     return afp_graph
 
+
+def set_verbosity(console_handler,verbosity):
+    if verbosity == 0:
+        console_handler.setLevel(logging.CRITICAL)
+    elif verbosity == 1:
+        console_handler.setLevel(logging.ERROR)
+    elif verbosity == 2:
+        console_handler.setLevel(logging.INFO)
+    elif verbosity >= 3:
+        console_handler.setLevel(logging.DEBUG)
+
+def input_parser(input):
+    print("I need some work")
+
 def main():
-        #write import
-        print("main")
+        #_________________Argparse_________________#
+        parser = argparse.ArgumentParser(
+            formatter_class = argparse.ArgumentDefaultsHelpFormatter,
+            description="Copaths path_to_seq: generates a domain level sequence based on an abstract folding path"
+        )
+
+        parser.add_argument("-i","--input",help="Reads txt file as input if not specified user can input via console.")
+        parser.add_argument("-v", "--verbose",type = int, default = 0,
+            help = "Track process by writing verbose output to STDOUT during calculations.")
+        
+        args = parser.parse_args()
+
+        #_________________Set_logger_verbosity________________#
+
+        set_verbosity(logger,args.verbose)
+        
+
+        #_________________Input_Parsing_________________#
+        
+        
+        
+        if args.input == None:
+            afp = []
+            while True:
+                print("\n")
+                print(f"Current Input: {afp}")
+                user_input = input("Please input a folding path, or use '@' to exit and '$' to finish and continue: ")
+                # Check for exit conditions
+                if user_input == "@":
+                    print("Exiting copaths")
+                    exit()
+                elif user_input == "$":
+                    print(f"\n\nFinal Input:\n{afp}\n\n")
+                    break
+                elif user_input == "r" or user_input == "R":
+                    afp = []
+                    print("Input cleared")
+                    continue
+                
+
+                if len(user_input) == len(afp) + 1:
+                    afp.append(user_input)
+                else:
+                    print("Please add just 1 Char per step")
+            
+        else:
+            afp = input_parser(args.input)
+            
+            print("Sorry currently only manual entry of folding paths")
+            exit()
+
+
+        #_________________Creation of Graph_________________#
+        
+        
+        logger.debug(afp)
+
+        afp_graph = build_graph(afp)
+        
+
+        print("Resulting Domain Level sequence: "," ".join(afp_graph.get_domain_seq()))
+
+        
 
 
 
 if __name__ == "__main__":
     #afp = [[1, 0], [2, 2, 1], [3, 0, 3, 2], [4, 4, 3, 2, 1]]
-
     #afp = [[1,0],[2,2,1],[3,0,3,2],[4,4,3,2,1],[5,0,3,2,5,4],[6,6,3,2,5,4,1]]
-    #afp = [[1,0],[2,2,1],[3,0,3,2],[4,4,3,2,1],[5,5,0,4,3,1]] currently 
+    #afp = [[1,0],[2,2,1],[3,0,3,2],[4,4,3,2,1],[5,5,0,4,3,1]] currently not possible 
     #afp = [".","()",".()","(())","(.())","(())()",".()(())",".(.(()))"]
     #afp = [".","()",".()","()()",".()()"]
-    
-    afp = [".","()","().","()()","().()","()(())"]
-    afp = [".","()",".()","()()",".()()","(()())"]
-    afp = [".","()","().","(())"]
-
-
-    afp_graph = build_graph(afp)
-    print("\n")
-    afp_graph.print_nodes()
-    print("\n\n\nStarting with Domain Sequence\n\n\n")
-    
-    
-    afp_graph.create_domain_seq()
-    domain_seq = afp_graph.get_domain_seq()
-
-    print("___________"*3)
-    print("Resulting domain level sequence: \n",domain_seq)
-    
+    #afp = [".","()","().","()()","().()","()(())"]
+    #afp = [".","()",".()","()()",".()()","(()())"]
+    #afp = [".","()","().","(())"]
+    main()

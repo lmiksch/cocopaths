@@ -1,0 +1,35 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "copaths"
+description = "A compiler for cotranscriptional folding paths"
+authors = [{name = "Laurenz Miksch", email = "mikschlaurenz@gmail.com"}]
+readme = "README.md"
+keywords = ["cotranscriptional folding", "RNA", "secondary structure",]
+license = {file = "LICENSE"}
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Development Status :: 2 - Pre-Alpha",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+requires-python = ">=3.8"
+#dependencies = []
+dynamic = ["version"]
+
+[project.scripts]
+copaths = "copaths.path_to_seq:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[project.urls]
+Home = "https://github.com/lmiksch/copaths"
