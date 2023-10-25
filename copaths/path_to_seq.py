@@ -1,7 +1,5 @@
 from typing import Any
-import logging
-import argparse
-import re
+import re,argparse, logging
 
 try:
     from collections import deque
@@ -9,6 +7,7 @@ try:
     import string
 except:
     pass
+
 
 #______define_logger______#
 
@@ -35,10 +34,7 @@ class node():
     def __str__(self):
         neighbor_names = ', '.join(str(neighbor.name) for neighbor in self.neighbors)
         return f"Name: {self.name} Sequence: {self.prefix}{self.middle}{self.suffix} \nneighbors: {neighbor_names}, Complement: {self.complement}, Connected: {self.connected}, max_weight: {self.max_weight}\n"
-
-    # dont know if necessary
-    def set_middle_domain(self,middle_domain): 
-         self.middle = middle_domain
+    
     
 
 class graph():
@@ -47,6 +43,7 @@ class graph():
     def __init__(self):
         self.graph = {}
         self.edges = dict()
+        self.edge_neighbors = dict()
 
 #_________Graph_creation________#
 
@@ -105,6 +102,17 @@ class graph():
                 unique_edges[edge] = self.edges[edge]
 
         self.edges = unique_edges
+
+    def set_edge_neighbors(self):
+
+        for edge in self.edges.keys():
+            self.edge_neighbors[edge] = list()
+            for neighbor in self.edges.keys():
+                if neighbor[0] in edge or neighbor[1] in edge:
+                    if neighbor != edge:
+                        self.edge_neighbors[edge].append(neighbor) 
+
+        logger.debug(f"Edge Neighbors: {self.edge_neighbors}")
 
 #_________Bipartite_check________#
 
@@ -217,38 +225,56 @@ class graph():
             logger.debug("--"*50)
             logger.debug(f"\nAssigned Edges: {assigned_edges}\n")
             logger.debug(f"\nCollected Edges: {collected_edges}")
-            logger.debug(f"Current Step: step")
+            logger.debug(f"Current Step: {step}")
             active_edges = []
             inactive_edges = []
             
-            
+            # Get active and inactive edges
             for edge in collected_edges:
-                if step[edge[0]] == edge[1] and step[int(edge[1])] == int(edge[0]):# and edge not in assigned_edges:
+                if step[edge[0]] == edge[1] and step[int(edge[1])] == int(edge[0]):
             
                     active_edges.append(edge)
                 else:
                     inactive_edges.append(edge)
             
+            # Remove inactive edges which are allready taken care of due to the active edges
             for edge in assigned_edges:
                 if edge in active_edges:
                     
                     for inactive_edge in inactive_edges:
-                        logger.debug(f"inactive edge {inactive_edge,edge}")
+                        logger.debug(f"inactive edge {inactive_edge} active edge {edge}")
                         if inactive_edge[0] in edge or inactive_edge[1] in edge:
-                            logger.debug("removed")
-                            inactive_edges.remove(inactive_edge)
-                            break
+                            if self.edges[inactive_edge] < self.edges[edge]:    
+                                logger.debug("removed")
+                                inactive_edges.remove(inactive_edge)
+                                break
                           
-            
-
+                            
+            # Sort active edges 
             active_edges.sort(key= lambda x: (x[1]))
             logger.debug(f"Active Edges: {active_edges}")
             logger.debug(f"Inactive Edges: {inactive_edges}")  
 
-            
+            # Check for different substructures
+            for edge in active_edges:
+                if edge in assigned_edges:
+                    logger.debug(f"Edge: {edge}, Edge weight: {self.edges[edge]}")
+                    for inactive in inactive_edges:
+                        logger.debug(f"Inactive Edge: {inactive}, Edge weight: {self.edges[inactive]}")
+                        if self.edges[edge] < self.edges[inactive] and inactive_edge in assigned_edges:
+                            no_assigned_neighbor_flag = False
+                            for neighbor in self.edge_neighbors[inactive]:
+                                logger.debug(f"Neighbor: {neighbor}Edge weight: {self.edges[neighbor]}")
+                                if neighbor not in assigned_edges:
+                                    no_assigned_neighbor_flag = True
+                                    logger.debug(f"Neighbor: {neighbor}, assigend = {assigned_edges}")
+                                
+
+                            if not no_assigned_neighbor_flag:
+                                raise SystemExit(f"\nFolding Path invalid. Following step: {step} not possible")
 
             while len(inactive_edges) != 0: 
-                logger.debug("\nBegin weighting edges:",inactive_edges)
+                logger.debug(f"\nBegin weighting edges: {inactive_edges}")
                 current_edge = active_edges.pop()
                 logger.debug(f"Current Edge: {current_edge}")
                 
@@ -272,7 +298,7 @@ class graph():
                     r_node.max_weight = edge_weight
                     logger.debug(f"Left weight {l_node.max_weight,l_node}")
                     logger.debug(f"Right weight {r_node.max_weight,r_node}")
-                    assigned_edges[current_edge] = True
+                    assigned_edges[current_edge] = self.edges[current_edge]
 
                     
 
@@ -287,7 +313,9 @@ class graph():
                     inactive_edges.remove(edge)
                     logger.debug(f"Removed edge: {edge}")
                     if edge not in assigned_edges:
-                        assigned_edges[current_edge] = True
+                        assigned_edges[current_edge] = self.edges[current_edge]
+                        assigned_edges[edge] = self.edges[edge]
+                        logger.debug(f"new edge: {assigned_edges}")
 
 
                 
@@ -329,6 +357,8 @@ class graph():
         for x,node in enumerate(self.graph):
             domain_seq.append(str(" ".join(node.prefix) + " " + node.middle + " " + " ".join(node.suffix) + " " + "l" + str(x)))
         
+        logger.debug(f"Resulting domain seq: {domain_seq}")
+
         return domain_seq
     
     def create_domain_seq(self):
@@ -440,8 +470,6 @@ class graph():
                     x = 2
 
 
-
-
       
 """Modules in Graph as nodes first initialize 
 
@@ -459,7 +487,7 @@ def build_graph(afp):
         pairtable_afp = path_to_pairtablepath(afp)
     else:
         pairtable_afp = afp
-    logger.debug(pairtable_afp)
+    logger.debug(f"Pairtable Input: {pairtable_afp}")
 
     
     afp_graph = graph()
@@ -482,6 +510,8 @@ def build_graph(afp):
     logger.info("Graph after adding edges:")
     logger.info(afp_graph.print_nodes())
     afp_graph.get_edges()
+
+    afp_graph.set_edge_neighbors()
 
 
     #Check if there are cycles present in the graph
@@ -510,7 +540,6 @@ def build_graph(afp):
 
     return afp_graph
 
-
 def set_verbosity(console_handler,verbosity):
     if verbosity == 0:
         console_handler.setLevel(logging.CRITICAL)
@@ -526,7 +555,13 @@ def input_parser(file_path):
         with open(file_path, 'r') as file:
             lines = file.readlines()
             lines = [line.strip() for line in lines if re.match(r'^[0-9,().]*$', line) and not line.startswith('#')]
+            
+            if not lines:
+                raise SystemExit("File is empty. Here is your sequence: ")
+
             return lines
+
+
     except FileNotFoundError:
         print(f"Error: The file '{file_path}' was not found.")
         return []
@@ -553,7 +588,6 @@ def main():
         
 
         #_________________Input_Parsing_________________#
-        
         
         
         if args.input == None:
@@ -588,7 +622,7 @@ def main():
                         print("Error: Invalid character in the folding path. Only '.', '(', and ')' are allowed.")
                 else:
                     print("Structure is not balanced -> closing/opening brackets don't match")
-                     
+                
         else:
             afp = input_parser(args.input)
             print(f"\n\nInput folding path:\n{afp}\n\n")
@@ -609,12 +643,5 @@ def main():
 
 
 if __name__ == "__main__":
-    #afp = [[1, 0], [2, 2, 1], [3, 0, 3, 2], [4, 4, 3, 2, 1]]
-    #afp = [[1,0],[2,2,1],[3,0,3,2],[4,4,3,2,1],[5,0,3,2,5,4],[6,6,3,2,5,4,1]]
-    #afp = [[1,0],[2,2,1],[3,0,3,2],[4,4,3,2,1],[5,5,0,4,3,1]] currently not possible 
-    #afp = [".","()",".()","(())","(.())","(())()",".()(())",".(.(()))"]
-    #afp = [".","()",".()","()()",".()()"]
-    #afp = [".","()","().","()()","().()","()(())"]
-    #afp = [".","()",".()","()()",".()()","(()())"]
-    #afp = [".","()","().","(())"]
+
     main()
