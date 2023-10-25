@@ -236,7 +236,7 @@ class graph():
                     active_edges.append(edge)
                 else:
                     inactive_edges.append(edge)
-            
+            """
             # Remove inactive edges which are allready taken care of due to the active edges
             for edge in assigned_edges:
                 if edge in active_edges:
@@ -245,11 +245,22 @@ class graph():
                         logger.debug(f"inactive edge {inactive_edge} active edge {edge}")
                         if inactive_edge[0] in edge or inactive_edge[1] in edge:
                             if self.edges[inactive_edge] < self.edges[edge]:    
-                                logger.debug("removed")
+                                logger.debug(f"Removed: {inactive_edge}")
                                 inactive_edges.remove(inactive_edge)
-                                break
-                          
+                                break"""
+
+            
+            for inactive_edge in inactive_edges: #doesnt go through all inactive edges
+                logger.debug(f"Inactive Edge: {inactive_edge}")              
+                for neighbor in self.edge_neighbors[inactive_edge]:
+                    logger.debug(f"Neighbor: {neighbor}")
+                    if neighbor in assigned_edges and neighbor in active_edges and self.edges[inactive_edge] < self.edges[neighbor]:
+                            logger.debug(f"Removed: {inactive_edge}")
+                            inactive_edges.remove(inactive_edge)
                             
+            
+            
+            
             # Sort active edges 
             active_edges.sort(key= lambda x: (x[1]))
             logger.debug(f"Active Edges: {active_edges}")
@@ -358,11 +369,13 @@ class graph():
             domain_seq.append(str(" ".join(node.prefix) + " " + node.middle + " " + " ".join(node.suffix) + " " + "l" + str(x)))
         
         logger.debug(f"Resulting domain seq: {domain_seq}")
+        logger.debug(f"{self.edges}")
 
         return domain_seq
     
     def create_domain_seq(self):
-    
+        
+        logger.debug(f"************************Begin create_domain_seq****************************")
         domains = list(string.ascii_lowercase)
         domains += [x + z for x in string.ascii_lowercase for z in string.ascii_lowercase if 'l' not in (x, z) and 'm' not in (x, z)]
         
@@ -407,15 +420,16 @@ class graph():
             
         
 
-        #Need to implement complementary domains 
+        
 
         for node in self.graph:
+            logger.debug(f"Current Node: {node}")
             if node.complement:
                 node.prefix = [str(domain) + "*" for domain in node.prefix]
                 node.middle += "*"
                 node.suffix = [str(domain) + "*" for domain in node.suffix]
 
-        logger.debug("\nFinished\n")
+        logger.debug("\nCreate Domain Seq Finished\n\n\n")
         logger.debug(self.print_nodes())
 
 #_________Legal_folding_path_checks_______#

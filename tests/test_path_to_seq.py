@@ -2,7 +2,7 @@ import pytest
 import logging
 from copaths.path_to_seq import (graph,
                                      node,
-                                     build_graph,set_verbosity)
+                                     build_graph)
 from copaths.convert_functions import find_connected_modules, path_to_pairtablepath
 
 #setup logger                                      
@@ -146,7 +146,7 @@ def test_1_create_domain_seq(configure_logger):
 
     afp_graph = build_graph(afp_1)
 
-    afp_graph.create_domain_seq()
+    
     domain_seq_1 = afp_graph.get_domain_seq()
 
     assert domain_seq_1 == [' m0*  l0', 'a m0 b l1', 'b* m0* a* l2', 'c m0 d l3', 'd* m0* c* l4', ' m0  l5'], f"Create Domain_seq 1 failed: Result: {domain_seq_1} Solution:  [' m0* ', 'a m0 b', 'c* b* m0* a* e*', 'g e a m0 b c j', 'j* c* b* m0* a* e* g*']"
