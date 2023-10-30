@@ -236,6 +236,7 @@ class graph():
                     active_edges.append(edge)
                 else:
                     inactive_edges.append(edge)
+
             """
             # Remove inactive edges which are allready taken care of due to the active edges
             for edge in assigned_edges:
@@ -249,16 +250,18 @@ class graph():
                                 inactive_edges.remove(inactive_edge)
                                 break"""
 
-            
+            logger.debug(f"Inactive Edges: {inactive_edges}")
+            inactive_edge_to_remove = []
             for inactive_edge in inactive_edges: #doesnt go through all inactive edges
                 logger.debug(f"Inactive Edge: {inactive_edge}")              
                 for neighbor in self.edge_neighbors[inactive_edge]:
                     logger.debug(f"Neighbor: {neighbor}")
                     if neighbor in assigned_edges and neighbor in active_edges and self.edges[inactive_edge] < self.edges[neighbor]:
                             logger.debug(f"Removed: {inactive_edge}")
-                            inactive_edges.remove(inactive_edge)
+                            inactive_edge_to_remove.append(inactive_edge)
                             
-            
+            for edge in inactive_edge_to_remove:
+                inactive_edges.remove(edge)
             
             
             # Sort active edges 
@@ -379,11 +382,11 @@ class graph():
         domains = list(string.ascii_lowercase)
         domains += [x + z for x in string.ascii_lowercase for z in string.ascii_lowercase if 'l' not in (x, z) and 'm' not in (x, z)]
         
-        visited_nodes = {}
+        visited_nodes = []
         for node in self.graph:
             
             current_node = node
-            visited_nodes[current_node] = True
+            visited_nodes.append(current_node)
             logger.debug("____________________"*3)
             logger.debug(f"\n Current Node:  {current_node}\n")
             current_node.middle = "m" + str(node.connected)

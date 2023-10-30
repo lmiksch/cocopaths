@@ -239,7 +239,23 @@ def test_6_create_domain_seq(configure_logger):
 
     pass
 
+def test_7_create_domain_seq(configure_logger):
+     
 
+    print("\n\n\nTest 6\n\n\n")
+        
+    path = [".","()",".()","()()",".()()"]
+    
+    afp_graph = build_graph(path)
+
+    
+    domain_seq_7 = afp_graph.get_domain_seq()
+    
+
+    assert  domain_seq_7  == [' m0*  l0', 'a m0 b l1', 'c* b* m0* a* d* l2', 'e d a m0 b c f l3', 'f* c* b* m0* a* d* e* l4'], f"Create domain_seq_7 failed Result: {domain_seq_7},Solution: [' m0*  l0', 'a m0 b l1', 'c* b* m0* a* d* l2', 'e d a m0 b c f l3', 'f* c* b* m0* a* d* e* l4']"
+
+    pass
+ 
 
 
 if __name__ == '__main__':
