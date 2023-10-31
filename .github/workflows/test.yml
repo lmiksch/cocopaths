@@ -1,0 +1,27 @@
+name: Python Tests
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9  # You can specify your desired Python version
+
+ 
+    - name: Run pytest
+      run: |
+        pytest  # Or specify the pytest command you use
+      working-directory: ./cofolds
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
