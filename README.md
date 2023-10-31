@@ -97,7 +97,7 @@ $ pytest
        - 33 Remove inactive_edge from inactive_edges
    - 34 Sort active_edges based on occurrence in ascending order
 
-35. For each active_edge in active_edges:
+35. For each active_edge in active_edges: # Step 35/44 -> identical Substructures check
    - 36 If the edge is in assigned_edges:
      - 37 For each inactive_edge in inactive_edges:
        - 38 If the weight of active_edge is less than inactive_edge and inactive_edge is in assigned_edges:
