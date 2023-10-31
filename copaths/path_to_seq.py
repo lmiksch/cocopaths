@@ -156,11 +156,13 @@ class graph():
             if edge[1] <= step_number + 1:
                 current_edges.append(edge)
         return current_edges
-        
+    """ 
+    Creates Inequalities based on the abstract folding path and the graph
+    currently not used due to the get_weights function   
+    
     def get_inequalities(self,afp):
-        """Creates Inequalities based on the abstract folding path and the graph
-        currently not used due to the get_weights function
-        """
+        
+        
         
         inequalities = []
 
@@ -214,7 +216,7 @@ class graph():
             final_inequalities.append(f"{left} > {right}")
 
         return(final_inequalities)
-
+        """ 
 #_________Weights_and_domainseq______#
 
     def get_weights(self,afp):
@@ -342,8 +344,10 @@ class graph():
         for node in self.graph:
             if node.name == node_name:
                 return node
-        return None
+            
 
+        return None
+    """
     def add_weights_to_graph(self,edge_weights):
         
         max_weights = {}
@@ -358,6 +362,7 @@ class graph():
             if node.name in max_weights:
                 node.max_weight = max_weights[node.name]
         logger.debug(self.print_nodes())
+    """
     
     def get_domain_seq(self):
         """Returns the domain level sequence of the abstract folding path in form of a List.

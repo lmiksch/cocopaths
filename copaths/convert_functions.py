@@ -15,6 +15,7 @@ def is_balanced_structure(s):
     
     return len(stack) == 0
 
+
 def path_to_pairtablepath(path):
     """ Function which turns a structural path in dot bracket annotation into a pairtable path
 
@@ -22,8 +23,8 @@ def path_to_pairtablepath(path):
         path(list): List of the folding path in dot bracket
     output: 
         pairtable_path(List): List of the folding path using the pairtable annotation
-
     """
+    
     
     pairtable_path = [[] for x in path]
     pairtable_path[0] = [1,0]
@@ -51,6 +52,8 @@ def path_to_pairtablepath(path):
                         match = True
                     
     return pairtable_path
+
+
 
 def pairtable_to_path(pairtable):
     """Gives out a dot-bracket path 
@@ -467,22 +470,4 @@ def find_connected_modules(afp):
 
 if __name__=="__main__":
 
-    #print("convert_functions")
-    #print(path_to_pairtablepath(['.', '()', '.()', '(())']))
-
-
-    #get_module_fp_sequences("AAABBBBBCCCLLLCCCBBBBBAAALLLBBBBBBBBBB")
-    #print(extended_domain_path("vbulj*d*a*b*c*e*k*ltmifcbaghnslr*o*h*g*a*b*c*f*i*p*q*lzwqpifcbaghorxyly*x*r*o*h*g*a*b*c*f*i*p*q*w*z*lkecbadjlu*b*v*lblb*"))
-
-    #print(UL_list("a aa* c av* a d e b b* bbb*".split()))
-    #only_b_domainfp("b   l  A B C  l  c b a".split(),[['..'], ['(..)..'], ['..(((.)))']])
-    #print(differnt_l_domains("l l l l l l l l l l")),, "
-    #print(afp_to_domainfp([["."],["()"]],domain_seq="b l b* a* l"))
-    #print(afp_to_domainfp([["."],["()"],[".()"],["()()"],[".()()"],["()()()"],[".()()()"],["()()()()"],[".()()()()"],["()()()()()"],[".()()()()()"],["()()()()()()"]],domain_seq="b   l   b* a*  l  a b c  l  c* b* a* d*  l  d a b c e  l  e* c* b* a* d* f*  l  f d a b c   e g  l  g* e* c* b* a* d* f* h*  l  h f d a b c   e   g i  l  i* g* e* c* b* a* d* f* h* j*  l  j h f d a b c   e   g   i  l   b* ".split())
-    #print(extended_domain_path(("b   l   b* a*  l  a b c  l  c* b* a* d*  l  d a b c e  l  e* c* b* a* d* f*  l  f d a b c   e g  l  g* e* c* b* a* d* f* h*  l  h f d a b c   e   g i  l  i* g* e* c* b* a* d* f* h* j*  l  j h f d a b c   e   g   i  l   b* ").split()))
-    #print(afp_to_domainfp([["."],["()"],["()."],["(())"]],"a b c l b* a* l b l c* b* a* "))
-
-
-    print(find_connected_modules([[0, 0], [2, 2, 1], [3, 2, 1, 0], [4, 0, 0, 4, 3],[5,0,0,0,0,0],[6,0,0,0,0,6,5]]))
-    print(extended_domain_path(convert_UL_list("b l0 b* a* l1 a b c l2 c* b* a* d* l3 d a b c e l4 e* c* b* a* d* f* l5 f d a b c e g l6 g* e* c* b* a* d* f* h* l7 h f d a b c e g i l8".split())))
-                
+    print(" ")

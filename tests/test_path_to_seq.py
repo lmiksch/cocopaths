@@ -89,6 +89,27 @@ def test_bipartite_check(configure_logger):
     bipartite_result = g.bipartite_check(connected_components)
     assert bipartite_result == True,f"Bipartite Check 3 failed result is {g.bipartite_check(connected_components)}"
 
+    afp = [[1,0],[2,0,0],[3,0,3,2],[4,0,0,4,3],[5,0,5,4,3,2]]
+    
+    g = graph()
+    g.create_nodes_from_pairtable(afp)
+
+    nodes = list(g.graph.keys())
+    nodes.insert(0,0)
+    g.create_edges(afp,nodes)
+    g.get_edges()
+    
+    connected_components = find_connected_modules(afp)
+    
+    
+    g.print_nodes()
+    bipartite_result = g.bipartite_check(connected_components)
+    assert bipartite_result == True,f"Bipartite Check 4 failed result is {g.bipartite_check(connected_components)}"
+
+
+
+
+
     pass
 
 def test_pseudoknot_attack(configure_logger):
