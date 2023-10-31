@@ -23,7 +23,7 @@ jobs:
 
     - name: Run pytest
       run: |
-        pytest  # Or specify the pytest command you use
+        pytest --cov=copaths tests/ --cov-report xml # Or specify the pytest command you use
       working-directory: .
 
     - name: Upload coverage reports to Codecov
