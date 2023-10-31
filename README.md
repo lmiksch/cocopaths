@@ -74,11 +74,11 @@ $ pytest
    - 13 Create a stack to keep track of nodes to visit
    - 14 Push the first node onto the stack
    - 15 Create an empty set to store visited nodes
-   -  16 While the stack is not empty:
-     - 17 Pop a node from the stack and mark it as visited
-     - 18 Assign the node as complementary
-     - 19 For each unvisited neighbor of the current node:
-       - 20 Push the neighbor onto the stack
+   - 16 While the stack is not empty:
+      - 17 Pop a node from the stack and mark it as visited
+      - 18 Assign the node as complementary
+      - 19 For each unvisited neighbor of the current node:
+        - 20 Push the neighbor onto the stack
    - 21 If not all nodes are visited:
      - 22 Raise an error (complementary assignment not possible)
 
