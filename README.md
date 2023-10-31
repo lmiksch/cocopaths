@@ -1,5 +1,5 @@
 # copaths
-
+[![codecov](https://codecov.io/gh/lmiksch/copaths/graph/badge.svg?token=6PVQSOEK8R)](https://codecov.io/gh/lmiksch/copaths)
 ## Other name ideas
 - CocoPaths - general package
 - CocoFold - path to domain seq generator
