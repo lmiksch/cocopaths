@@ -1,5 +1,7 @@
 # copaths
 [![codecov](https://codecov.io/gh/lmiksch/copaths/graph/badge.svg?token=6PVQSOEK8R)](https://codecov.io/gh/lmiksch/copaths)
+
+Low coverage results from redundant code from CoFPT. 
 ## Other name ideas
 - CocoPaths - general package
 - CocoFold - path to domain seq generator
