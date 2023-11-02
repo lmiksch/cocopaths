@@ -35,10 +35,24 @@ For development purpose:
 $ pip -e .
 ```
 
-afterwards use pytest to verify that all tests are working:
+Afterwards use pytest to verify that all tests are working:
 ```bash
 $ pytest
 ```
+
+After installation you can try if the script is installed by using:
+```bash
+copaths --help
+```
+
+the abstract folding path(AFP) can be either put in as a .txt file or directly in the terminal
+
+The AFP must have following propperties to be translated to a domain level sequence:
+  - Pseudoknot-Free
+  - Structure must be fully saturated
+  - If a structure was defined it can't be changed if no additional step influences the defined substructure
+
+
 # Pseudocode for Copaths
 
 ## Initialize the graph
@@ -59,18 +73,18 @@ $ pytest
 
 6. Check for Pseudoknot-attack in the AFP
 
-## Node Creation and Edge Addition
+### Node Creation and Edge Addition
 
 7. For each step in reverse(AFP):
    - 8 If two nodes are paired in the AFP:
      - 9 Create an edge between the paired nodes and name it based on the nodes
      - 10 Add the edge to graph G
 
-## Find Connected Graphs
+### Find Connected Graphs
 
 11. Divide G into connected subgraphs and store them in connected_graphs
 
-## Complementary Node Assignment
+### Complementary Node Assignment
 
 12. For each connected_graph in connected_graphs:
    - 13 Create a stack to keep track of nodes to visit
@@ -84,7 +98,7 @@ $ pytest
    - 21 If not all nodes are visited:
      - 22 Raise an error (complementary assignment not possible)
 
-## Weight Assignment
+### Weight Assignment
 
 23. Create a dictionary called assigned_edges
 24. For each step in AFP:
@@ -120,7 +134,7 @@ $ pytest
        - 52 Add the current_edge and edge to assigned_edges
        - 53 Remove inactive_edge from inactive_edges if it neighbors the current_edge
 
-## Domain Sequence Creation
+### Domain Sequence Creation
 
 54. Create a list called domains consisting of all possible 2-char combinations of the alphabet
 55. Remove entries in domains that contain 'l' or 'm'

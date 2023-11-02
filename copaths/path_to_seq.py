@@ -1,5 +1,6 @@
 from typing import Any
 import re,argparse, logging
+from . import __version__
 
 try:
     from collections import deque
@@ -493,15 +494,6 @@ class graph():
 
 
       
-"""Modules in Graph as nodes first initialize 
-
-
-Args:
-    afp(list): each entry in the list corresponds to one step in the abstract folding path the input can either be dot-bracket annotated or as a pairtable should be in list 
-
-    
-"""
-
 
 def build_graph(afp):
 
@@ -553,9 +545,7 @@ def build_graph(afp):
     if not afp_graph.bipartite_check(connected_components):
         raise ImportError("Graph not Bipartite can't design domain level sequence. Check your input")
 
-    #print("\nBipartite Check Complete:")
-    #for x in afp_graph.graph:
-        #print(x)
+    
     
     afp_graph.get_weights(afp=pairtable_afp)
 
@@ -594,9 +584,15 @@ def input_parser(file_path):
 def main():
         #_________________Argparse_________________#
         parser = argparse.ArgumentParser(
-            formatter_class = argparse.ArgumentDefaultsHelpFormatter,
-            description="Copaths path_to_seq: generates a domain level sequence based on an abstract folding path"
-        )
+            formatter_class = argparse.RawDescriptionHelpFormatter,
+            description=f"""Copaths path_to_seq version {__version__}: generates a domain level sequence based on an abstract folding path 
+
+
+The AFP must have following propperties to be translated to a domain level sequence:
+            - Pseudoknot-Free
+            - Structure must be fully saturated
+            - If a structure was defined it cant be changed if no additional step influences the defined substructure"""
+                        )
 
         parser.add_argument("-i","--input",help="Reads txt file as input if not specified user can input via console.")
         parser.add_argument("-v", "--verbose",type = int, default = 0,
