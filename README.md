@@ -1,15 +1,6 @@
-# copaths
+# Cocopaths - A Compiler for contranscriptional folding pathways
+
 [![codecov](https://codecov.io/gh/lmiksch/copaths/graph/badge.svg?token=6PVQSOEK8R)](https://codecov.io/gh/lmiksch/copaths)
-
-## Other name ideas
-- CocoPaths - general package
-- CocoFold - path to domain seq generator
-- CocoTranslator
-- copat
-- CoFoldify
-- CoTranscripter
-- CoPathCompiler
-
 
 ## Getting Started
 To install the package you need to clone the repository using git: 
