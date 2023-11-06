@@ -4,7 +4,7 @@ from . import __version__
 
 try:
     from collections import deque
-    from copaths.convert_functions import (path_to_pairtablepath, find_connected_modules,is_balanced_structure)
+    from cocopaths.utils import (path_to_pairtablepath, find_connected_modules,is_balanced_structure)
     import string
 except:
     pass

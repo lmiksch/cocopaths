@@ -1,9 +1,9 @@
 import pytest
 import logging
-from copaths.path_to_seq import (graph,
+from cocopaths.cocopaths import (graph,
                                      node,
                                      build_graph)
-from copaths.convert_functions import find_connected_modules, path_to_pairtablepath
+from cocopaths.utils import find_connected_modules, path_to_pairtablepath
 
 #setup logger                                      
 @pytest.fixture(scope="function")
