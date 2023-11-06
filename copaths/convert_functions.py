@@ -24,7 +24,6 @@ def path_to_pairtablepath(path):
         pairtable_path(List): List of the folding path using the pairtable annotation
 
     """
-    
     pairtable_path = [[] for x in path]
     pairtable_path[0] = [1,0]
     for x in range(1,len(path)):

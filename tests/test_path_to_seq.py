@@ -18,7 +18,6 @@ def configure_logger():
     logger.handlers = []
 
 
-
 def test_get_edges(configure_logger):
     
     afp = [[1, 0], [2, 2, 1], [3, 0, 3, 2], [4, 4, 3, 2, 1]]

@@ -42,7 +42,12 @@ $ pytest
 
 After installation you can try if the script is installed by using:
 ```bash
-copaths --help
+$ copaths --help
+```
+
+The script gets called by using:
+```bash
+$ copaths 
 ```
 
 the abstract folding path(AFP) can be either put in as a .txt file or directly in the terminal
