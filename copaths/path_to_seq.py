@@ -62,19 +62,6 @@ class graph():
             new_node = node(x)
             self.add_node(new_node)
 
-    def dfs(self, start_node):
-        visited = set()
-
-        def dfs_recursive(node):
-            visited.add(node.name)
-            logger.debug(node.name)
-
-            for neighbor in node.neighbors:
-                if neighbor.data not in visited:
-                    dfs_recursive(neighbor)
-
-        dfs_recursive(start_node)
-
     def print_nodes(self):
         return "\n".join([str(node) for node in self.graph])
 
@@ -157,6 +144,7 @@ class graph():
             if edge[1] <= step_number + 1:
                 current_edges.append(edge)
         return current_edges
+    
     """ 
     Creates Inequalities based on the abstract folding path and the graph
     currently not used due to the get_weights function   
@@ -480,21 +468,7 @@ class graph():
                         return True
                     
             return False
-    
-    def different_substructures_detection(self,pairtable):
-        """Detects if an occuring substructure was allready defined and can therfore not be used
-        
-        """
-
-
-        for x,step in enumerate(pairtable[1:],start = 1):
-            for i in range(1,len(step)):
-                for struct in pairtable[1:x]: 
-                    x = 2
-
-
       
-
 def build_graph(afp):
 
     if afp[0][0] == ".":
