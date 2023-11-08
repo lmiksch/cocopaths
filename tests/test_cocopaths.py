@@ -106,10 +106,8 @@ def test_bipartite_check(configure_logger):
     assert bipartite_result == True,f"Bipartite Check 4 failed result is {g.bipartite_check(connected_components)}"
 
 
-
-
-
     pass
+
 
 def test_pseudoknot_attack(configure_logger):
 
@@ -155,6 +153,13 @@ def test_3_different_substructures(configure_logger):
      
     with pytest.raises(SystemExit):
         path = [".","()","().","(())","()()."]
+
+        afp_graph = build_graph(path)
+
+def test_4_different_substructures(configure_logger):
+     
+    with pytest.raises(SystemExit):
+        path = [".","()",".()","()()","()().",".()()."]
 
         afp_graph = build_graph(path)
 
@@ -275,7 +280,7 @@ def test_7_create_domain_seq(configure_logger):
     assert  domain_seq_7  == [' m0*  l0', 'a m0 b l1', 'c* b* m0* a* d* l2', 'e d a m0 b c f l3', 'f* c* b* m0* a* d* e* l4'], f"Create domain_seq_7 failed Result: {domain_seq_7},Solution: [' m0*  l0', 'a m0 b l1', 'c* b* m0* a* d* l2', 'e d a m0 b c f l3', 'f* c* b* m0* a* d* e* l4']"
 
     pass
- 
+
 
 
 if __name__ == '__main__':

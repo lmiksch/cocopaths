@@ -228,22 +228,10 @@ class graph():
                 else:
                     inactive_edges.append(edge)
 
-            """
-            # Remove inactive edges which are allready taken care of due to the active edges
-            for edge in assigned_edges:
-                if edge in active_edges:
-                    
-                    for inactive_edge in inactive_edges:
-                        logger.debug(f"inactive edge {inactive_edge} active edge {edge}")
-                        if inactive_edge[0] in edge or inactive_edge[1] in edge:
-                            if self.edges[inactive_edge] < self.edges[edge]:    
-                                logger.debug(f"Removed: {inactive_edge}")
-                                inactive_edges.remove(inactive_edge)
-                                break"""
 
             logger.debug(f"Inactive Edges: {inactive_edges}")
             inactive_edge_to_remove = []
-            for inactive_edge in inactive_edges: #doesnt go through all inactive edges
+            for inactive_edge in inactive_edges: 
                 logger.debug(f"Inactive Edge: {inactive_edge}")              
                 for neighbor in self.edge_neighbors[inactive_edge]:
                     logger.debug(f"Neighbor: {neighbor}")
@@ -253,6 +241,8 @@ class graph():
                             
             for edge in inactive_edge_to_remove:
                 inactive_edges.remove(edge)
+                if edge not in assigned_edges:
+                    assigned_edges[edge] = 1
             
             
             # Sort active edges 
@@ -520,7 +510,7 @@ def build_graph(afp):
         raise ImportError("Graph not Bipartite can't design domain level sequence. Check your input")
 
     
-    
+    graph.print_nodes
     afp_graph.get_weights(afp=pairtable_afp)
 
 
