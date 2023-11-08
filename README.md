@@ -106,6 +106,8 @@ The AFP must have following propperties to be translated to a domain level seque
    - 30 For each inactive_edge in inactive_edges (remove inactive edges that are already taken care of due to active edges):
      - 31 If the inactive_edge neighbors an active_edge in assigned_edges and the weight of the inactive_edge is less than active_edge:
        - 32 Remove inactive_edge from inactive_edges
+       - if edge hasn't been assigned:
+          - inactive_edge.weight = 1
    - 33 Sort active_edges based on occurrence in ascending order
 
 34. For each active_edge in active_edges, that is also in assigned: # Different Substructure check:
