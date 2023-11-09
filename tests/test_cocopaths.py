@@ -1,8 +1,11 @@
 import pytest
 import logging
+import os 
+import re
 from cocopaths.cocopaths import (graph,
                                      node,
-                                     build_graph)
+                                     build_graph,
+                                     input_parser)
 from cocopaths.utils import find_connected_modules, path_to_pairtablepath
 
 #setup logger                                      
@@ -17,6 +20,47 @@ def configure_logger():
     yield
     logger.handlers = []
 
+@pytest.fixture
+def sample_input(tmpdir):
+    sample_content = """
+        .
+        ()
+        .()
+    """
+    file_path = tmpdir.join("sample_input.txt")
+    file_path.write_text(sample_content, encoding="utf-8")
+    return str(file_path)
+
+def test_input_parser_existing_file(sample_input):
+    result = input_parser(sample_input)
+    print(result)
+    assert len(result) == 3
+    assert result == ['.', '()', '.()']
+
+def test_input_parser_empty_file(tmpdir):
+    empty_file_path = tmpdir.join("empty_file.txt")
+    empty_file_path.write_text("# Comment\n", encoding="utf-8")
+    with pytest.raises(SystemExit):
+        result = input_parser(str(empty_file_path))
+    
+    # Add more assertions if needed
+
+def test_input_parser_nonexistent_file():
+    non_existent_file = "nonexistent_file.txt"
+    with pytest.raises(SystemExit):
+        input_parser(non_existent_file)
+
+def test_input_parser_invalid_content(tmpdir):
+    invalid_content = """
+        .
+        abc
+        ()
+        .()
+    """
+    file_path = tmpdir.join("invalid_content.txt")
+    file_path.write_text(invalid_content, encoding="utf-8")
+    result = input_parser(str(file_path))
+    assert result == ['.', '()', '.()']
 
 def test_get_edges(configure_logger):
     
@@ -157,11 +201,23 @@ def test_3_different_substructures(configure_logger):
         afp_graph = build_graph(path)
 
 def test_4_different_substructures(configure_logger):
-     
+    
     with pytest.raises(SystemExit):
         path = [".","()",".()","()()","()().",".()()."]
 
         afp_graph = build_graph(path)
+        afp_graph.verify_weights(path)
+
+
+def test_5_different_substructures(configure_logger):
+    
+    with pytest.raises(SystemExit):
+        path = [".","()",".()","()()",".()()"]
+
+        afp_graph = build_graph(path)
+        afp_graph.verify_weights(path)
+
+
 
 def test_1_create_domain_seq(configure_logger):
        

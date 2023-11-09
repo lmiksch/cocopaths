@@ -206,7 +206,7 @@ class graph():
 
         return(final_inequalities)
         """ 
-#_________Weights_and_domainseq______#
+#_________Weights______#
 
     def get_weights(self,afp):
         
@@ -249,7 +249,7 @@ class graph():
             active_edges.sort(key= lambda x: (x[1]))
             logger.debug(f"Active Edges: {active_edges}")
             logger.debug(f"Inactive Edges: {inactive_edges}")  
-
+            """
             # Check for different substructures
             for edge in active_edges:
                 if edge in assigned_edges:
@@ -259,15 +259,15 @@ class graph():
                         if self.edges[edge] < self.edges[inactive] and inactive_edge in assigned_edges:
                             no_assigned_neighbor_flag = False
                             for neighbor in self.edge_neighbors[inactive]:
-                                logger.debug(f"Neighbor: {neighbor}Edge weight: {self.edges[neighbor]}")
+                                logger.debug(f"Neighbor: {neighbor} Edge weight: {self.edges[neighbor]}")
                                 if neighbor not in assigned_edges:
                                     no_assigned_neighbor_flag = True
-                                    logger.debug(f"Neighbor: {neighbor}, assigend = {assigned_edges}")
+                                    logger.debug(f"Neighbor: {neighbor}, assigned = {assigned_edges}")
                                 
 
                             if not no_assigned_neighbor_flag:
                                 raise SystemExit(f"\nFolding Path invalid. Following step: {step} not possible")
-
+            """
             while len(inactive_edges) != 0: 
                 logger.debug(f"\nBegin weighting edges: {inactive_edges}")
                 current_edge = active_edges.pop()
@@ -326,23 +326,55 @@ class graph():
             
 
         return None
-    """
-    def add_weights_to_graph(self,edge_weights):
-        
-        max_weights = {}
-        for edge, weight in edge_weights.items():
-            for node in edge:
-                max_weights[node] = max(max_weights.get(node, 0), weight)
-                self.edges[edge] = weight
-        logger.debug(max_weights)
+
+
+    def verify_weights(self,afp):
+        """
+        Function to verify if the afp can be formed based on the edge weights alone
+        """
+
+        assigned_edges = {}
+        for x,step in enumerate(afp[1:],start=1): 
+            collected_edges = self.get_current_edges(x)
+            logger.debug("--"*50)
+            logger.debug(f"\nAssigned Edges: {assigned_edges}\n")
+            logger.debug(f"\nCollected Edges: {collected_edges}")
+            logger.debug(f"Current Step: {step}")
+            active_edges = []
+            inactive_edges = []
+            
+            # Get active and inactive edges
+            for edge in collected_edges:
+                if step[edge[0]] == edge[1] and step[int(edge[1])] == int(edge[0]):
+            
+                    active_edges.append(edge)
+                else:
+                    inactive_edges.append(edge)
+
+
+            while len(inactive_edges) != 0:
+                curr_edge = inactive_edges.pop()
+                
+
+                current_neighbors = [neighbor for neighbor in self.edge_neighbors[curr_edge] if neighbor in active_edges]
+
+                max_weight = float("-inf")
+
+                for neighbor in current_neighbors:
+                    if self.edges[neighbor] > max_weight:
+                        max_weight = self.edges[neighbor]
+
+                if self.edges[curr_edge] > max_weight:
+                    raise SystemExit(f"Folding path not possible in this step: {step}")
+
 
                 
-        for node in self.graph:
-            if node.name in max_weights:
-                node.max_weight = max_weights[node.name]
-        logger.debug(self.print_nodes())
-    """
-    
+                    
+
+
+
+
+    #_________Weights______#
     def get_domain_seq(self):
         """Returns the domain level sequence of the abstract folding path in form of a List.
 
@@ -514,6 +546,9 @@ def build_graph(afp):
     afp_graph.get_weights(afp=pairtable_afp)
 
 
+    afp_graph.verify_weights(afp=pairtable_afp)
+
+
     return afp_graph
 
 def set_verbosity(console_handler,verbosity):
@@ -529,17 +564,22 @@ def set_verbosity(console_handler,verbosity):
 def input_parser(file_path):
     try:
         with open(file_path, 'r') as file:
-            lines = file.readlines()
-            lines = [line.strip() for line in lines if re.match(r'^[0-9,().]*$', line) and not line.startswith('#')]
-            
+            file_content = file.read()  # Add this line to print the file content
+            print(f"File Content: {file_content}")
+
+            lines = file_content.split('\n')  # Split lines based on newline characters
+            lines = [line.strip() for line in lines]  # Remove leading and trailing whitespace
+
+            # Filter lines based on the regex pattern
+            lines = [line.strip() for line in lines if re.match(r'^[0-9,().\[\]]+$', line) and not line.startswith('#')]
             if not lines:
                 raise SystemExit("File is empty. Here is your sequence: ")
 
             return lines
 
-
     except FileNotFoundError:
         print(f"Error: The file '{file_path}' was not found.")
+        raise SystemExit("File not Found")
         return []
     except Exception as e:
         print(f"An error occurred: {str(e)}")
