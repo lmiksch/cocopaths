@@ -32,4 +32,4 @@ dev = [
 ]
 
 [project.urls]
-Home = "https://github.com/lmiksch/copaths"
+Home = "https://github.com/lmiksch/cocopaths"

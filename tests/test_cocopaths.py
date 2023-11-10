@@ -333,24 +333,8 @@ def test_5_create_domain_seq(configure_logger):
 
     pass 
 
+
 def test_6_create_domain_seq(configure_logger):
-     
-
-    print("\n\n\nTest 6\n\n\n")
-        
-    path = [".","..",".()","(())","(()).","(()())"]
-    
-    afp_graph = build_graph(path)
-
-    
-    domain_seq_6 = afp_graph.get_domain_seq()
-    
-
-    assert  domain_seq_6  == ['a* b* m0* c* d* l0', ' m1*  l1', ' m1  l2', 'c m0 b l3', ' m0*  l4', 'd c m0 b a l5'], f"Create domain_seq_6 failed Result: {domain_seq_6},Solution: ['a* b* m0* c* d* l0', ' m1*  l1', ' m1  l2', 'c m0 b l3', ' m0*  l4', 'd c m0 b a l5']"
-
-    pass
-
-def test_7_create_domain_seq(configure_logger):
      
 
     print("\n\n\nTest 6\n\n\n")
@@ -360,10 +344,46 @@ def test_7_create_domain_seq(configure_logger):
     afp_graph = build_graph(path)
 
     
+    domain_seq_6 = afp_graph.get_domain_seq()
+    
+
+    assert  domain_seq_6  == [' m0*  l0', 'a m0 b l1', 'c* b* m0* a* d* l2', 'e d a m0 b c f l3', 'f* c* b* m0* a* d* e* l4'], f"Create domain_seq_7 failed Result: {domain_seq_7},Solution: [' m0*  l0', 'a m0 b l1', 'c* b* m0* a* d* l2', 'e d a m0 b c f l3', 'f* c* b* m0* a* d* e* l4']"
+
+    pass
+
+def test_7_create_domain_seq(configure_logger):
+     
+
+    print("\n\n\nTest 7\n\n\n")
+        
+    path = [".","()",".()","(())","(())."]
+    
+    afp_graph = build_graph(path)
+
+    
     domain_seq_7 = afp_graph.get_domain_seq()
     
 
-    assert  domain_seq_7  == [' m0*  l0', 'a m0 b l1', 'c* b* m0* a* d* l2', 'e d a m0 b c f l3', 'f* c* b* m0* a* d* e* l4'], f"Create domain_seq_7 failed Result: {domain_seq_7},Solution: [' m0*  l0', 'a m0 b l1', 'c* b* m0* a* d* l2', 'e d a m0 b c f l3', 'f* c* b* m0* a* d* e* l4']"
+    assert  domain_seq_7  == [' m0*  l0', 'a m0 b l1', 'b* m0* a* l2', ' m0  l3', ' m1*  l4']
+
+    pass
+
+
+
+def test_8_create_domain_seq(configure_logger):
+     
+
+    print("\n\n\nTest 8\n\n\n")
+        
+    path = [".","()","().","(())"]
+    
+    afp_graph = build_graph(path)
+
+    
+    domain_seq_8 = afp_graph.get_domain_seq()
+    
+
+    assert  domain_seq_8  == [' m0*  l0', 'a m0 b l1', 'b* m0* a* l2', ' m0  l3', ' m1*  l4']
 
     pass
 
