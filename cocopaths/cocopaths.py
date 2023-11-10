@@ -565,7 +565,7 @@ def input_parser(file_path):
     try:
         with open(file_path, 'r') as file:
             file_content = file.read()  # Add this line to print the file content
-            print(f"File Content: {file_content}")
+            
 
             lines = file_content.split('\n')  # Split lines based on newline characters
             lines = [line.strip() for line in lines]  # Remove leading and trailing whitespace

@@ -2,10 +2,12 @@ import pytest
 import logging
 import os 
 import re
+from unittest.mock import patch
 from cocopaths.cocopaths import (graph,
                                      node,
                                      build_graph,
-                                     input_parser)
+                                     input_parser,
+                                     main)
 from cocopaths.utils import find_connected_modules, path_to_pairtablepath
 
 #setup logger                                      
@@ -61,6 +63,18 @@ def test_input_parser_invalid_content(tmpdir):
     file_path.write_text(invalid_content, encoding="utf-8")
     result = input_parser(str(file_path))
     assert result == ['.', '()', '.()']
+
+def test_main_with_file_input(tmp_path,capsys):
+    input_file = tmp_path / "input.txt"
+    input_content = ".\n()\n.()"
+    input_file.write_text(input_content)
+
+    with patch("sys.argv", ["program_name", "--input", str(input_file)]):
+        main()
+
+    captured = capsys.readouterr()
+    assert "\n\nInput folding path:\n['.', '()', '.()']\n\n\nResulting Domain Level sequence:   m0*  l0 a m0 b l1 b* m0* a* l2\n" in captured.out 
+
 
 def test_get_edges(configure_logger):
     
