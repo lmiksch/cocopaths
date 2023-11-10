@@ -107,51 +107,52 @@ The AFP must have following propperties to be translated to a domain level seque
      - 31 If the inactive_edge neighbors an active_edge in assigned_edges and the weight of the inactive_edge is less than active_edge:
        - 32 Remove inactive_edge from inactive_edges
        - if edge hasn't been assigned:
-          - inactive_edge.weight = 1
-   - 33 Sort active_edges based on occurrence in ascending order
+          - 33 Set inactive_edge.weight = 1
+   - 34 Sort active_edges based on occurrence in ascending order
 
-34. For each active_edge in active_edges, that is also in assigned: # Different Substructure check:
-    - 35 For each inactive_edge in inactive_edges, that is also in assigned:
-      - 36 If the active_edge.weight < inactive_edge.weight:
-          - 37 If every neighbor of the inactive_edge is assigned:
-              - 38 Raise a SystemExit 
+35. While inactive_edges are not empty:
+   - 36 Pop an edge from active_edges (current_edge)
+   - 37 For each edge in inactive_edges:
+     - 38 If the edge neighbors the current_edge and the current_edge is not in assigned_edges:
+       - 39 Get the weights of nodes from the current_edge
+       - 40 Set the weight of the current_edge to the maximum weight of the nodes + 1
+       - 41 Update the node weights to the maximum weight
+       - 42 Add the current_edge and edge to assigned_edges
+       - 43 Remove inactive_edge from inactive_edges if it neighbors the current_edge
 
-39. While inactive_edges are not empty:
-   - 40 Pop an edge from active_edges (current_edge)
-   - 41 For each edge in inactive_edges:
-     - 42 If the edge neighbors the current_edge and the current_edge is not in assigned_edges:
-       - 43 Get the weights of nodes from the current_edge
-       - 44 Set the weight of the current_edge to the maximum weight of the nodes + 1
-       - 45 Update the node weights to the maximum weight
-       - 46 Add the current_edge and edge to assigned_edges
-       - 47 Remove inactive_edge from inactive_edges if it neighbors the current_edge
+### Verify edge weights
+
+44.  For each step in the AFP
+  - 45 Collect active and inactive edges
+  - 46 For each inactive edge:
+    - 47 If the weight of the current inactive edge is greater than the max weight of any neighboring edge:
+      - 48 Raise Error: "Illegal Folding Path" 
 
 ### Domain Sequence Creation
 
-48. Create a list called domains consisting of all possible 2-char combinations of the alphabet
-49. Remove entries in domains that contain 'l' or 'm'
-50. Create a list called visited_nodes
-51. For each node in the graph G:
-   - 52 Append the node to visited_nodes
-   - 53 Set node.middle to 'm' + the index of connected_components
-   - 54 If the weight of the node is greater than 1 and the length of node.prefix is less than node.weight - 1:
-     - 55 Update node.prefix by adding domains[node.weight - 1 - len(node.prefix)] to the beginning
-     - 56 Remove the used entries from domains
-     - 57 Update node.suffix by adding domains[node.weight - 1 - len(node.suffix)] to the end
-     - 58 Remove the used entries from domains
-   - 59 For each neighbor in node.neighbors:
-     - 60 If the neighbor is not in visited_nodes and the neighbor.connected is equal to node.connected:
-       - 61 Calculate the shared_weight as the weight of the edge connecting both nodes
-       - 62 If shared_weight is greater than 1:
-         - 63 Update neighbor.prefix with the last (shared_weight - 1) characters of node.suffix in reverse order
-         - 64 Update neighbor.suffix with the last (shared_weight - 1) characters of node.prefix in reverse order
+49. Create a list called domains consisting of all possible 2-char combinations of the alphabet
+50. Remove entries in domains that contain 'l' or 'm'
+51. Create a list called visited_nodes
+52. For each node in the graph G:
+   - 53 Append the node to visited_nodes
+   - 54 Set node.middle to 'm' + the index of connected_components
+   - 55 If the weight of the node is greater than 1 and the length of node.prefix is less than node.weight - 1:
+     - 56 Update node.prefix by adding domains[node.weight - 1 - len(node.prefix)] to the beginning
+     - 57 Remove the used entries from domains
+     - 58 Update node.suffix by adding domains[node.weight - 1 - len(node.suffix)] to the end
+     - 59 Remove the used entries from domains
+   - 60 For each neighbor in node.neighbors:
+     - 61 If the neighbor is not in visited_nodes and the neighbor.connected is equal to node.connected:
+       - 62 Calculate the shared_weight as the weight of the edge connecting both nodes
+       - 63 If shared_weight is greater than 1:
+         - 64 Update neighbor.prefix with the last (shared_weight - 1) characters of node.suffix in reverse order
+         - 65 Update neighbor.suffix with the last (shared_weight - 1) characters of node.prefix in reverse order
 
-65. For each node in G:
-   - 66 If the node is complementary:
-     - 67 Append a marker (e.g., '*') after every domain
+66. For each node in G:
+   - 67 If the node is complementary:
+     - 68 Append a marker (e.g., '*') after every domain
 
-
-74. Create an empty list called Domain_seq
-75. For each node in the graph:
-   - 76 Concatenate node.prefix, node.middle, and node.suffix into a single
-
+69. Create an empty list called Domain_seq
+70. For each node in the graph:
+   - 71 Concatenate node.prefix, node.middle, and node.suffix into a single string
+   - 72 Append the resulting string to Domain_seq

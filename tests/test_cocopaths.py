@@ -82,8 +82,13 @@ def test_is_balanced_structure():
 
 
     structure_2 = "(("
-    
+
     assert not is_balanced_structure(structure_2)
+
+    structure_3 = "()))"
+    
+    assert not is_balanced_structure(structure_3)
+
 
 
 
