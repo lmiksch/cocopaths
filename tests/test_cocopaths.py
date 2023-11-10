@@ -8,7 +8,7 @@ from cocopaths.cocopaths import (graph,
                                      build_graph,
                                      input_parser,
                                      main)
-from cocopaths.utils import find_connected_modules, path_to_pairtablepath
+from cocopaths.utils import find_connected_modules, path_to_pairtablepath, is_balanced_structure
 
 #setup logger                                      
 @pytest.fixture(scope="function")
@@ -74,6 +74,17 @@ def test_main_with_file_input(tmp_path,capsys):
 
     captured = capsys.readouterr()
     assert "\n\nInput folding path:\n['.', '()', '.()']\n\n\nResulting Domain Level sequence:   m0*  l0 a m0 b l1 b* m0* a* l2\n" in captured.out 
+
+def test_is_balanced_structure():
+    structure_1 = "()()"
+
+    assert is_balanced_structure(structure_1)
+
+
+    structure_2 = "(("
+    
+    assert not is_balanced_structure(structure_2)
+
 
 
 def test_get_edges(configure_logger):
