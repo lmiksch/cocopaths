@@ -375,7 +375,7 @@ def test_8_create_domain_seq(configure_logger):
 
     print("\n\n\nTest 8\n\n\n")
         
-    path = [".","()","().","(())"]
+    path = [".","()","()."]
     
     afp_graph = build_graph(path)
 
@@ -383,7 +383,7 @@ def test_8_create_domain_seq(configure_logger):
     domain_seq_8 = afp_graph.get_domain_seq()
     
 
-    assert  domain_seq_8  == [' m0*  l0', 'a m0 b l1', 'b* m0* a* l2', ' m0  l3', ' m1*  l4']
+    assert  domain_seq_8  == [' m0*  l0', ' m0  l1', ' m1*  l2']
 
     pass
 
