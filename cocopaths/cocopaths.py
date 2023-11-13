@@ -1,13 +1,12 @@
 from typing import Any
 import re,argparse, logging
-from . import __version__
+from cocopaths import __version__
 
-try:
-    from collections import deque
-    from cocopaths.utils import (path_to_pairtablepath, find_connected_modules,is_balanced_structure)
-    import string
-except:
-    pass
+
+from collections import deque
+from .utils import (path_to_pairtablepath, find_connected_modules,is_balanced_structure)
+import string
+
 
 
 #______define_logger______#

@@ -100,8 +100,61 @@ def find_connected_modules(afp):
                 
                 
     print("Error Something went wrong please check input")
-            
-            
+
+
+def cv_db2kernel(domain_seq,dot_bracket_seq):
+    """
+    Takes a dot-bracket sequence and a domain level sequence and converts it into a kernel annotated sequence.
+
+    Args:
+        domain_seq(str): domain level seq with space annotation
+        dot_bracket_seq(str): dot bracket seq 
+
+    Returns: 
+        kernel_seq(str): kernel annotated string with space annotation
+    """
+    print(f"Domain Seq: {domain_seq}, dot_bracket: {dot_bracket_seq}")
+
+    
+    split_dot_bracket = list(dot_bracket_seq)
+
+    bps = dot_bracket_seq.count('(')
+    kernel_annotation = [[] for x in split_dot_bracket]
+
+    open_domains = [] 
+
+    for i, i_domain in enumerate(domain_seq):
+
+        if split_dot_bracket[i] == "(":
+            kernel_annotation[i].append(str(i_domain + "("))
+
+        if split_dot_bracket[i] == ")":
+            kernel_annotation[i].append(")")
+    
+        if split_dot_bracket[i] == "." or split_dot_bracket[i] == "x":
+            kernel_annotation[i].append(domain_seq[i])
+        
+    joined_kernel_annotation = []
+    
+    print(f"Kernel_annotation {kernel_annotation}")
+
+
+    for x in kernel_annotation:
+        joined_kernel_annotation.append(x[0])
+
+    print(" ".join(joined_kernel_annotation))
+
+    return " ".join(joined_kernel_annotation)
+
+
+
+def is_star_pair(a,b):
+    """Checks if two domain pair in Star Annotation"""
+    if a[0] == b[0]:
+        if len(a) < len(b) or len(a) > len(b):
+            return True
+        
+
 
 
 
