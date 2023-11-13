@@ -6,7 +6,7 @@ To install the package you need to clone the repository using git:
 
 ```bash
 # Clone this repository
-$ git clone https://github.com/lmiksch/CoFPT
+$ git clone https://github.com/lmiksch/cocopaths
 
 #Change your directory 
 $ cd copaths
@@ -15,13 +15,13 @@ $ cd copaths
 The package can then be installed via pip:
 
 ```bash
-$ pip .
+$ pip install .
 ```
 
 For development purpose:
 
 ```bash
-$ pip -e .
+$ pip install -e .
 ```
 
 Afterwards use pytest to verify that all tests are working:
