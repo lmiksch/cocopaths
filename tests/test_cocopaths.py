@@ -73,7 +73,7 @@ def test_main_with_file_input(tmp_path,capsys):
         main()
 
     captured = capsys.readouterr()
-    assert "\n\nInput folding path:\n['.', '()', '.()']\n\n\nResulting Domain Level sequence:   m0*  l0 a m0 b l1 b* m0* a* l2\n" in captured.out 
+    assert "\n\nInput folding path:\n['.', '()', '.()']\n\n\nResulting Domain Level sequence:   L0*  S0 a L0 b S1 b* L0* a* S2\n" in captured.out 
 
 def test_is_balanced_structure():
     structure_1 = "()()"
@@ -260,7 +260,7 @@ def test_1_create_domain_seq(configure_logger):
     
     domain_seq_1 = afp_graph.get_domain_seq()
 
-    assert domain_seq_1 == [' m0*  l0', 'a m0 b l1', 'b* m0* a* l2', 'c m0 d l3', 'd* m0* c* l4', ' m0  l5'], f"Create Domain_seq 1 failed: Result: {domain_seq_1} Solution:  [' m0* ', 'a m0 b', 'c* b* m0* a* e*', 'g e a m0 b c j', 'j* c* b* m0* a* e* g*']"
+    assert domain_seq_1 == [' L0*  S0', 'a L0 b S1', 'b* L0* a* S2', 'c L0 d S3', 'd* L0* c* S4', ' L0  S5'], f"Create Domain_seq 1 failed: Result: {domain_seq_1} Solution:  [' m0* ', 'a m0 b', 'c* b* m0* a* e*', 'g e a m0 b c j', 'j* c* b* m0* a* e* g*']"
 
 
     pass
@@ -278,7 +278,7 @@ def test_2_create_domain_seq(configure_logger):
 
 
 
-    assert domain_seq_2 == ['a* b* m0* c* d* l0', 'c m0 b l1', ' m0*  l2', 'd c m0 b a l3'], f"Create domain_seq 2 failed Result: {domain_seq_2}, Solution ['a* b* m0* c* d*', 'c m0 a', ' m0* ', 'd c m0 b a']"
+    assert domain_seq_2 == ['a* b* L0* c* d* S0', 'c L0 b S1', ' L0*  S2', 'd c L0 b a S3'], f"Create domain_seq 2 failed Result: {domain_seq_2}, Solution ['a* b* m0* c* d*', 'c m0 a', ' m0* ', 'd c m0 b a']"
 
     pass
 
@@ -294,7 +294,7 @@ def test_3_create_domain_seq(configure_logger):
     domain_seq_3 = afp_graph.get_domain_seq()
 
 
-    assert domain_seq_3 == [' m0*  l0', ' m0  l1', ' m1*  l2', 'a m1 b l3', 'b* m1* a* l4', ' m1  l5'], f"Create domain_seq 3 failed Result: {domain_seq_3}, Solution: [' m0* ', ' m0 ', ' m1* ', 'a m1 b', 'b* m1* a*', ' m1 ']"
+    assert domain_seq_3 == [' L0*  S0', ' L0  S1', ' L1*  S2', 'a L1 b S3', 'b* L1* a* S4', ' L1  S5'], f"Create domain_seq 3 failed Result: {domain_seq_3}, Solution: [' m0* ', ' m0 ', ' m1* ', 'a m1 b', 'b* m1* a*', ' m1 ']"
 
     pass
 
@@ -311,7 +311,7 @@ def test_4_create_domain_seq(configure_logger):
     domain_seq_4 = afp_graph.get_domain_seq()
     
 
-    assert domain_seq_4 == [' m0*  l0', ' m0  l1', ' m1*  l2', ' m1  l3', ' m2*  l4', ' m2  l5', ' m3*  l6'], f"Create domain_seq 4 failed Result: {domain_seq_4},Solution: [' m0* ', ' m0 ', ' m1* ', ' m1 ', ' m2* ', ' m2 ', ' m3* ']"
+    assert domain_seq_4 == [' L0*  S0', ' L0  S1', ' L1*  S2', ' L1  S3', ' L2*  S4', ' L2  S5', ' L3*  S6'], f"Create domain_seq 4 failed Result: {domain_seq_4},Solution: [' m0* ', ' m0 ', ' m1* ', ' m1 ', ' m2* ', ' m2 ', ' m3* ']"
 
     pass 
 
@@ -327,7 +327,7 @@ def test_5_create_domain_seq(configure_logger):
     domain_seq_5 = afp_graph.get_domain_seq()
     
 
-    assert domain_seq_5 == ['a* b* m0* c* d* l0', 'e m0 f l1', 'f* m0* e* l2', 'c m0 b l3', ' m0*  l4', 'd c m0 b a l5'], f"Create domain_seq 5 failed Result: {domain_seq_5},Solution: ['a* b* m0* c* d* l0', 'e m0 f l1', 'f* m0* e* l2', 'c m0 b l3', ' m0*  l4', 'd c m0 b a l5']"
+    assert domain_seq_5 == ['a* b* L0* c* d* S0', 'e L0 f S1', 'f* L0* e* S2', 'c L0 b S3', ' L0*  S4', 'd c L0 b a S5'], f"Create domain_seq 5 failed Result: {domain_seq_5},Solution: ['a* b* m0* c* d* l0', 'e m0 f l1', 'f* m0* e* l2', 'c m0 b l3', ' m0*  l4', 'd c m0 b a l5']"
 
     
 
@@ -347,7 +347,7 @@ def test_6_create_domain_seq(configure_logger):
     domain_seq_6 = afp_graph.get_domain_seq()
     
 
-    assert  domain_seq_6  == [' m0*  l0', 'a m0 b l1', 'c* b* m0* a* d* l2', 'e d a m0 b c f l3', 'f* c* b* m0* a* d* e* l4'], f"Create domain_seq_7 failed Result: {domain_seq_7},Solution: [' m0*  l0', 'a m0 b l1', 'c* b* m0* a* d* l2', 'e d a m0 b c f l3', 'f* c* b* m0* a* d* e* l4']"
+    assert  domain_seq_6  == [' L0*  S0', 'a L0 b S1', 'c* b* L0* a* d* S2', 'e d a L0 b c f S3', 'f* c* b* L0* a* d* e* S4'], f"Create domain_seq_7 failed Result: {domain_seq_7},Solution: [' m0*  l0', 'a m0 b l1', 'c* b* m0* a* d* l2', 'e d a m0 b c f l3', 'f* c* b* m0* a* d* e* l4']"
 
     pass
 
@@ -364,7 +364,7 @@ def test_7_create_domain_seq(configure_logger):
     domain_seq_7 = afp_graph.get_domain_seq()
     
 
-    assert  domain_seq_7  == [' m0*  l0', 'a m0 b l1', 'b* m0* a* l2', ' m0  l3', ' m1*  l4']
+    assert  domain_seq_7  == [' L0*  S0', 'a L0 b S1', 'b* L0* a* S2', ' L0  S3', ' L1*  S4']
 
     pass
 
@@ -383,7 +383,7 @@ def test_8_create_domain_seq(configure_logger):
     domain_seq_8 = afp_graph.get_domain_seq()
     
 
-    assert  domain_seq_8  == [' m0*  l0', ' m0  l1', ' m1*  l2']
+    assert  domain_seq_8  == [' L0*  S0', ' L0  S1', ' L1*  S2']
 
     pass
 

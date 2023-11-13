@@ -385,7 +385,7 @@ class graph():
         domain_seq = []
 
         for x,node in enumerate(self.graph):
-            domain_seq.append(str(" ".join(node.prefix) + " " + node.middle + " " + " ".join(node.suffix) + " " + "l" + str(x)))
+            domain_seq.append(str(" ".join(node.prefix) + " " + node.middle + " " + " ".join(node.suffix) + " " + "S" + str(x)))
         
         logger.debug(f"Resulting domain seq: {domain_seq}")
         logger.debug(f"{self.edges}")
@@ -405,7 +405,7 @@ class graph():
             visited_nodes.append(current_node)
             logger.debug("____________________"*3)
             logger.debug(f"\n Current Node:  {current_node}\n")
-            current_node.middle = "m" + str(node.connected)
+            current_node.middle = "L" + str(node.connected)
 
             if current_node.max_weight > 1 and len(current_node.prefix) < current_node.max_weight - 1:
                 prefix = domains[:current_node.max_weight - 1 - len(current_node.prefix)] + list(current_node.prefix)
