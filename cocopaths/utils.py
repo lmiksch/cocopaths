@@ -113,7 +113,7 @@ def cv_db2kernel(domain_seq,dot_bracket_seq):
     Returns: 
         kernel_seq(str): kernel annotated string with space annotation
     """
-    print(f"Domain Seq: {domain_seq}, dot_bracket: {dot_bracket_seq}")
+    
 
     
     split_dot_bracket = list(dot_bracket_seq)
@@ -135,16 +135,42 @@ def cv_db2kernel(domain_seq,dot_bracket_seq):
             kernel_annotation[i].append(domain_seq[i])
         
     joined_kernel_annotation = []
+
     
-    print(f"Kernel_annotation {kernel_annotation}")
 
 
     for x in kernel_annotation:
         joined_kernel_annotation.append(x[0])
 
-    print(" ".join(joined_kernel_annotation))
+    
 
     return " ".join(joined_kernel_annotation)
+
+
+def kernel_to_dot_bracket(kernel_seq):
+    """
+    Takes a kernel annotated sequence and converts it back to a dot-bracket sequence.
+
+    Args:
+        kernel_seq(str): kernel annotated string with space annotation
+
+    Returns:
+        dot_bracket_seq(str): dot bracket sequence
+    """
+    kernel_annotations = kernel_seq.split()
+    dot_bracket_seq = ""
+
+    for annotation in kernel_annotations:
+        if "(" in annotation:
+            dot_bracket_seq += "("
+        elif ")" in annotation:
+            dot_bracket_seq += ")"
+        else:
+            dot_bracket_seq += "."
+
+
+    
+    return dot_bracket_seq
 
 
 

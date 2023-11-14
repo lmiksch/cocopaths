@@ -25,6 +25,7 @@ dynamic = ["version"]
 
 [project.scripts]
 cocopaths = "cocopaths.cocopaths:main"
+cocosim = "cocopaths.cocosim:main"
 
 [project.optional-dependencies]
 dev = [
