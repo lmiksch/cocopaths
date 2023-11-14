@@ -11,7 +11,7 @@ import string
 
 #______define_logger______#
 
-logger = logging.getLogger('copaths')
+logger = logging.getLogger('cocopaths')
 console_handler = logging.StreamHandler()
 formatter = logging.Formatter('# %(levelname)s - %(message)s')
 console_handler.setFormatter(formatter)
@@ -128,6 +128,8 @@ class graph():
 
     def bipartite_check(self, connected_components):
         visited_nodes = {}
+
+        logger.debug(f"\n\n\n\n\n\n\nConnected_components {connected_components}\n\n\n\n\n\n\n\n")
         for x, connected in enumerate(connected_components):
             for node in self.graph: 
                 if node.name in connected and node not in visited_nodes:
@@ -364,7 +366,7 @@ class graph():
                         max_weight = self.edges[neighbor]
 
                 if self.edges[curr_edge] > max_weight:
-                    raise SystemExit(f"Folding path not possible in this step: {step}")
+                    raise SystemExit(f"Folding path not possible in this step: {step}\n\n Goodbye")
 
 
                 
@@ -525,20 +527,22 @@ def build_graph(afp):
 
     #Check if there are cycles present in the graph
     if afp_graph.cycle_detection():
-        raise SystemExit("Cycle in graph detected. Currently no viable solutions for this case.")
+        raise SystemExit("Cycle in graph detected. Currently no viable solutions for this case. \n\n Goodbye")
     
     logger.info(f"Edges: {afp_graph.edges}")
 
     connected_components = find_connected_modules(pairtable_afp)
+    logger.debug(f"Connected c: {connected_components}")
     logger.info("\nFollowing Nodes are connected:")
     for component in connected_components:
         nodes_in_component = set()
+        logger.debug(component)
         for node_index in component:
             nodes_in_component.add(nodes[node_index])
-        logger.debug(component)
+        
 
     if not afp_graph.bipartite_check(connected_components):
-        raise ImportError("Graph not Bipartite can't design domain level sequence. Check your input")
+        raise ImportError("Graph not Bipartite can't design domain level sequence. Check your input\n\n Goodbye")
 
     
     graph.print_nodes
@@ -598,7 +602,7 @@ The AFP must have following propperties to be translated to a domain level seque
                         )
 
         parser.add_argument("-i","--input",help="Reads txt file as input if not specified user can input via console.")
-        parser.add_argument("-v", "--verbose",type = int, default = 0,
+        parser.add_argument("-v", "--verbose",action="count", default = 0,
             help = "Track process by writing verbose output to STDOUT during calculations.")
         
         args = parser.parse_args()

@@ -11,10 +11,11 @@ from peppercornenumerator import Enumerator
 from peppercornenumerator.enumerator import BI_REACTIONS
 from peppercornenumerator.reactions import bind21
 from natsort import natsorted
-from .utils import cv_db2kernel, kernel_to_dot_bracket
+from .utils import cv_db2kernel, kernel_to_dot_bracket, only_logic_domain_struct
 import argparse
 import sys
 import logging 
+
 
 logger = logging.getLogger('cocosim')
 console_handler = logging.StreamHandler()
@@ -88,6 +89,21 @@ def run_sim(d_seq, parameters):
             for seq in x[0]:
                 print(seq)
                 print(kernel_to_dot_bracket(seq))
+
+    print("\n\n\n\n\nOnly logic domain pairings:")
+
+    #only_logic_domain_fp == set()
+
+    for x in final_structures:
+        if x and x[0][-1][-2] == "S": 
+            print("\n")
+            print(d_seq)
+            print("________________"*5)
+            for seq in x[0]:
+                
+                print(only_logic_domain_struct(d_seq.split(),kernel_to_dot_bracket(seq)))
+
+    
     
 
 def enumerate_step(complexes, reactions, parameter):

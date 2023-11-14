@@ -72,7 +72,7 @@ def find_connected_modules(afp):
         connected_modules.append(all_list)
         all_module.remove(all_module[0])
         
-        while curr_module <= len(afp) + 1:
+        while curr_module <= len(afp):
             for step in range(1,len(afp)): 
                 
                 try:
@@ -180,7 +180,25 @@ def is_star_pair(a,b):
         if len(a) < len(b) or len(a) > len(b):
             return True
         
+def only_logic_domain_struct(seq,path):
+    """Takes a seq and the extended folding path only returns the folding path of only the b domains
 
+    Args: 
+        seq(list): sequence in form of a list where each entry in the list corresponds to one module
+        path(str): module folding path in form of a list where each entry corresponds to one module being transcribed
+
+    """
+    logic_domain_struct = []
+
+    for x in range(len(path)):
+        
+        if seq[x].startswith("L"):
+            
+            logic_domain_struct.append(path[x])
+
+    
+    logic_domain_struct = "".join(logic_domain_struct)
+    return logic_domain_struct
 
 
 
