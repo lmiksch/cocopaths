@@ -78,7 +78,7 @@ def run_sim(d_seq, parameters):
             logger.info("\n")
             logger.info("________________"*5)
             for seq in x[0]:
-                logger.info(seq)
+                #logger.info(seq)
                 logger.info(kernel_to_dot_bracket(seq))
     
     print("\nResting Complexes after each step")
@@ -86,8 +86,8 @@ def run_sim(d_seq, parameters):
         if x and x[0][-1][-2] == "S": 
             print("\n")
             print("________________"*5)
+            print(d_seq)
             for seq in x[0]:
-                print(seq)
                 print(kernel_to_dot_bracket(seq))
 
     print("\n\n\n\n\nOnly logic domain pairings:")
@@ -133,7 +133,7 @@ def input_parsing(d_seq, structures):
     global used_structure_names
     toehold_length = 5
     logic_length = 8
-    space_length = 15
+    space_length = 8
     logger.debug(f"Input Parsing: Structure input \n {structures}")
     unique_domains = set([domain.replace('*', '') for domain in d_seq])
 
@@ -159,19 +159,22 @@ def input_parsing(d_seq, structures):
 
 
 def extract_domain_sequence(input_lines):
-    result_sequence_line = next(line for line in input_lines if line.startswith("Resulting Domain Level sequence:"))
-    result_sequence = result_sequence_line.split(":", 1)[1].strip()
-    return result_sequence
-
+    try:
+        if input_lines[0] == "\n":
+            result_sequence_line = next(line for line in input_lines if line.startswith("Resulting Domain Level sequence:"))
+            result_sequence = result_sequence_line.split(":", 1)[1].strip()
+        else:
+            for line in input_lines:
+                if not line.startswith("#"):
+                    result_sequence = line
+        return result_sequence
+    except:
+        raise ImportError("Check Input: can't find anything")
 
 def set_verbosity(console_handler,verbosity):
-    if verbosity == 0:
-        console_handler.setLevel(logging.CRITICAL)
-    elif verbosity == 1:
-        console_handler.setLevel(logging.ERROR)
-    elif verbosity == 2:
+    if verbosity == 1:
         console_handler.setLevel(logging.INFO)
-    elif verbosity >= 3:
+    elif verbosity >= 2:
         console_handler.setLevel(logging.DEBUG)
 
 
@@ -191,6 +194,8 @@ def main():
     if args.input_file.isatty():
         print("Please enter a domain level sequence:")
         d_seq = input()
+        if len(d_seq) == 0:
+            raise SystemExit("No Input given")
     else:
         input_lines = args.input_file.readlines()
         d_seq = extract_domain_sequence(input_lines)

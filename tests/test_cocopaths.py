@@ -196,6 +196,16 @@ def test_pseudoknot_attack(configure_logger):
 
         print(domain_seq)
 
+    afp = [".",'()',"().","(..)","().()"]
+
+    afp_graph = build_graph(afp)
+
+    
+
+    domain_seq = afp_graph.get_domain_seq()
+
+    print(domain_seq)
+
     pass 
 
 def test_detect_cycle(configure_logger):

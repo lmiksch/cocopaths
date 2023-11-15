@@ -468,6 +468,8 @@ class graph():
             return False
 
         for node in self.graph:
+            print("hello")
+            print(node)
             if node not in visited:
                 if dfs(node, None):
                     return True
@@ -476,19 +478,24 @@ class graph():
     
     def pseudoknot_attack_detection(self,pairtable):
             
-            
+          
+            for step in pairtable:
+                print(step)
+        
             for x in range(1,len(pairtable)-1):
                 secured_domains = []
                 
                 for i,j in enumerate(pairtable[x][1:],start=1):
-                    if j > i+1:
-                        secured_domains.append((i +1,j))
+                    if j > i+1 and pairtable[x][i + 1] != 0 and pairtable[x][j] != 0:
+                        
+                        secured_domains.append((i +1,j-1))
 
                 
-
+                print("secured domains", secured_domains)
                 for tuple in secured_domains:
                     if pairtable[x][tuple[0]:tuple[1]] != pairtable[x+1][tuple[0]:tuple[1]]:
-                        return True
+                        if pairtable[x + 1][tuple[0]] != 0 and pairtable[x + 1][tuple[1]] != 0:
+                            return True
                     
             return False
       
@@ -503,8 +510,6 @@ def build_graph(afp):
     
     afp_graph = graph()
 
-    if afp_graph.pseudoknot_attack_detection(pairtable_afp):
-        raise SystemExit("Pseudoknot attack detected. Choose a path without Pseudoknot attacks")
     
     afp_graph.create_nodes_from_pairtable(pairtable_afp)
 
@@ -524,7 +529,7 @@ def build_graph(afp):
 
     afp_graph.set_edge_neighbors()
 
-
+    
     #Check if there are cycles present in the graph
     if afp_graph.cycle_detection():
         raise SystemExit("Cycle in graph detected. Currently no viable solutions for this case. \n\n Goodbye")
@@ -544,7 +549,10 @@ def build_graph(afp):
     if not afp_graph.bipartite_check(connected_components):
         raise ImportError("Graph not Bipartite can't design domain level sequence. Check your input\n\n Goodbye")
 
-    
+    if afp_graph.pseudoknot_attack_detection(pairtable_afp):
+            raise SystemExit("SystemExit: Pseudoknot attack detected. Choose a path without Pseudoknot attacks")
+        
+
     graph.print_nodes
     afp_graph.get_weights(afp=pairtable_afp)
 
@@ -620,13 +628,10 @@ The AFP must have following propperties to be translated to a domain level seque
             while True:
                 print("\n")
                 print(f"Current Input: {afp}")
-                print("Please input a folding path in dot-bracket annotation or use '$' to finish and continue or use '@' to exit :")
+                print("Please input a folding path in dot-bracket annotation or use '$' to exit input and continue use 'r' to reset input:")
                 user_input = input()
                 # Check for exit conditions
-                if user_input == "@":
-                    print("\nExiting copaths")
-                    exit()
-                elif user_input == "$":
+                if user_input == "$":
                     print(f"\n\nFinal Input:\n{afp}\n\n")
                     break
                 elif user_input == "r" or user_input == "R":
@@ -670,3 +675,5 @@ The AFP must have following propperties to be translated to a domain level seque
 if __name__ == "__main__":
 
     main()
+
+    
