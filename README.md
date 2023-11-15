@@ -31,12 +31,12 @@ $ pytest
 
 After installation you can try if the script is installed by using:
 ```bash
-$ copaths --help
+$ cocopaths --help
 ```
 
 The script gets called by using:
 ```bash
-$ copaths 
+$ cocoopaths 
 ```
 
 the abstract folding path(AFP) can be either put in as a .txt file or directly in the terminal
