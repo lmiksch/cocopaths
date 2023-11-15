@@ -46,7 +46,14 @@ The AFP must have following propperties to be translated to a domain level seque
   - Structure must be fully saturated
   - If a structure was defined it can't be changed if no additional step influences the defined substructure
 
+# How to use cocopaths and cocosim 
 
+
+cocopaths and cocosim can be used in a pipeline to simulate the resulting domain level sequence
+
+```bash
+$ cocopaths -i test.txt | cocosim 
+```
 
 # Pseudocode for Copaths
 
