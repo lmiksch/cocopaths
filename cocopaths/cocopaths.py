@@ -468,8 +468,7 @@ class graph():
             return False
 
         for node in self.graph:
-            print("hello")
-            print(node)
+            logger.debug(node)
             if node not in visited:
                 if dfs(node, None):
                     return True
@@ -479,8 +478,7 @@ class graph():
     def pseudoknot_attack_detection(self,pairtable):
             
           
-            for step in pairtable:
-                print(step)
+            
         
             for x in range(1,len(pairtable)-1):
                 secured_domains = []
@@ -491,7 +489,7 @@ class graph():
                         secured_domains.append((i +1,j-1))
 
                 
-                print("secured domains", secured_domains)
+                logger.debug(f"secured domains {secured_domains}")
                 for tuple in secured_domains:
                     if pairtable[x][tuple[0]:tuple[1]] != pairtable[x+1][tuple[0]:tuple[1]]:
                         if pairtable[x + 1][tuple[0]] != 0 and pairtable[x + 1][tuple[1]] != 0:
