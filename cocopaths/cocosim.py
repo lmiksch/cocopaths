@@ -183,6 +183,7 @@ def extract_domain_sequence(input_lines):
 				return result_sequence
 	except:
 		raise ImportError("Check Input: can't find anything")
+		
 
 
 def extract_afp(input_lines):
