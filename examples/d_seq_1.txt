@@ -1,3 +1,5 @@
+
+
 #Should follow following folding path
 # modified sequence
 #.
@@ -8,3 +10,5 @@
 
 
 L0  S0  L0* a* S0  a  L0 c S0 c* L0* a* d* S0 d a L0 c e S0 e* c* L0* a* d* S0 
+
+[".","()",".()","()()",".()()","()()()"]
