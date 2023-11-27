@@ -189,7 +189,8 @@ def only_logic_domain_struct(seq,path):
 
     """
     logic_domain_struct = []
-
+    print(seq)
+    print(path)
     for x in range(len(path)):
         
         if seq[x].startswith("L"):

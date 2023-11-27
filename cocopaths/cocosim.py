@@ -37,118 +37,188 @@ def run_sim(d_seq, parameters):
 		d_seq(str): domain level sequence 
 		parameters(dict)
 	"""    
+
+	# Initiate datastructures
 	used_structure_names = 1
-
-
+	all_complexes = {}
+	folding_step_complexes = []
 	d_seq_split = d_seq.split()
+	complex_count = 1
+
+
 
 	# before input parsing define name of complexes 
 	
-	parameters["complexes"]["I0"] = [cv_db2kernel(d_seq_split[0:2], ".."),1]
+	parameters["complexes"]["E0"] = [cv_db2kernel(d_seq_split[0:2], ".."),1]
 	logger.debug(parameters["complexes"])
 	complexes, reactions = input_parsing(d_seq_split[0:2], parameters["complexes"])
-
-	final_structures = [[] for x in range(len(d_seq_split))]
-	final_populations = [[] for x in range(len(d_seq_split))]
-	current_complexes = []
-
-	all_complexes = []
-
-
-	final_structures[0].append([d_seq_split[0]])
-	final_complexes, pops = enumerate_step(complexes=complexes, reactions=reactions, parameter=parameters)
 	
-	#current_complexes.append(first_complexes[0])
-	final_structures[1].append([struct[0] for name,struct in parameters["complexes"].items()])
 
-	all_complexes.append(final_complexes)
-	#print("final Structures: ", final_structures)
+	resulting_complexes,transient_complexes = enumerate_step(complexes=complexes, reactions=reactions, parameter=parameters, all_complexes=all_complexes)
+	
+	
+	
+
+	# all complex keeps track of complexes throughtout the sim
+	
+
+	
+	
+	for complex in resulting_complexes:
+		all_complexes["Id_" + str(complex_count)] = [complex,1/len(resulting_complexes)]
+		complex_count += 1
+	
+
+	folding_step_complexes.append(resulting_complexes)	
+	
 
 
 	for step in range(2, len(d_seq_split)):
 		logger.debug("\n\n\nNext Step\n\n")
-		logger.debug(f"Step: {step} Current Complexes: {parameters}")
+		logger.info(f"Step: {step} Current Complexes: {parameters}")
+
 		next_complexes = []
 		
+
 		#put here add one domain to struct and give new name
+	
 		new_complexes = {}
-		for name, struct in parameters["complexes"].items():
-			#extend structure
-			next_struct = struct[0] + " " + d_seq_split[step] 
-			#parameters["complexes"][name][0] = next_struct
-			logger.debug(f"Next Structure {next_struct}")
-			
-			#create new name for structure 
-			# maybe change name to E to see which complexes were "manmade"
-			new_complexes["E" + str(used_structure_names)] = [next_struct, struct[1]] 
-			used_structure_names += 1 
-
-		parameters["complexes"] = new_complexes
-		logger.debug(f"\n\n\n\n New Parameters\n{parameters}\n\n\n\n")
-			
-
-		complexes, reactions = input_parsing(d_seq_split[0:step + 1], parameters["complexes"])
-		#logger.debug(f"Following Complexes and reactions are put into enumerator \n {complexes} {reactions}")
-		resting_complexes,pops_dict = enumerate_step(complexes=complexes, reactions=reactions, parameter=parameters)
-		final_populations.append(pops_dict)
-		#logger.debug(f"resulting resting complex: {resting_complexes}")
-
-		final_structures[step].append(resting_complexes)
 		
-		all_complexes.append(resting_complexes)
-	logger.debug("\n\n\n________Done with simulation__________\n\n")
-	for step in final_populations:
-		logger.info(step)
-	print(f"\nComplexes: \n")
 
-	for step in all_complexes:
-		print("\n")
-		for complex in step:
-			print(f"Name {complex._name}, {complex.kernel_string}, {complex._concentration[1]}")
+		#print("\n\nextendo\n\n")
+		old_names = []
+		logger.debug(f"All Complexes before:")
+		for key,complex in all_complexes.items():
+			logger.debug(f"{key}:{complex}\n")
+		for complex in folding_step_complexes[-1]:
+			print(complex)
+			c_name = complex._name
+			next_struct = complex.kernel_string + " " + d_seq_split[step]
 
-	return final_structures
+			new_complexes["E" + str(used_structure_names)] = [next_struct,complex._concentration[1]]
+			
+			used_structure_names += 1
+			old_names.append(c_name)
+		#print(new_complexes)
+		#print("\n\nextendo endo\n\n")
+
+		
+		logger.debug(f'Resulting new complexes: {new_complexes}')
+
+		
+		
+		complexes, reactions = input_parsing(d_seq_split[0:step + 1], new_complexes)
+
+
+		logger.info(f"New Complexes {complexes}")
+		for key,complex in complexes.items():
+			logger.info(f"{complex}:{complex._concentration}\n")
+
+
+		logger.info(f"All Complexes before:")
+		for key,complex in all_complexes.items():
+			logger.info(f"{key}:{complex} {complex[0]._concentration	}\n")
+
+
+		new_complexes = complexes.copy() 
+		new_complex_items = []
+
+		assert len(all_complexes) == len(new_complexes),"Not equal cant assign"
+
+		"""
+		for id, new_complex in zip(all_complexes,new_complexes):
+			all_complexes[id] = [new_complex,99]"""
+		
+		for x, c_name in enumerate(old_names):
+			for cid, complex_obj in all_complexes.items():
+				
+				if c_name == complex_obj[0]._name:
+					next_complex = complexes.popitem()[1]
+					next_complex._concentration = complex_obj[0]._concentration
+					new_complex_items.append((cid, next_complex))
+
+				elif len(complexes) == 1:
+					next_complex = complexes.popitem()[1]
+					next_complex._concentration = complex_obj[0]._concentration
+					new_complex_items.append((cid,next_complex))
+
+		
+		#Add remaining ones to all_complexes should incluce concentration aswell
+		if len(complexes) > 1:
+			for key,complex in complexes.items():
+				
+				all_complexes["Id_" + str(complex_count)] = [complex,99] #dont know yet how to incorperate the concentration
+				complex_count += 1
+
+		
+
+				
+		# Add the new items to the dictionary
+		for cid, complex_item in new_complex_items:
+			#print("Complex Item",complex_item,complex_item._concentration)
+			all_complexes[cid][0] = complex_item
+
+		#for key, complex in all_complexes.items():
+			#print(f"{key}	{complex[0].kernel_string}")
+			#print(f"{complex[0]._concentration[1]}")
+					
+		
+				
+		logger.info(f"All Complexes after: ")
+		for key,complex in all_complexes.items():
+			logger.info(f"{key}:{complex}")
+
+		#print("\n\n\nAll Complexes After extension ", all_complexes)
+
+		complexes = new_complexes
+
+
+		resting_complexes,transient_complexes = enumerate_step(complexes=complexes, reactions=reactions, parameter=parameters,all_complexes=all_complexes)
+		
+		folding_step_complexes.append(resting_complexes)
+
+		#checks if there is a transient state which needs to be mapped
+		for key,input_complex in complexes.items():
+			for new_complex in transient_complexes:				
+				if input_complex.kernel_string == new_complex.kernel_string:
+						map_transient_states(resting_complexes,transient_complexes,all_complexes)
+		
+		
+		map_resting_states(resting_complexes,transient_complexes,all_complexes,complex_count)
+
+
+
+		#Check if unique ids match resting complexes should always be larger or equal 
+		print("Current unique ids\nID	Structure	Concentration")
+		for key, complex in all_complexes.items():
+			print(f"{key} {complex[0]._name}	{complex[0].kernel_string}	{complex[0]._concentration}")
+
+		assert len(all_complexes) >= len(resting_complexes),"More Resting complexes than unique_ids something went wrong."
+
+
+
+
 
 	
 	
-def write_output(final_structures,d_seq,parameters = None):
 
-	data_output = ""
-	
+	return folding_step_complexes
 
 	
-	for step in final_structures:
-		print(step)
-
-	ts = 1
-	data_output += ("\nResting Complexes after each Spacer:\n\n")
-	data_output += "Transcription Step | Structure \n"
-	for x in final_structures:
-		print(x)
-		if x and x[0][-1][-2] == "S": 
-			for seq in x[0]:
-				data_output += f"{ts}	{seq} \n"
-			ts += 1 
-
-			data_output += "\n"
-	
-	
-	ts = 1
-	data_output += ("\n\nOnly Logic Domain pairings:\n\n")
-	data_output += "Transcription Step | Structure \n"
-	for x in final_structures:
-		if x and x[0][-1][-2] == "S": 
-			for seq in x[0]:
-				db_struct = (only_logic_domain_struct(d_seq.split(),kernel_to_dot_bracket(seq)))
-				data_output += f"{ts}	{db_struct} \n"
-			ts += 1
-			data_output += "\n"
-
-	return data_output
-
 	
 
 
-def enumerate_step(complexes, reactions, parameter):
+
+def enumerate_step(complexes, reactions, parameter, all_complexes):
+	"""Takes complexes in form of PepperComplexes and uses Peppercorn Enumerator to find possible structures and their respective occupancies. 
+	
+	Args:
+		complexes(dict): {Name:PepperComplex}
+		reactions(class): PepperReaction not really used in our program
+	Returns:
+		resulting_complexes(list): Resulting PepperComplexes
+	"""
+	print("\n\nComplexes ", complexes)
 	k_slow = parameter["k_slow"]
 	
 	if bind21 in BI_REACTIONS:
@@ -161,6 +231,10 @@ def enumerate_step(complexes, reactions, parameter):
 
 	if k_slow: 
 		enum.k_slow = k_slow
+
+
+	#need to find suitable k_fast
+	enum.k_fast = 100
 	
 	# Start to enumerate
 	enum.enumerate()
@@ -170,63 +244,42 @@ def enumerate_step(complexes, reactions, parameter):
 	if condensed:
 		rate_matrices, complex_indices = enum.condense()
 
+
+	resulting_complexes = [cplx for cplx in natsorted(enum.resting_complexes)] 
+	
+	transient_complexes = [cplx for cplx in natsorted(enum.transient_complexes)]
+
+	"""
+	if len(resulting_complexes) > 1 and len(enum.condensation._condensed_reactions) > 0: 
+		update_occupancies(resulting_complexes,enum,all_complexes)
+	else:
+		for complex in resulting_complexes:
+			if complex._concentration == None:
+				complex._concentration = [0,1,"nM"]
+			else:
+				complex._concentration[1] = 1
 	
 
 	
 	
 	#Calculating Populations and updating the pop ins parameters
-	logger.debug("\n\n\n\n\n\n Beginn rate matrixes\n\n_________________________________________________\n\n\n")
 	pops_dict = {}
 	for matrix,cplx_indices in zip(rate_matrices,complex_indices):
 		
 		if matrix is not None and len(matrix) > 1:
 			
 
-
-			#check to adjust parameter complexes
-			new_complexes = {}
-			for complex, index in cplx_indices.items():
-				if complex._name not in parameter["complexes"]:
-					
-					new_complexes[complex._name] = [complex.kernel_string,None]
-			for complex in new_complexes:
-				parameter["complexes"][complex] = new_complexes[complex]
-
-			keys_to_delete = []
-
-			
-			keys_to_keep = [key._name for key in cplx_indices if key._name  in parameter["complexes"]]
-
-
-			for key in parameter["complexes"]:
-				if key not in keys_to_keep:
-					keys_to_delete.append(key)
-
-			for key in keys_to_delete:
-   				del parameter["complexes"][key]
-
-			for complex_key in parameter["complexes"]:
-				parameter["complexes"][complex_key][1] = 1 / len(parameter["complexes"])
-							
-
-			logger.debug(f"\n\n\nAfter Addition of new Structures\n\n{[parameter['complexes']]}")
+			#logger.debug(f"\nAfter Addition of new Structures\n{[parameter['complexes']]}")
 			t1 = 0.1 
-			t8 = 100000
+			t8 = 0.02
 
 			lin_times = np.array([t1], dtype='float128')
 			log_times = np.array(np.logspace(np.log10(t1), np.log10(t8), num=10, dtype='float128'))
 			log_times = np.delete(log_times, 0)
 			
 			log_times = []
-			#print("lin times", lin_times)
-			#print("log times",log_times)
+
 			times = np.concatenate([lin_times, log_times])
-
-
-			#print("times",times)
-
-			#for row in matrix:
-				#print(row)
 
 
 
@@ -240,7 +293,7 @@ def enumerate_step(complexes, reactions, parameter):
 					curr_pops.append(complex._concentration[2])
 
 			for complex in no_conc_complexes:
-				complex._concentration = [0,1/len(no_conc_complexes),"M"]
+				complex._concentration = [0,1/len(no_conc_complexes),"nM"]
 				curr_pops.append(complex._concentration[1])
 			
 				
@@ -248,55 +301,250 @@ def enumerate_step(complexes, reactions, parameter):
 
 			logger.debug(f"Current populations {curr_pops}")
 			
+			#change to pilsimulator maybe use mx_simulate later 
 			for t, pt in mx_simulate(matrix,curr_pops,times):
-				#logger.debug(f"\n\n\nFinal Populations\n{t:8.6e} {' '.join([f'{x:8.6e}' for x in abs(pt)])}")
 				pops = pt
 
 
 			logger.debug(f"Final Populations: {pops}")
-			"""
-			if cplx_indices is not None:
-				#print(f"Cplx indices {cplx_indices}")
-				for complex,index in cplx_indices.items():
-					#print(f"Complex {complex._name}, Pop: {pops[index]}")
-					#pops_dict[complex._name] = pops[index]
-					#parameter["complexes"][complex._name][1] = pops[index]"""
+
+
 			for complex,index in cplx_indices.items():
 					logger.info(f"Complex {complex._name}, Pop: {pops[index]}")
-					parameter["complexes"][complex._name][1] = pops[index]
-					complex._concentration = [0,pops[index],"M"]
-
-	
-	for complex in parameter["complexes"]:				
-		pops_dict[complex] = parameter["complexes"][complex][1]
+					complex._concentration = [0,pops[index],"nM"]
 
 	
 
-	output = enum.to_pil(condensed=condensed,detailed = not condensed) # should be not condensed for same output format like peppercorn
-	resting_complexes = [cplx for cplx in natsorted(enum.resting_complexes)] 
+	#for complex in parameter["complexes"]:				
+		#pops_dict[complex] = parameter["complexes"][complex][1]
+
 	
 
-	if len(resting_complexes) == 1:
-		for complex in resting_complexes:
-			complex._concentration = [0,1,"M"]
-
-	print("\n\n\n\n_________________________Complex Concentrations____________________\n\n")
-	for complex in resting_complexes:
-		print(complex._name,complex._concentration[1])
 	
+	
+	
+	if len(resulting_complexes) == 1:
+		for complex in resulting_complexes:
+			complex._concentration = [0,1,"nM"]"""
+	
+	
+	output = enum.to_pil(condensed=condensed,detailed = condensed) # should be not condensed for same output format like peppercorn
+	
+
+	
+
+
+	#print("\n\n\n\n_________________________Complex Concentrations____________________\n\n")
+	for complex in resulting_complexes:
+		if complex._concentration is  None:
+			complex._concentration = [0,9,'nM']
+	
+	print("\nAll Complexes: ")
+	for key, complex in all_complexes.items():
+		print(f"{key}	 {complex[0]._name}		{complex[0].kernel_string}		{complex[0]._concentration}")
 
 	#update parameters["complexes"]
 	if len(rate_matrices) > 0:
 		logger.info(f"\n\n\n\nOutput: \n {output} \n\n\n")
-		return resting_complexes, pops_dict
+		return resulting_complexes, transient_complexes
 
 	else:
 		logger.info(f"\n\n\n\nOutput: \n {output} \n\n\n")
-		print("Pops changed")
-		return resting_complexes, pops_dict
+		return resulting_complexes, transient_complexes
+
+
+
+def map_transient_states(resting_complexes,transient_complexes,all_complexes):
+
+
+	print(f"Map Transient states\n\n{transient_complexes}\n\n{all_complexes}")
+	if len(resting_complexes) > 1 and len(transient_complexes) > 0:
+		print("this")
+
+
+def map_resting_states(resting_complexes,transient_complexes,all_complexes,complex_count):
+
+
 
 	
 
+
+	print("all_complexes",all_complexes)
+	print("resting complexes", resting_complexes)
+	for r_complex in resting_complexes:	
+		if r_complex not in list(all_complexes.values())[0]:
+			all_complexes["Id_" + str(complex_count)] = [r_complex,99]
+			complex_count += 1 
+
+	assert len(all_complexes) >= len(resting_complexes),"More Resting complexes than unique_ids something went wrong."
+
+	print('map resting states')
+	for key,complex in all_complexes.items():
+		print(f"{key}	 {complex[0]._name}		{complex[0].kernel_string}		{complex[0]._concentration}")
+
+
+
+
+def update_occupancies(resulting_complexes,enum,all_complexes):
+	"""Updates Occupancies based on the resulting condensed 			resulting_complexes(list): Updated list of the resulting complexes with their respective concentrations
+rates and stationary distribution of macrostates. 
+		
+		Args:
+			resulting_complexes(list): List of the resulting resting complexes from enumeration step 
+			enum(object): enumerator object which was used to calculate the resulting complexes
+
+		Returns:
+			resulting_complexes(list): Updated list of the resulting complexes with their respective concentrations
+	
+	"""	
+	print("\n\n_______________Begin update Occupancy___________________________\n\n")
+	# First calculate the distribution in the Macrostates to calculate the reactant occupancy of the outgoing reaction 
+	
+	macrostates = []
+	exit_probs = {}
+
+
+	# modify it so that it uses the stationary distribution 
+	# Iterate over the outer dictionary 
+	for key, inner_dict in enum.condensation.exit_prob.items():
+		# Iterate over the inner dictionary 
+		for reaction, value in inner_dict.items():
+			# Extracting the float value 
+			exit_prob = value
+			
+
+			# Extracting the product of the reaction
+			reaction_product = reaction[1]._products  
+			
+
+			exit_probs[reaction_product[0]] = exit_prob
+
+	#print(f"\n\nExit Probs: {exit_probs}\n\n")
+
+	condensed_rates = {}
+	stationary_dist = enum.condensation.stationary_dist
+	for reaction in enum.condensation.condensed_reactions:
+		#print(reaction)
+		macrostates.append(reaction._reactants[0]._complexes)
+		#print(reaction._reactants,reaction._reactants)
+		for reactant,product in zip(reaction._reactants,reaction._products):
+			#print("reactant",reactant,product)
+			condensed_rates[(reactant._complexes[0], product._complexes[0])] = reaction._const
+
+	#print(f"Condensed Rates: ",condensed_rates)
+	#print(f"\n{macrostates}")
+	#print(f"\n {exit_probs}\n")
+	#print(f"\n {stationary_dist}\n\n\n")
+
+	#print(resulting_complexes)
+	
+	#print("All Complexes: ")
+	for key, complex in all_complexes.items():
+		print(f"{key} {complex[0]._name}	{complex[0].kernel_string}	{complex[0]._concentration}")
+
+
+
+	#create rate matrix based on condensed reactions
+	rate_matrix = [[0 for _ in resulting_complexes] for _ in resulting_complexes]
+
+	for y,y_complex in enumerate(resulting_complexes):
+		
+		for x,x_complex in enumerate(resulting_complexes):
+			if (y_complex,x_complex) in condensed_rates:
+				rate_matrix[y][x] = condensed_rates[(y_complex,x_complex)]
+				#rate_matrix[x][y] = - condensed_rates[(y_complex,x_complex)]
+			else:
+				rate_matrix[y][y] -= rate_matrix[y][x]
+	
+	for i in range(len(resulting_complexes)):
+		rate_matrix[i][i] = -sum(rate_matrix[i][:i] + rate_matrix[i][i+1:])
+
+	
+	
+
+
+	# adjust populations based on exit probs
+
+	
+	populations = [] 
+
+	for complex in resulting_complexes: 
+		if complex in exit_probs and complex._concentration != None:
+			populations.append(complex._concentration[1] * exit_probs[complex])
+		else:
+			populations.append(0)
+
+	#logger.debug(f"\nAfter Addition of new Structures\n{[parameter['complexes']]}")
+	t1 = 0.1 
+	t8 = 0.02
+
+	lin_times = np.array([t1], dtype='float128')
+	log_times = np.array(np.logspace(np.log10(t1), np.log10(t8), num=10, dtype='float128'))
+	log_times = np.delete(log_times, 0)
+	
+	log_times = []
+
+	times = np.concatenate([lin_times, log_times])
+
+	rate_matrix_np = np.array(rate_matrix)
+
+	zero_mask = rate_matrix_np == 0
+
+	rate_matrix_np[zero_mask] = None
+	"""
+	print("\n\nRate Matrix")
+	for line in rate_matrix:
+		print(line)"""
+
+	###
+	### Here Pilsimulator Stuff
+	###
+
+
+	"""
+	print("Resulting Populations: ",pops)
+	
+	for complex,pop in zip(resulting_complexes,pops):
+		if complex._concentration != None:
+			complex._concentration[1] = pop
+		else:
+			complex._concentration = [0,pop,"nM"]
+
+	"""
+
+def write_output(final_structures,d_seq,parameters = None):
+
+	data_output = ""
+	
+
+	ts = 1
+	data_output += ("\nResting Complexes after each Spacer:\n\n")
+	data_output += "Transcription Step | Structure | Occupancy \n"
+	for x in final_structures:
+		if x and x[0].kernel_string[-2] == "S": 
+			for complex in x:
+				data_output += f"{ts} {complex._name}	{complex.kernel_string}	{round(complex._concentration[1],4)} \n"
+			ts += 1 
+
+			data_output += "\n"
+	
+	'''
+	ts = 1
+	data_output += ("\n\nOnly Logic Domain pairings:\n\n")
+	data_output += "Transcription Step | Structure	| Concentration \n"
+
+	for x in final_structures:
+		if x and x[0].kernel_string[-2] == "S": 
+			for complex in x:
+				kernel_string = kernel_to_dot_bracket(complex.kernel_string)
+				#db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
+				data_output += f"{ts}	{db_struct} 	{round(complex._concentration[1],4)}\n"
+			ts += 1
+			#data_output += "\n"'''
+
+	return data_output
+
+	
 
 def input_parsing(d_seq, complexes):
 	"""Takes domain level sequence and structures and formats those into an input format for peppercorn
@@ -327,9 +575,9 @@ def input_parsing(d_seq, complexes):
 		
 
 
-	logger.debug(f"\n\n\nSystem Input \n\n{system_input}\n\n")
+	logger.info(f"\n\n\nSystem Input \n\n{system_input}\n\n")
 	complexes, reactions = read_pil(system_input)
-	logger.debug(f"\nResulting complexes:{complexes}\nReactions{reactions}")
+	
 	return complexes, reactions
 
 
@@ -423,10 +671,10 @@ def main():
 	if args.verbose > 0:
 		ts = 1
 		output += ("\nResting Complexes after each step:\n\n")
-		output += "Transcription Step | Structure \n"
+		output += "Transcription Step | Structure | Occupancies \n"
 		for x in simulated_structures: 
-			for seq in x[0]:
-				output += f"{ts}	{seq} \n"
+			for complex in x:
+				output += f"{ts}	{complex.kernel_string}	{round(complex._concentration[1],4)}\n"
 			ts += 1 
 			output += "\n"
 	
