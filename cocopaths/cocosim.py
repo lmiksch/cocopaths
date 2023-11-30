@@ -11,11 +11,14 @@ from peppercornenumerator.input import read_pil
 from peppercornenumerator import Enumerator 
 from peppercornenumerator.enumerator import BI_REACTIONS
 from peppercornenumerator.reactions import bind21
+from crnsimulator import ReactionGraph, get_integrator
+from crnsimulator.odelib_template import add_integrator_args
+
+from io import StringIO
 from natsort import natsorted
 from .utils import cv_db2kernel, kernel_to_dot_bracket, only_logic_domain_struct
 import argparse
 import logging 
-from drtransformer.linalg import mx_simulate
 import numpy as np 
 
 
@@ -29,7 +32,7 @@ logger.addHandler(console_handler)
 
 
 
-def run_sim(d_seq, parameters):
+def run_sim(d_seq, parameters,args):
 	"""
 	Runs a cotranscriptional simulation of the given d_seq using peppercorn from the peppercornenumerator
 
@@ -54,10 +57,18 @@ def run_sim(d_seq, parameters):
 	complexes, reactions = input_parsing(d_seq_split[0:2], parameters["complexes"])
 	
 
-	resulting_complexes,transient_complexes = enumerate_step(complexes=complexes, reactions=reactions, parameter=parameters, all_complexes=all_complexes)
+	resulting_complexes,transient_complexes,enum = enumerate_step(complexes=complexes, reactions=reactions, parameter=parameters, all_complexes=all_complexes)
 	
 	
+	#checks if there is a transient state which needs to be mapped
+	for key,input_complex in complexes.items():
+		for new_complex in transient_complexes:				
+			if input_complex.kernel_string == new_complex.kernel_string:
+					map_transient_states(resting_complexes,transient_complexes,all_complexes)
 	
+	macrostates = enum._resting_macrostates
+
+	calc_macro_pop(enum,all_complexes)
 
 	# all complex keeps track of complexes throughtout the sim
 	
@@ -66,6 +77,7 @@ def run_sim(d_seq, parameters):
 	
 	for complex in resulting_complexes:
 		all_complexes["Id_" + str(complex_count)] = [complex,1/len(resulting_complexes)]
+		complex._concentration = [0,1,"nM"]
 		complex_count += 1
 	
 
@@ -86,12 +98,17 @@ def run_sim(d_seq, parameters):
 		
 
 		#print("\n\nextendo\n\n")
+
+
+
+		#______Function_for_extending_and_updating_names__ 
+
 		old_names = []
 		logger.debug(f"All Complexes before:")
 		for key,complex in all_complexes.items():
 			logger.debug(f"{key}:{complex}\n")
 		for complex in folding_step_complexes[-1]:
-			print(complex)
+			
 			c_name = complex._name
 			next_struct = complex.kernel_string + " " + d_seq_split[step]
 
@@ -99,17 +116,18 @@ def run_sim(d_seq, parameters):
 			
 			used_structure_names += 1
 			old_names.append(c_name)
+
 		#print(new_complexes)
 		#print("\n\nextendo endo\n\n")
 
-		
+
 		logger.debug(f'Resulting new complexes: {new_complexes}')
 
 		
 		
 		complexes, reactions = input_parsing(d_seq_split[0:step + 1], new_complexes)
 
-
+		
 		logger.info(f"New Complexes {complexes}")
 		for key,complex in complexes.items():
 			logger.info(f"{complex}:{complex._concentration}\n")
@@ -123,27 +141,31 @@ def run_sim(d_seq, parameters):
 		new_complexes = complexes.copy() 
 		new_complex_items = []
 
-		assert len(all_complexes) == len(new_complexes),"Not equal cant assign"
+		#assert len(all_complexes) == len(new_complexes),"Not equal cant assign"
 
 		"""
 		for id, new_complex in zip(all_complexes,new_complexes):
 			all_complexes[id] = [new_complex,99]"""
 		
+
+		#print("complexes ",complexes)
+		#print("Old Names", old_names)
+
 		for x, c_name in enumerate(old_names):
 			for cid, complex_obj in all_complexes.items():
 				
 				if c_name == complex_obj[0]._name:
-					next_complex = complexes.popitem()[1]
+
+					first_key = next(iter(complexes))
+					next_complex = complexes.pop(first_key)
 					next_complex._concentration = complex_obj[0]._concentration
 					new_complex_items.append((cid, next_complex))
+				
+				
 
-				elif len(complexes) == 1:
-					next_complex = complexes.popitem()[1]
-					next_complex._concentration = complex_obj[0]._concentration
-					new_complex_items.append((cid,next_complex))
-
-		
+		#print("New_complex_items:",new_complex_items)
 		#Add remaining ones to all_complexes should incluce concentration aswell
+		
 		if len(complexes) > 1:
 			for key,complex in complexes.items():
 				
@@ -157,26 +179,23 @@ def run_sim(d_seq, parameters):
 		for cid, complex_item in new_complex_items:
 			#print("Complex Item",complex_item,complex_item._concentration)
 			all_complexes[cid][0] = complex_item
-
-		#for key, complex in all_complexes.items():
-			#print(f"{key}	{complex[0].kernel_string}")
-			#print(f"{complex[0]._concentration[1]}")
-					
 		
-				
 		logger.info(f"All Complexes after: ")
 		for key,complex in all_complexes.items():
 			logger.info(f"{key}:{complex}")
+
+
 
 		#print("\n\n\nAll Complexes After extension ", all_complexes)
 
 		complexes = new_complexes
 
 
-		resting_complexes,transient_complexes = enumerate_step(complexes=complexes, reactions=reactions, parameter=parameters,all_complexes=all_complexes)
+		resting_complexes,transient_complexes,enum = enumerate_step(complexes=complexes, reactions=reactions, parameter=parameters,all_complexes=all_complexes)
 		
 		folding_step_complexes.append(resting_complexes)
 
+		
 		#checks if there is a transient state which needs to be mapped
 		for key,input_complex in complexes.items():
 			for new_complex in transient_complexes:				
@@ -184,8 +203,7 @@ def run_sim(d_seq, parameters):
 						map_transient_states(resting_complexes,transient_complexes,all_complexes)
 		
 		
-		map_resting_states(resting_complexes,transient_complexes,all_complexes,complex_count)
-
+		#map_resting_states(resting_complexes,transient_complexes,all_complexes,complex_count)
 
 
 		#Check if unique ids match resting complexes should always be larger or equal 
@@ -193,18 +211,228 @@ def run_sim(d_seq, parameters):
 		for key, complex in all_complexes.items():
 			print(f"{key} {complex[0]._name}	{complex[0].kernel_string}	{complex[0]._concentration}")
 
-		assert len(all_complexes) >= len(resting_complexes),"More Resting complexes than unique_ids something went wrong."
+		
+
+		#get stationary distributions
+
+		macrostates = enum._resting_macrostates
+
+		calc_macro_pop(enum,all_complexes)
+
+		#simulate
+
+		condensed_reactions = enum.condensation._condensed_reactions
+
+		reactions = []
+
+		oc_vector = []
+
+		#create reactions list and occupancy_vector needed for crn simulations
+		for reaction in condensed_reactions:
+			reactants = [reaction._reactants[0].name]
+			products = [reaction._products[0].name]
+			rate = reaction._const
+			occupancy1 = reaction._reactants[0]._complexes[0]._concentration[1]
+			occupancy2 = reaction._products[0]._complexes[0]._concentration
+			
+
+			reactions.append([reactants,products,[rate]])
+			oc_vector.append(float(occupancy1))
+			if occupancy2:
+				oc_vector.append(float(occupancy2[1]))
+			else:	
+				oc_vector.append(0)
+
+		print("Reactions",reactions,"Oc_vector",oc_vector)
+
+		#create occupancy_vector oc_vector 
+
+		
+
+
+		if condensed_reactions:
+			resulting_occupancies =	sim_condensed_rates(reactions,oc_vector,args)
+
+			#Update occupancies
+
+			update_macrostates(resulting_occupancies,all_complexes = all_complexes,enum= enum)
 
 
 
+		#assert len(all_complexes) >= len(resting_complexes),"More Resting complexes than unique_ids something went wrong."
 
-
-	
 	
 
 	return folding_step_complexes
 
+def update_macrostates(result_occ,all_complexes,enum):
+	print("\n\nBegin update occupancies")
+
+	print("befor alle complexes",all_complexes)
+
+
+	#scenario if product completely replaces reactant sorry for the mess below
+	for reaction in result_occ.values(): 
+		for key,value in reaction.items():
+			if float(value) == 0: 
+				for cid,c_name in all_complexes.items():
+					if c_name[0]._name == key:
+						for key,value in reaction.items():
+							if float(value) == 1: 
+								for complex in enum.resting_complexes:
+									if complex._name == key:
+										all_complexes[cid] = [complex,1] 
+										complex.concentration = [0,1,"nM"]
+
+
+
+	print("After all complexes",all_complexes)
 	
+
+	#update concentrations when complex splits up
+
+def sim_condensed_rates(reactants,concvect,args):
+	"""Scipt is based on Pillsimulator script from Peppercorn and uses CRNsimulator to simulate a chemical reaction network. 
+	In this case it calculates the occupancies after accounting for the condensed rates.
+	"""
+	
+
+	#need to hardcode all args:
+
+
+	args.pyplot_labels = None
+	
+	args.list_labels = None
+
+	args.nxy = True
+
+	args.t8 = 20
+
+	args.t0 = 0
+
+	args.t_log = False
+
+	args.t_lin = 500
+
+	args.atol = None
+	args.rtol = None
+	args.mxstep = 0 
+	args.labels_strict = False
+	args.header = True
+
+	args.pyplot = False
+	args.labels = []
+	args.pyplot_xlim = None 
+	args.pyplot_ylim = None
+
+	args.cutoff = 0.0000001
+
+	p0 = []
+	for i,s in enumerate(concvect,start=1):
+		p0.append(str(i) + "=" + str(s))
+
+
+	
+	args.p0 = p0
+	
+	filename = "filename"
+
+	odename = "odename"
+
+
+	V = []
+	for reaction in reactants:
+		V.append(reaction[0][0])
+		V.append(reaction[1][0])				
+
+
+
+	# Split CRN into irreversible reactions
+	crn = reactants
+	new = []
+	for [r, p, k] in crn:
+		assert not (None in k)
+		if len(k) == 2:
+			new.append([r, p, k[0]])
+			new.append([p, r, k[1]])
+		else:
+			new.append([r, p, k[0]])
+	crn = new
+
+
+	RG = ReactionGraph(crn)
+	
+	filename, odename = RG.write_ODE_lib(sorted_vars = V, concvect = concvect,
+									  		jacobian= True,
+											  const = [False,False],
+											 filename = filename,
+											 odename = odename)
+		
+
+	integrate = get_integrator(filename)
+
+	original_stdout = sys.stdout
+	sys.stdout = StringIO()
+
+	integrate(args)
+
+	captured_output = sys.stdout.getvalue()
+
+	# Restore the original stdout
+	sys.stdout = original_stdout
+	
+
+
+	lines = captured_output.strip().split("\n")
+	
+	
+
+	end_conc = lines[-1].split(" ")[1:]
+	
+
+	resulting_concentrations = {}
+	for i in range(len(reactants)):
+		resulting_concentrations[i] = {}
+		for complex, conc in zip(V,end_conc):
+			if float(conc) >= args.cutoff:
+				resulting_concentrations[i][complex] = conc
+			else: 
+				resulting_concentrations[i][complex] = 0
+
+
+	print(f"\n\n\nResulting Concentrations: {resulting_concentrations}\n\n\n\n")
+	return resulting_concentrations
+
+
+
+def calc_macro_pop(enum,all_complexes):
+
+	resting_macrostates = enum._resting_macrostates
+
+	stat_dist = enum.condensation.stationary_dist
+
+	
+	for macrostate in resting_macrostates:
+	
+		for complex in macrostate._complexes:
+		
+			if any(complex == sublist[0] for sublist in all_complexes.values()):
+			
+
+				for stat_complex,pop in stat_dist[macrostate].items():
+					new_dist = pop * complex._concentration[1]
+					stat_dist[macrostate][complex] = new_dist
+
+					for c_id, all_complex in all_complexes.items():
+						
+						if complex == all_complex[0]:
+							all_complexes[c_id] = [complex,new_dist]
+
+
+
+
+	#for each macrostate get input kernel and mulitply all results with 
+
 	
 
 
@@ -242,7 +470,7 @@ def enumerate_step(complexes, reactions, parameter, all_complexes):
 	
 	condensed = parameter["condensed"]
 	if condensed:
-		rate_matrices, complex_indices = enum.condense()
+		enum.condense()
 
 
 	resulting_complexes = [cplx for cplx in natsorted(enum.resting_complexes)] 
@@ -331,56 +559,65 @@ def enumerate_step(complexes, reactions, parameter, all_complexes):
 	output = enum.to_pil(condensed=condensed,detailed = condensed) # should be not condensed for same output format like peppercorn
 	
 
-	
-
-
-	#print("\n\n\n\n_________________________Complex Concentrations____________________\n\n")
+	"""#print("\n\n\n\n_________________________Complex Concentrations____________________\n\n")
 	for complex in resulting_complexes:
 		if complex._concentration is  None:
-			complex._concentration = [0,9,'nM']
+			complex._concentration = [0,22,'nM'] # 22 is placeholder """
 	
 	print("\nAll Complexes: ")
 	for key, complex in all_complexes.items():
 		print(f"{key}	 {complex[0]._name}		{complex[0].kernel_string}		{complex[0]._concentration}")
 
 	#update parameters["complexes"]
-	if len(rate_matrices) > 0:
-		logger.info(f"\n\n\n\nOutput: \n {output} \n\n\n")
-		return resulting_complexes, transient_complexes
 
-	else:
-		logger.info(f"\n\n\n\nOutput: \n {output} \n\n\n")
-		return resulting_complexes, transient_complexes
+
+	macro_states = enum._resting_macrostates
+	
+	logger.info(f"\n\n\n\nOutput: \n {output} \n\n\n")
+	return resulting_complexes, transient_complexes, enum
+
+	
 
 
 
 def map_transient_states(resting_complexes,transient_complexes,all_complexes):
 
 
-	print(f"Map Transient states\n\n{transient_complexes}\n\n{all_complexes}")
+	print("Start mapping transient complexes")
+	if len(transient_complexes) == 1 and len(resting_complexes) == 1:
+		for id,complex_entry in all_complexes.items():
+			complex = complex_entry[0]
+			#print("complex",complex,transient_complexes[0])
+			if complex == transient_complexes[0]:
+				all_complexes[id] = [resting_complexes[0],complex._concentration[1]]
+				resting_complexes[0]._concentration = complex._concentration
+				break
+		
+		#raise SystemExit("SystemExit:Couldn't assign resting complex")
+
+
+	#print(f"Map Transient states\n\n{transient_complexes}\n\n{all_complexes}")
 	if len(resting_complexes) > 1 and len(transient_complexes) > 0:
-		print("this")
+		#check if an all_complex is in the transient states 
+
+		for key,complex in all_complexes.items():
+			for r_complex in resting_complexes:
+				if complex[0] == r_complex:
+					print("Input, resting complex:",complex[0], r_complex)
+					raise SystemExit("Input in transients found")
+				
+			#need to calculate the distribution on the resting complexes
+
 
 
 def map_resting_states(resting_complexes,transient_complexes,all_complexes,complex_count):
 
-
-
-	
-
-
-	print("all_complexes",all_complexes)
-	print("resting complexes", resting_complexes)
 	for r_complex in resting_complexes:	
 		if r_complex not in list(all_complexes.values())[0]:
 			all_complexes["Id_" + str(complex_count)] = [r_complex,99]
 			complex_count += 1 
 
 	assert len(all_complexes) >= len(resting_complexes),"More Resting complexes than unique_ids something went wrong."
-
-	print('map resting states')
-	for key,complex in all_complexes.items():
-		print(f"{key}	 {complex[0]._name}		{complex[0].kernel_string}		{complex[0]._concentration}")
 
 
 
@@ -509,7 +746,6 @@ rates and stationary distribution of macrostates.
 			complex._concentration[1] = pop
 		else:
 			complex._concentration = [0,pop,"nM"]
-
 	"""
 
 def write_output(final_structures,d_seq,parameters = None):
@@ -519,11 +755,11 @@ def write_output(final_structures,d_seq,parameters = None):
 
 	ts = 1
 	data_output += ("\nResting Complexes after each Spacer:\n\n")
-	data_output += "Transcription Step | Structure | Occupancy \n"
+	data_output += "Transcription Step | Structure  \n"
 	for x in final_structures:
 		if x and x[0].kernel_string[-2] == "S": 
 			for complex in x:
-				data_output += f"{ts} {complex._name}	{complex.kernel_string}	{round(complex._concentration[1],4)} \n"
+				data_output += f"{ts} 	{complex.kernel_string} \n"
 			ts += 1 
 
 			data_output += "\n"
@@ -661,7 +897,7 @@ def main():
 
 
 	#______Running_Simulation___________# 
-	simulated_structures = run_sim(d_seq, parameters)
+	simulated_structures = run_sim(d_seq, parameters,args)
 	
 
 	#_____Writing_and_printing_output___# 
@@ -671,10 +907,10 @@ def main():
 	if args.verbose > 0:
 		ts = 1
 		output += ("\nResting Complexes after each step:\n\n")
-		output += "Transcription Step | Structure | Occupancies \n"
+		output += "Transcription Step | Structure \n"
 		for x in simulated_structures: 
 			for complex in x:
-				output += f"{ts}	{complex.kernel_string}	{round(complex._concentration[1],4)}\n"
+				output += f"{ts}	{complex.kernel_string}\n"
 			ts += 1 
 			output += "\n"
 	
