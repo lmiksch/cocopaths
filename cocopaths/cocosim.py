@@ -130,9 +130,9 @@ def run_sim(d_seq, parameters,args):
 
 		#Update all_complexes with new complexes 
 
-		logger.info(f"New Complexes {complexes}")
+		logger.debug(f"New Complexes")
 		for key,complex in complexes.items():
-			logger.info(f"{complex}:{complex.occupancy}\n")
+			logger.debug(f"{complex}:{complex.occupancy}\n")
 
 
 		logger.debug(f"All Complexes before:")
@@ -150,8 +150,8 @@ def run_sim(d_seq, parameters,args):
 			all_complexes[id] = [new_complex,99]"""
 		
 
-		#print("complexes ",complexes)
-		#print("Old Names", old_names)
+		print("\n\ncomplexes ",len(complexes))
+		print("Old Names", len(old_names))
 
 		for x, c_name in enumerate(old_names):
 			for cid, complex_obj in all_complexes.items():
@@ -183,12 +183,14 @@ def run_sim(d_seq, parameters,args):
 			#print("Complex Item",complex_item,complex_item.occupancy)
 			all_complexes[cid][0] = complex_item
 		
-		logger.info(f"All Complexes after: ")
+		logger.debug(f"All Complexes after: ")
 		for key,complex in all_complexes.items():
-			logger.info(f"{key}:{complex}")
+			logger.debug(f"{key}:{complex}")
+			if complex[0].occupancy == None:
+				raise SystemExit("Unoccupied Complex in all complex")
 
 
-
+		
 		#print("\n\n\nAll Complexes After extension ", all_complexes)
 
 		complexes = new_complexes
@@ -199,27 +201,11 @@ def run_sim(d_seq, parameters,args):
 		
 		
 		#checks if there is a transient state which needs to be mapped
-		"""for key,input_complex in complexes.items():
-			for new_complex in transient_complexes:				
-				if input_complex.kernel_string == new_complex.kernel_string:"""
+		
 		map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,complex_count)
 						
 		
-		
-		#map_resting_states(resting_complexes,transient_complexes,all_complexes,complex_count)
-
-
-		#Check if unique ids match resting complexes should always be larger or equal 
-		#print("Current unique ids\nID	Structure	Concentration")
-		#for key, complex in all_complexes.items():
-			#print(f"{key} {complex[0]._name}	{complex[0].kernel_string}	{complex[0].occupancy}")
-
-		
-		
-		#get stationary distributions
-
-		macrostates = enum._resting_macrostates
-		
+		#Additionally maps resting states 
 		calc_macro_pop(enum,all_complexes,resting_complexes)
 
 
@@ -266,6 +252,9 @@ def run_sim(d_seq, parameters,args):
 			resting_complexes = update_macrostates(resulting_occupancies,all_complexes = all_complexes,enum= enum,resting_complexes=resting_complexes,complex_count=complex_count)
 		
 		print(resting_complexes)
+
+
+
 		#need to fix the duplication in update_macrostates
 		resting_complexes = list(set(resting_complexes))
 		oc_sum = 0
@@ -513,15 +502,15 @@ def calc_macro_pop(enum,all_complexes,resulting_complexes):
 		stat_dist_copy = dict(stat_dist[macrostate])
 		macro_pop = 0
 		for complex in macrostate._complexes:
-				print(complex)
 				#print("\n\nComplex occupancy",complex.occupancy)
+
+				# add to macrostate population if no occupancy is defined -> complex new 
 				try:
-					print(complex.occupancy)
 					macro_pop += complex.occupancy
 
 				except:
-					print("except complex",complex)
 					macro_pop += 0
+					
 		if macro_pop == 0: 
 			macro_pop = 1
 		#print("Macro POP",macro_pop)
@@ -548,8 +537,8 @@ def calc_macro_pop(enum,all_complexes,resulting_complexes):
 			for r_complex in resulting_complexes:
 				#print(complex,stat_complex)
 				if stat_complex == r_complex: 
-					print(stat_complex,new_dist)
-					r_complex.occupancy = new_dist
+					print(stat_complex,float(new_dist))
+					r_complex.occupancy = float(new_dist)
 					
 					
 	#print("Resulting all_complexes")
@@ -621,13 +610,9 @@ def enumerate_step(complexes, reactions, parameter, all_complexes):
 def map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,complex_count):
 
 
-	logger.debug(f"\n\nStart mapping transient complexes")
-	
-	
-
-	logger.debug(f"Map Transient states\n\n")
+	logger.debug(f"\n\nMap Transient states\n\n")
 	for complex in transient_complexes:
-		logger.debug(f"{complex} ")
+		logger.debug(f"{complex} {complex} ")
 	logger.debug("\nAll Complexes\n")
 	for key,complex in all_complexes.items():
 		logger.debug(f"{key} {complex[0]} {complex[0].occupancy}")

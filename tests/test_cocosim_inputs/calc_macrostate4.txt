@@ -1,0 +1,22 @@
+length h = 5 
+length b = 5 
+length c = 5 
+length d = 5 
+length S0 = 8 
+length e = 5 
+length S1 = 8 
+length S3 = 8 
+length L0 = 8 
+length g = 5 
+length a = 5 
+length S2 = 8 
+length f = 5 
+
+E42 = L0*( S0 a( L0( b( S1 c* d* ) ) ) e*( f* S2 g ) a ) b d h( S3 ) d*
+E43 = L0*( S0 a( L0( b( S1 c* d* ) ) ) e* f* S2 g e a ) b d h( S3 ) d*
+E44 = L0*( S0 a ) b S1 c* d*( b*( L0*( a*( e*( f* S2 g ) ) ) ) ) h( S3 ) d*
+E45 = L0*( S0 a L0( b( S1 c* d* ) ) a*( e*( f* S2 g ) ) ) b d h S3 h* d*
+E46 = L0*( S0 a( L0( b( S1 c* d* ) ) ) e*( f* S2 g ) a ) b d h S3 h* d*
+E47 = L0*( S0 a L0( b( S1 c* d* ) ) a*( e*( f* S2 g ) ) ) b d h( S3 ) d*
+E48 = L0*( S0 a ) b S1 c* d*( b*( L0*( a*( e*( f* S2 g ) ) ) ) ) h S3 h* d*
+E49 = L0*( S0 a( L0( b( S1 c* d* ) ) ) e* f* S2 g e a ) b d h S3 h* d*
