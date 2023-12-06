@@ -3,7 +3,7 @@
 import pytest
 import logging, os, re, subprocess
 from unittest.mock import patch
-from cocopaths.cocosim import map_transient_states,map_resting_states,calc_macro_pop,enumerate_step
+from cocopaths.cocosim import map_transient_states,calc_macro_pop,enumerate_step
 from peppercornenumerator.input import read_pil 
 from peppercornenumerator.enumerator import Enumerator
 from natsort import natsorted
@@ -148,10 +148,11 @@ def test_map_transient_states3(configure_logger,input_path):
 
 
 
-
-
-
 def test_calc_macrostate_oc():
+
+
+
+
 
 	pass 
 
