@@ -1,0 +1,12 @@
+length S1 = 8 
+length S0 = 8 
+length L0 = 8 
+length b = 5 
+length d = 5 
+length a = 5 
+length S2 = 8 
+length c = 5 
+
+E15 = L0* S0 a( L0( b( S1 c* ) ) ) d* S2 d a L0
+E16 = L0* S0 a L0( b( S1 c* ) ) a*( d*( S2 ) ) L0
+E17 = L0* S0 a( L0( b( S1 c* ) ) ) d*( S2 ) a L0

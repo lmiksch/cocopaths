@@ -1,0 +1,9 @@
+length L0 = 8 
+length c = 5 
+length S0 = 8 
+length S1 = 8 
+length b = 5 
+length a = 5 
+
+E7 = L0*( S0 a ) b S1 c* b* L0*
+E8 = L0*( S0 a ) b( S1 c* ) L0*
