@@ -47,7 +47,6 @@ def run_sim(d_seq, parameters,args):
 	all_complexes = {}
 	folding_step_complexes = []
 	d_seq_split = d_seq.split()
-	global complex_count
 	complex_count = 1
 
 
@@ -62,14 +61,10 @@ def run_sim(d_seq, parameters,args):
 	resulting_complexes,transient_complexes,enum = enumerate_step(complexes=complexes, reactions=reactions, parameter=parameters, all_complexes=all_complexes)
 	
 	
-	#checks if there is a transient state which needs to be mapped
-	for key,input_complex in complexes.items():
-		for new_complex in transient_complexes:				
-			if input_complex.kernel_string == new_complex.kernel_string:
-					map_transient_states(resting_complexes,transient_complexes,all_complexes)
+	
+	map_transient_states(resulting_complexes,transient_complexes,all_complexes,enum,complex_count)
 	
 	
-	#calc_macro_pop(enum,all_complexes,resulting_complexes)
 	
 	# all complex keeps track of complexes throughtout the sim
 	
@@ -150,8 +145,8 @@ def run_sim(d_seq, parameters,args):
 			all_complexes[id] = [new_complex,99]"""
 		
 
-		print("\n\ncomplexes ",len(complexes))
-		print("Old Names", len(old_names))
+		print("\n\ncomplexes ",len(complexes), complexes)
+		print("Old Names", len(old_names), old_names)
 
 		for x, c_name in enumerate(old_names):
 			for cid, complex_obj in all_complexes.items():
@@ -164,30 +159,31 @@ def run_sim(d_seq, parameters,args):
 					next_complex.occupancy = complex_obj[0].occupancy
 					new_complex_items.append((cid, next_complex))
 				
-				
+		# Add the new items to the dictionary
+		for cid, complex_item in new_complex_items:
+			print("Complex Item",complex_item,complex_item.occupancy)
+			all_complexes[cid] = [complex_item,complex_item.occupancy]	
+
 
 		#print("New_complex_items:",new_complex_items)
 		#Add remaining ones to all_complexes should incluce concentration aswell
 		print("Remaining complexes",complexes)
 		if len(complexes) > 0:
 			for key,complex in complexes.items():
-				
-				all_complexes["Id_" + str(complex_count)] = [complex,complex.occupancy] #dont know yet how to incorperate the concentration
+				print("Remaining complex in loop",complex)
+				all_complexes["Id_" + str(complex_count)] = [complex,complex.occupancy] 
 				complex_count += 1
 
 		
 
 				
-		# Add the new items to the dictionary
-		for cid, complex_item in new_complex_items:
-			#print("Complex Item",complex_item,complex_item.occupancy)
-			all_complexes[cid][0] = complex_item
+		
 		
 		logger.debug(f"All Complexes after: ")
 		for key,complex in all_complexes.items():
 			logger.debug(f"{key}:{complex}")
-			if complex[0].occupancy == None:
-				raise SystemExit("Unoccupied Complex in all complex")
+			if complex[0].occupancy == None or complex[1] == None:
+				raise SystemExit("Unoccupied Complex in all complex after updating")
 
 
 		
@@ -206,56 +202,15 @@ def run_sim(d_seq, parameters,args):
 						
 		
 		#Additionally maps resting states 
-		calc_macro_pop(enum,all_complexes,resting_complexes)
+		calc_macro_pop(enum,all_complexes,resting_complexes,complex_count)
 
 
 		
-		#simulate
-
-		condensed_reactions = enum.condensation._condensed_reactions
-
-		reactions = []
-
-		oc_vector = []
-		seen = set()
-		#create reactions list and occupancy_vector needed for crn simulations
-		for reaction in condensed_reactions:
-			if reaction._reactants[0].name not in seen: 
-				seen.add(reaction._reactants[0].name)
-				reactants = [reaction._reactants[0].name]
-				products = [reaction._products[0].name]
-				#set conc to 0 for undefined complexes 
-				if reaction._reactants[0]._complexes[0].occupancy == None:
-					reaction._reactants[0]._complexes[0].occupancy = 0
-				
-				
-				rate = reaction._const
-				occupancy1 = reaction._reactants[0]._complexes[0].occupancy
-				occupancy2 = reaction._products[0]._complexes[0].occupancy
-				
-
-				reactions.append([reactants,products,[rate]])
-				oc_vector.append(float(occupancy1))
-				if occupancy2:
-					oc_vector.append(float(occupancy2[1]))
-				else:	
-					oc_vector.append(0)
-
-		#print("Reactions",reactions,"Oc_vector",oc_vector)
-		
-
-		if condensed_reactions:
-			resulting_occupancies =	sim_condensed_rates(reactions,oc_vector,args)
-
-			#Update occupancies
-
-			resting_complexes = update_macrostates(resulting_occupancies,all_complexes = all_complexes,enum= enum,resting_complexes=resting_complexes,complex_count=complex_count)
-		
+		#simulate the condensed reactions
+		resting_complexes = simulate_system(enum,args,resting_complexes,all_complexes)
 		print(resting_complexes)
 
-
-
-		#need to fix the duplication in update_macrostates
+		#need to fix the duplication in update_macrostates -> should be fixed 
 		resting_complexes = list(set(resting_complexes))
 		oc_sum = 0
 		for complex in resting_complexes:
@@ -274,6 +229,8 @@ def run_sim(d_seq, parameters,args):
 			print("\n\nFinal appending complexes: \n")
 			for complex in resting_complexes:
 				print(complex,complex.occupancy)
+				if not is_complex_in_all_complexes(complex,all_complexes):
+					raise SystemExit("resulting resting complex not in all complexes")
 			print("\n")
 		else:
 			raise SystemExit(f"SystemExit: Occupancies summ up to {oc_sum}")
@@ -284,7 +241,69 @@ def run_sim(d_seq, parameters,args):
 
 	return folding_step_complexes
 
-def update_macrostates(result_occ,all_complexes,enum,resting_complexes,complex_count):
+
+def simulate_system(enum,args,resting_complexes,all_complexes):
+	
+	
+	condensed_reactions = enum.condensation._condensed_reactions
+	
+	reactions = []
+
+	oc_vector = []
+	seen = set()
+	if condensed_reactions:
+		#create reactions list and occupancy_vector needed for crn simulations
+		for reaction in condensed_reactions:
+			print(reaction._reactants[0]._complexes)
+			if reaction._reactants[0].name not in seen: 
+				seen.add(reaction._reactants[0].name)
+				
+				reactants = [reaction._reactants[0].name]
+				products = [reaction._products[0].name]
+
+				occupancy1,occupancy2 = 0,0 
+
+				print("\n\n calc macro occupancies\n")
+				for r_complex in reaction._reactants[0]._complexes: 
+						
+					#set conc to 0 for undefined complexes 
+					if r_complex.occupancy == None:
+						r_complex.occupancy = 0
+					
+					
+					
+					
+					occupancy1 += r_complex.occupancy
+					print("occ1 ",occupancy1,r_complex)
+					
+					
+				for p_complex in reaction._products[0]._complexes: 
+					occupancy2 += p_complex.occupancy
+					print("occ2 ",occupancy2,p_complex)
+
+
+				rate = reaction._const
+				reactions.append([reactants,products,[rate]])
+				oc_vector.append(float(occupancy1))
+				if occupancy2:
+					oc_vector.append(float(occupancy2))
+				else:	
+					oc_vector.append(0)
+
+
+				
+
+		print("reactions: ",reactions)
+		print("\n Oc vector: ",oc_vector)
+		resulting_occupancies =	sim_condensed_rates(reactions,oc_vector,args)
+		print("\n\nResulting occupancies after simulation",resulting_occupancies)
+		#Update occupancies
+
+		resting_complexes = update_macrostates(resulting_occupancies,all_complexes = all_complexes,enum= enum,resting_complexes=resting_complexes)
+
+	return resting_complexes
+
+def update_macrostates(result_occ,all_complexes,enum,resting_complexes):
 	"""
 	
 	Args: 
@@ -296,55 +315,55 @@ def update_macrostates(result_occ,all_complexes,enum,resting_complexes,complex_c
 
 	print("\n\nBegin update macrostates")
 
-	print("\n\n_______________________________befor alle complexes\n",all_complexes,result_occ)
+	print("\n\n_______________________________befor alle complexes\n")
+	for complex in all_complexes.values():
+		print(complex, complex[0].occupancy)
+
+	print(result_occ)
 
 
+	
+	"""for reaction in result_occ.values():
+		print(reaction) 
+		for key,value in reaction.items():
+			for cid,complex in all_complexes.items():
+					if complex[0]._name == key:
+						complex[0].occupancy = value
+						update_complex_in_all_complexes(complex[0],all_complexes)
+			for macrostate in enum._resting_macrostates:
+				print(macrostate)"""
 
-	resulting_complexes = []
-	new_complexes = {}
-	#scenario if product completely replaces reactant sorry for the mess below maybe first big part is not necessary anymore
 	for reaction in result_occ.values():
 		print(reaction) 
 		for key,value in reaction.items():
-			if float(value) == 0: 
-				for cid,c_name in all_complexes.items():
-					if c_name[0]._name == key:
-						for key,value in reaction.items():
-							if float(value) == 1: 
-								for complex in enum.resting_complexes:
-									if complex._name == key:
-										#print()
-										all_complexes[cid] = [complex,1] 
-										complex.concentration = [0,1.0,"nM"]
-										resulting_complexes.append(complex)
-			else: 
-				for cid,c_name in all_complexes.items():
-					if c_name[0]._name == key:
-						for key,value in reaction.items():
-								for complex in enum.resting_complexes:
-									if complex._name == key:
-										if not is_complex_in_all_complexes(complex,all_complexes) and not is_complex_in_all_complexes(complex,new_complexes):
-											#print("hello ",complex)
-											new_complexes["Id_" + str(complex_count)] = [complex, float(value)]
-											complex_count += 1 
-										elif not is_complex_in_all_complexes(complex,new_complexes):
-											#print("here",complex)
-											new_complexes[cid] = [complex,float(value)] 
-										
-										complex.concentration = [0,float(value),"nM"]
-										if complex not in resulting_complexes:
-											resulting_complexes.append(complex)
-	all_complexes.update(new_complexes)
+			for macrostate in enum._resting_macrostates:
+				print(macrostate)
+				if any(complex_obj._name == key for complex_obj in macrostate.complexes):
+					macrostate.occupancy = value 
+					print("\n\n\nresulting macrostate:  ",macrostate, macrostate.occupancy)
+
+
+	print("\n\n_______________________________after alle complexes\n")
+	for complex in all_complexes.values():
+		print(complex, complex[0].occupancy)
+	
+		
 	#print("After all complexes",all_complexes)
 
+	print("before calc macro pop\n")
+	for complex in resting_complexes:
+		print(complex,complex.occupancy)
+	print("Summe over resting complexes:", sum([complex.occupancy for complex in resting_complexes]))
+
+	calc_macro_pop(enum,all_complexes,resting_complexes,complex_count)
 
 
-	#update concentrations when complex splits up
-
-
-
+	print("after calc macro pop\n")
+	for complex in resting_complexes:
+		print(complex,complex.occupancy)
+	print("Summe over resting complexes:", sum([complex.occupancy for complex in resting_complexes]))
 	#print("Resulting complexes",resulting_complexes)
-	return resulting_complexes
+	return resting_complexes
 
 def is_complex_in_all_complexes(complex,all_complexes):
 
@@ -459,20 +478,16 @@ def sim_condensed_rates(reactants,concvect,args):
 	#original_stdout = sys.stdout
 	#sys.stdout = StringIO()
 
-	captured_output = integrate(args) 
-	print(captured_output)
-	# captured_output = sys.stdout.getvalue()
-
-	# Restore the original stdout
-	#sys.stdout = original_stdout
-	
-
-
-	lines = captured_output.strip().split("\n")
+	time,occupancies = integrate(args) 
+	print(occupancies)
 	
 	
 
-	end_conc = lines[-1].split(" ")[1:]
+
+	
+
+	end_conc = [oc for oc in occupancies[1:]]
+	print("end concs :",end_conc)
 	
 
 	resulting_concentrations = {}
@@ -490,8 +505,7 @@ def sim_condensed_rates(reactants,concvect,args):
 
 
 
-def calc_macro_pop(enum,all_complexes,resulting_complexes):
-	global complex_count
+def calc_macro_pop(enum,all_complexes,resulting_complexes,complex_count):
 	#print("\n______________\nCalc Macropop\n\n")
 	resting_macrostates = enum._resting_macrostates
 
@@ -500,27 +514,35 @@ def calc_macro_pop(enum,all_complexes,resulting_complexes):
 	
 	for macrostate in resting_macrostates:
 		stat_dist_copy = dict(stat_dist[macrostate])
-		macro_pop = 0
-		for complex in macrostate._complexes:
-				#print("\n\nComplex occupancy",complex.occupancy)
 
-				# add to macrostate population if no occupancy is defined -> complex new 
-				try:
-					macro_pop += complex.occupancy
+		try:
+			macro_pop = macrostate.occupancy
 
-				except:
-					macro_pop += 0
-					
-		if macro_pop == 0: 
-			macro_pop = 1
-		#print("Macro POP",macro_pop)
-	
+			print("___________________yaaaaaas____",macro_pop,macrostate)
+
+
+		except:
+			macro_pop = 0
+			for complex in macrostate._complexes:
+					#print("\n\nComplex occupancy",complex.occupancy)
+
+					# add to macrostate population if no occupancy is defined -> complex new 
+					try:
+						macro_pop += complex.occupancy
+
+					except:
+						macro_pop += 0
+						
+			if macro_pop == 0: 
+				macro_pop = 1
+			#print("Macro POP",macro_pop)
+		
 		for stat_complex,pop in stat_dist_copy.items():
-			#print("Stat Complex",stat_complex)
-			#print("pop,macropop",pop,macro_pop)
+			print("Stat Complex",stat_complex)
+			print("pop,macropop",pop,macro_pop)
 			new_dist = pop * macro_pop
-			stat_dist[macrostate][stat_complex] = new_dist
-			#print("stat_complex, new dist",stat_complex,new_dist)
+			#stat_dist[macrostate][stat_complex] = new_dist
+			print("stat_complex, new dist",stat_complex,new_dist)
 			if is_complex_in_all_complexes(stat_complex,all_complexes):
 				
 				for c_id, all_complex in all_complexes.items():
@@ -609,16 +631,16 @@ def enumerate_step(complexes, reactions, parameter, all_complexes):
 
 def map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,complex_count):
 
-
+	
 	logger.debug(f"\n\nMap Transient states\n\n")
 	for complex in transient_complexes:
 		logger.debug(f"{complex} {complex} ")
-	logger.debug("\nAll Complexes\n")
+	logger.debug("\nAll Complexes Before\n")
 	for key,complex in all_complexes.items():
 		logger.debug(f"{key} {complex[0]} {complex[0].occupancy}")
 		
 	
-		new_complexes = {}
+	new_complexes = {}
 
 	for key, complex in all_complexes.items():
 		for t_complex in transient_complexes:
@@ -630,12 +652,12 @@ def map_transient_states(resting_complexes,transient_complexes,all_complexes,enu
 					if tup[0] == t_complex:
 						macrostate = tup[1][0]
 						stat_dist = enum.condensation.stationary_dist[macrostate]
-						print(tup,va)
+						#print(tup,va)
 
 						
 						for stat_complex, value in stat_dist.items():
-							#print("Stat complex",stat_complex)
-							#new_conc = curr_conc + (va(exit prob of transient) * value(stationary of resting state in macrostate) * t_c(concentration of transient state)) 
+							print("Stat complex",stat_complex)
+							##new_conc = curr_conc + (va(exit prob of transient) * value(stationary of resting state in macrostate) * t_c(concentration of transient state)) 
 							try:
 								if stat_complex.occupancy:
 									new_conc = stat_complex.occupancy + (va * value * t_complex.occupancy) 
@@ -649,7 +671,7 @@ def map_transient_states(resting_complexes,transient_complexes,all_complexes,enu
 							# Check if the new complex is not already in all_complexes
 							if not is_complex_in_all_complexes(stat_complex,all_complexes) and not is_complex_in_all_complexes(stat_complex,new_complexes):
 								new_complexes["Id_" + str(complex_count)] = [stat_complex, new_conc]
-								#print("newconc stat complex ",stat_complex,new_conc)
+								print("newconc stat complex ",stat_complex,new_conc,"complex count ",complex_count)
 								complex_count += 1
 							elif is_complex_in_all_complexes(stat_complex,new_complexes):
 								update_complex_in_all_complexes(stat_complex,new_complexes)	
@@ -657,8 +679,10 @@ def map_transient_states(resting_complexes,transient_complexes,all_complexes,enu
 								
 	
 	all_complexes.update(new_complexes)
-	
-	
+	logger.debug("\nAll Complexes After\n")
+	for key,complex in all_complexes.items():
+		logger.debug(f"{key} {complex[0]} {complex[0].occupancy}")
+	logger.debug("\n\nEnd Mapping transient states")
 
 
 def update_complex_in_all_complexes(complex,all_complexes):
@@ -774,25 +798,14 @@ def update_occupancies(resulting_complexes,enum,all_complexes):
 	zero_mask = rate_matrix_np == 0
 
 	rate_matrix_np[zero_mask] = None
-	"""
-	print("\n\nRate Matrix")
-	for line in rate_matrix:
-		print(line)"""
+	
 
 	###
 	### Here Pilsimulator Stuff
 	###
 
 
-	"""
-	print("Resulting Populations: ",pops)
 	
-	for complex,pop in zip(resulting_complexes,pops):
-		if complex.occupancy != None:
-			complex.occupancy[1] = pop
-		else:
-			complex.occupancy = [0,pop,"nM"]
-	"""
 
 def write_output(final_structures,d_seq,parameters = None):
 
@@ -810,19 +823,20 @@ def write_output(final_structures,d_seq,parameters = None):
 
 			data_output += "\n"
 	
-	'''
+	
 	ts = 1
 	data_output += ("\n\nOnly Logic Domain pairings:\n\n")
 	data_output += "Transcription Step | Structure	| Concentration \n"
 
 	for x in final_structures:
 		if x and x[0].kernel_string[-2] == "S": 
+			data_output += "\n"
 			for complex in x:
 				kernel_string = kernel_to_dot_bracket(complex.kernel_string)
-				#db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
-				data_output += f"{ts}	{db_struct} 	{round(complex.occupancy[1],4)}\n"
+				db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
+				data_output += f"{ts}	{db_struct} 	{round(complex.occupancy,4)}\n"
 			ts += 1
-			#data_output += "\n"'''
+			#data_output += "\n"
 
 	return data_output
 

@@ -48,7 +48,6 @@ def create_input(filename,occupancies,input_path):
 	complexes, reactions = read_pil(file_content)
 
 	assert len(complexes) == len(occupancies) 
-
 	complex_count = 1 
 
 	all_complexes = {}
@@ -84,6 +83,8 @@ def create_input(filename,occupancies,input_path):
 
 def test_map_transient_states_1(configure_logger,input_path):
 	#2 transient to 1 resting state
+
+	
 	
 	enum,resting_complexes,transient_complexes,all_complexes, complex_count = create_input("map_transient_1.txt",[0.5,0.5],input_path)
 
@@ -107,7 +108,6 @@ def test_map_transient_states_1(configure_logger,input_path):
 
 def test_map_transient_states_2(configure_logger,input_path):
 	#2 transient to 1 resting state
-	
 	enum,resting_complexes,transient_complexes,all_complexes, complex_count = create_input("map_transient_2.txt",[1],input_path)
 
 	print(transient_complexes)
@@ -129,7 +129,6 @@ def test_map_transient_states_2(configure_logger,input_path):
 
 def test_map_transient_states_3(configure_logger,input_path):
 	#2 transient to 1 resting state
-	
 	enum,resting_complexes,transient_complexes,all_complexes, complex_count = create_input("map_transient_3.txt",[0.3,0.3,0.3],input_path)
 
 	print(transient_complexes)
@@ -149,7 +148,26 @@ def test_map_transient_states_3(configure_logger,input_path):
 		assert complex[0].occupancy in solution_occs
 		solution_occs.remove(complex[0].occupancy)
 
+def test_map_transient_states_4(configure_logger,input_path):
+	#2 transient to 1 resting state
+	enum,resting_complexes,transient_complexes,all_complexes, complex_count = create_input("map_transient_4.txt",[0.2,0.2,0.2,0.2,0.2],input_path)
 
+	print(transient_complexes)
+	print(resting_complexes)
+	old_all_complexes = all_complexes.copy()
+	map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,complex_count)
+	
+	for id,complex in all_complexes.items():
+		print(id,complex,complex[0].occupancy)
+
+	
+	new_entries = {key: all_complexes[key] for key in all_complexes if key not in old_all_complexes}
+	
+	assert len(new_entries) == 1 
+	solution_occs = [0.2,0.2,0.2,0.2,0.4]
+	for complex,occ in zip(new_entries.values(),solution_occs): 
+		assert complex[0].occupancy in solution_occs
+		solution_occs.remove(complex[0].occupancy)
 
 def test_calc_macrostate_oc_1(configure_logger,input_path):
 
@@ -160,7 +178,7 @@ def test_calc_macrostate_oc_1(configure_logger,input_path):
 	map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,complex_count)
 
 
-	calc_macro_pop(enum,all_complexes,resting_complexes)
+	calc_macro_pop(enum,all_complexes,resting_complexes,complex_count)
 
 	print(all_complexes)
 	for key,complex in all_complexes.items():
@@ -179,16 +197,17 @@ def test_calc_macrostate_oc_1(configure_logger,input_path):
 
 def test_calc_macrostate_oc_2(configure_logger,input_path):
 
-
 	enum,resting_complexes,transient_complexes,all_complexes, complex_count = create_input("calc_macrostate2.txt",[1],input_path)
 	old_all_complexes = all_complexes.copy()
 
+	
+	print('\n\n\n\n complex count ',complex_count)
 	map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,complex_count)
 
 	print("\n\nResting Complexes before\n")
 	for complex in resting_complexes:
 		print(complex)
-	calc_macro_pop(enum,all_complexes,resting_complexes)
+	calc_macro_pop(enum,all_complexes,resting_complexes,complex_count)
 	print("\n\nResting Complexes after\n")
 	for complex in resting_complexes:
 		print(complex)
@@ -198,7 +217,6 @@ def test_calc_macrostate_oc_2(configure_logger,input_path):
 	for key,complex in all_complexes.items():
 		print(complex)
 	
-	new_entries = {key: all_complexes[key] for key in all_complexes if key not in old_all_complexes}
 	
 	assert len(resting_complexes) == 1 
 
@@ -209,10 +227,10 @@ def test_calc_macrostate_oc_2(configure_logger,input_path):
 
 def test_calc_macrostate_oc_3(configure_logger,input_path):
 
-
+	
 	enum,resting_complexes,transient_complexes,all_complexes, complex_count = create_input("calc_macrostate3.txt",[0.25,0.25,0.25,0.25],input_path)
 	old_all_complexes = all_complexes.copy()
-
+	print('\n\n\n\n complex count ',complex_count)
 	map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,complex_count)
 
 
@@ -220,7 +238,7 @@ def test_calc_macrostate_oc_3(configure_logger,input_path):
 	for complex in resting_complexes:
 		print(complex,complex.occupancy)
 	print("\n\nMAcrocalc")
-	calc_macro_pop(enum,all_complexes,resting_complexes)
+	calc_macro_pop(enum,all_complexes,resting_complexes,complex_count)
 	print("\n\nResting Complexes after\n")
 	for complex in resting_complexes:
 		print(complex,complex.occupancy)
@@ -238,38 +256,8 @@ def test_calc_macrostate_oc_3(configure_logger,input_path):
 		solution_occs.remove(complex.occupancy)
 
 
-"""
-def test_calc_macrostate_oc_4(configure_logger,input_path):
-
-
-	enum,resting_complexes,transient_complexes,all_complexes, complex_count = create_input("calc_macrostate4.txt",[1/8 for _ in range(0,8)],input_path)
-	old_all_complexes = all_complexes.copy()
-
-	map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,complex_count)
-
-
-	print("\n\nResting Complexes before\n")
-	for complex in resting_complexes:
-		print(complex,complex.occupancy)
-	print("\n\nMAcrocalc")
-	calc_macro_pop(enum,all_complexes,resting_complexes)
-	print("\n\nResting Complexes after\n")
-	for complex in resting_complexes:
-		print(complex,complex.occupancy)
-
-	
-	for key,complex in all_complexes.items():
-		print(complex,complex)
-	
-	
-	assert len(resting_complexes) == 4 
-
-	solution_occs = [0.3740109438265814,0.0019781123468372314,0.3740109438265814,0.25]
-	for complex,occ in zip(resting_complexes,solution_occs): 
-		assert complex.occupancy in solution_occs
-		solution_occs.remove(complex.occupancy)
-"""
-
+def test_simulate_system():
+	pass 
 
 def simulate_condensed_reactions():
 
