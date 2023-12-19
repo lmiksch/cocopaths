@@ -49,7 +49,7 @@ def run_sim(d_seq, parameters,args):
 	folding_step_complexes = []
 	d_seq_split = d_seq.split()
 	
-
+	print(f'\n\n\nCocosim\nDomain Level seq: {d_seq}\n\n')
 
 
 	# before input parsing define name of complexes 
@@ -63,7 +63,7 @@ def run_sim(d_seq, parameters,args):
 	
 	
 	
-	map_transient_states(resulting_complexes,transient_complexes,all_complexes,enum)
+	map_transient_states(resulting_complexes,transient_complexes,all_complexes,enum,args)
 	
 	
 	
@@ -94,9 +94,6 @@ def run_sim(d_seq, parameters,args):
 		new_complexes = {}
 		
 
-		#print("\n\nextendo\n\n")
-
-
 
 		#______Function_for_extending_and_updating_names__ 
 
@@ -105,7 +102,7 @@ def run_sim(d_seq, parameters,args):
 		for key,complex in all_complexes.items():
 			logger.debug(f"{key}:{complex} {complex[0].occupancy}\n")
 		for complex in folding_step_complexes[-1]:
-			#print("complex: ",complex)
+			
 			c_name = complex._name
 			next_struct = complex.kernel_string + " " + d_seq_split[step]
 
@@ -114,9 +111,7 @@ def run_sim(d_seq, parameters,args):
 			used_structure_names += 1
 			old_names.append(c_name)
 
-		#print(new_complexes)
-		#print("\n\nextendo endo\n\n")
-
+		
 
 		logger.debug(f'Resulting new complexes: {new_complexes}')
 
@@ -139,22 +134,12 @@ def run_sim(d_seq, parameters,args):
 		new_complexes = complexes.copy() 
 		new_complex_items = []
 
-		#assert len(all_complexes) == len(new_complexes),"Not equal cant assign"
-
-		"""
-		for id, new_complex in zip(all_complexes,new_complexes):
-			all_complexes[id] = [new_complex,99]"""
-		
-
-		print("\n\ncomplexes ",len(complexes), complexes)
-		print("Old Names", len(old_names), old_names)
 
 		for x, c_name in enumerate(old_names):
 			for cid, complex_obj in all_complexes.items():
 				
 				if c_name == complex_obj[0]._name:
-					#print("\n",c_name,complex_obj[0]._name)
-					#print("\n ",complexes,"\n")
+
 					first_key = next(iter(complexes))
 					next_complex = complexes.pop(first_key)
 					next_complex.occupancy = complex_obj[0].occupancy
@@ -162,24 +147,17 @@ def run_sim(d_seq, parameters,args):
 				
 		# Add the new items to the dictionary
 		for cid, complex_item in new_complex_items:
-			print("Complex Item",complex_item,complex_item.occupancy)
 			all_complexes[cid] = [complex_item,complex_item.occupancy]	
 
 
-		#print("New_complex_items:",new_complex_items)
 		#Add remaining ones to all_complexes should incluce concentration aswell
-		print("Remaining complexes",complexes)
 		if len(complexes) > 0:
 			for key,complex in complexes.items():
-				print("Remaining complex in loop",complex)
 				all_complexes["Id_" + str(str(len(all_complexes) + 1))] = [complex,complex.occupancy] 
 				
 
 		
 
-				
-		
-		
 		logger.debug(f"All Complexes after: ")
 		for key,complex in all_complexes.items():
 			logger.debug(f"{key}:{complex}")
@@ -188,7 +166,6 @@ def run_sim(d_seq, parameters,args):
 
 
 		
-		#print("\n\n\nAll Complexes After extension ", all_complexes)
 
 		complexes = new_complexes
 
@@ -199,17 +176,16 @@ def run_sim(d_seq, parameters,args):
 		
 		#checks if there is a transient state which needs to be mapped
 		
-		map_transient_states(resting_complexes,transient_complexes,all_complexes,enum)
+		map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,args)
 						
 		
 		#Additionally maps resting states 
-		calc_macro_pop(enum,all_complexes,resting_complexes)
+		calc_macro_pop(enum,all_complexes,resting_complexes,args)
 
 
 		
 		#simulate the condensed reactions
 		resting_complexes = simulate_system(enum,args,resting_complexes,all_complexes)
-		print(resting_complexes)
 
 		#need to fix the duplication in update_macrostates -> should be fixed 
 		resting_complexes = list(set(resting_complexes))
@@ -225,18 +201,15 @@ def run_sim(d_seq, parameters,args):
 		for complex in all_complexes.items():
 			logger.debug(f"{complex[0]} {complex}")
 
+		# checks to see of occupancies sum up to 1
 		if oc_sum == 1:	
 			folding_step_complexes.append(resting_complexes)
-			print("\n\nFinal appending complexes: \n")
 			for complex in resting_complexes:
-				print(complex,complex.occupancy)
 				if not is_complex_in_all_complexes(complex,all_complexes):
 					raise SystemExit("resulting resting complex not in all complexes")
-			print("\n")
 		else:
 			raise SystemExit(f"SystemExit: Occupancies summ up to {oc_sum}")
 		
-		#assert len(all_complexes) >= len(resting_complexes),"More Resting complexes than unique_ids something went wrong."
 
 	
 
@@ -255,7 +228,6 @@ def simulate_system(enum,args,resting_complexes,all_complexes):
 	if condensed_reactions:
 		#create reactions list and occupancy_vector needed for crn simulations
 		for reaction in condensed_reactions:
-			print(reaction._reactants[0]._complexes)
 			if reaction._reactants[0].name not in seen: 
 				seen.add(reaction._reactants[0].name)
 				
@@ -264,7 +236,7 @@ def simulate_system(enum,args,resting_complexes,all_complexes):
 
 				occupancy1,occupancy2 = 0,0 
 
-				print("\n\n calc macro occupancies\n")
+				logger.debug("\n\n calc macro occupancies\n")
 				for r_complex in reaction._reactants[0]._complexes: 
 						
 					#set conc to 0 for undefined complexes 
@@ -275,12 +247,12 @@ def simulate_system(enum,args,resting_complexes,all_complexes):
 					
 					
 					occupancy1 += r_complex.occupancy
-					print("occ1 ",occupancy1,r_complex)
+					logger.debug("occ1 ",occupancy1,r_complex)
 					
 					
 				for p_complex in reaction._products[0]._complexes: 
 					occupancy2 += p_complex.occupancy
-					print("occ2 ",occupancy2,p_complex)
+					logger.debug("occ2 ",occupancy2,p_complex)
 
 
 				rate = reaction._const
@@ -294,17 +266,17 @@ def simulate_system(enum,args,resting_complexes,all_complexes):
 
 				
 
-		print("reactions: ",reactions)
-		print("\n Oc vector: ",oc_vector)
+		logger.debug("reactions: ",reactions)
+		logger.debug("\n Oc vector: ",oc_vector)
 		resulting_occupancies =	sim_condensed_rates(reactions,oc_vector,args)
-		print("\n\nResulting occupancies after simulation",resulting_occupancies)
+		logger.debug("\n\nResulting occupancies after simulation",resulting_occupancies)
 		#Update occupancies
 
-		resting_complexes = update_macrostates(resulting_occupancies,all_complexes = all_complexes,enum= enum,resting_complexes=resting_complexes)
+		resting_complexes = update_macrostates(resulting_occupancies,all_complexes = all_complexes,enum= enum,resting_complexes=resting_complexes,args=args)
 
 	return resting_complexes
 
-def update_macrostates(result_occ,all_complexes,enum,resting_complexes):
+def update_macrostates(result_occ,all_complexes,enum,resting_complexes,args):
 	"""
 	
 	Args: 
@@ -320,21 +292,18 @@ def update_macrostates(result_occ,all_complexes,enum,resting_complexes):
 	for reaction in result_occ.values():
 		for key,value in reaction.items():
 			for macrostate in enum._resting_macrostates:
-				if any(complex_obj._name == key for complex_obj in macrostate.complexes):
+				if any(complex_obj._name == key for complex_obj in macrostate.complexes) and value > args.cutoff:
 					macrostate.occupancy = value 
-					#print("\n\n\nresulting macrostate:  ",macrostate, macrostate.occupancy)
 					if macrostate not in macro_seen:
 						macro_sum += value
 						macro_seen.add(macrostate)
 
-	print("Summe over resting complexes:", sum([complex.occupancy for complex in resting_complexes]))
 	assert round(sum([complex.occupancy for complex in resting_complexes]),4) == 1
-	calc_macro_pop(enum,all_complexes,resting_complexes)
+	calc_macro_pop(enum,all_complexes,resting_complexes,args)
 
 
 	
-	print("Summe over resting complexes:", sum([complex.occupancy for complex in resting_complexes]))
-	#print("Resulting complexes",resulting_complexes)
+	logger.debug("Summe over resting complexes:", sum([complex.occupancy for complex in resting_complexes]))
 	return resting_complexes
 
 def is_complex_in_all_complexes(complex,all_complexes):
@@ -380,7 +349,7 @@ def sim_condensed_rates(reactants,concvect,args):
 	args.pyplot_xlim = None 
 	args.pyplot_ylim = None
 
-	args.cutoff = float('-inf')
+	
 
 	p0 = []
 	for i,s in enumerate(concvect,start=1):
@@ -414,7 +383,6 @@ def sim_condensed_rates(reactants,concvect,args):
 			new.append([r, p, k[0]])
 	crn = new
 
-	#print("Crn,species",crn)
 	RG = ReactionGraph(crn)
 	
 	C = []
@@ -423,7 +391,6 @@ def sim_condensed_rates(reactants,concvect,args):
 	for s,c in zip(V,concvect):
 		if s not in seen:
 			seen.add(s)
-			#print("\n\nS,c\n\n",s,c)
 			Vars.append(s)
 			C.append(c)
 
@@ -434,10 +401,8 @@ def sim_condensed_rates(reactants,concvect,args):
 		p0.append(str(i) + "=" + str(s))
 
 
-	#print("p0",p0)
 	args.p0 = p0
 
-	print("________V,C______",Vars,C)
 	filename, odename = RG.write_ODE_lib(sorted_vars = Vars, concvect = C,
 									  		jacobian= True,
 											  const = [False for x in Vars],
@@ -447,11 +412,9 @@ def sim_condensed_rates(reactants,concvect,args):
 
 	integrate = get_integrator(filename)
 
-	#original_stdout = sys.stdout
-	#sys.stdout = StringIO()
+	
 
 	time,occupancies = integrate(args) 
-	print(occupancies)
 	
 	
 
@@ -459,9 +422,6 @@ def sim_condensed_rates(reactants,concvect,args):
 	
 
 	end_conc = [oc for oc in occupancies[1:]]
-	print("end concs :",end_conc)
-	print('V',Vars)
-
 	resulting_concentrations = {}
 	for i in range(len(reactants)):
 		resulting_concentrations[i] = {}
@@ -472,13 +432,13 @@ def sim_condensed_rates(reactants,concvect,args):
 				resulting_concentrations[i][complex] = 0
 
 
-	print(f"\n\n\nResulting Concentrations: {resulting_concentrations}\n\n\n\n")
+	logger.debug(f"\n\n\nResulting Concentrations: {resulting_concentrations}\n\n\n\n")
 	return resulting_concentrations
 
 
 
-def calc_macro_pop(enum,all_complexes,resulting_complexes):
-	print("\n______________\nCalc Macropop\n\n")
+def calc_macro_pop(enum,all_complexes,resulting_complexes,args):
+	logger.debug("\n______________\nCalc Macropop\n\n")
 	resting_macrostates = enum._resting_macrostates
 
 	stat_dist = enum.condensation.stationary_dist
@@ -486,17 +446,14 @@ def calc_macro_pop(enum,all_complexes,resulting_complexes):
 	summe = 0 
 	for macrostate in resting_macrostates:
 		stat_dist_copy = dict(stat_dist[macrostate])
-		print('\n\n\nMacrostate: ',macrostate)
 		try:
 			macro_pop = macrostate.occupancy
 
-			print("___________________yes____",macro_pop,macrostate)
 
 
 		except:
 			macro_pop = 0
 			for complex in macrostate._complexes:
-					#print("\n\nComplex occupancy",complex.occupancy)
 
 					# add to macrostate population if no occupancy is defined -> complex new 
 					try:
@@ -506,43 +463,30 @@ def calc_macro_pop(enum,all_complexes,resulting_complexes):
 						macro_pop += 0
 						
 			
-		print("Macro POP",macro_pop)
 		
 		for stat_complex,pop in stat_dist_copy.items():
-			#print("Stat Complex",stat_complex)
-			#print("pop,macropop",pop,macro_pop)
+
 			new_dist = pop * macro_pop
-			#stat_dist[macrostate][stat_complex] = new_dist
-			#print("stat_complex, new dist",stat_complex,new_dist)
-			if is_complex_in_all_complexes(stat_complex,all_complexes):
+			if new_dist > args.cutoff:
+				if is_complex_in_all_complexes(stat_complex,all_complexes):
+					
+					for c_id, all_complex in all_complexes.items():
+						if stat_complex == all_complex[0]:
+							all_complexes[c_id] = [stat_complex,new_dist]
+					
+				else:
+					
+					all_complexes["Id_" + str(str(len(all_complexes) + 1))] = [stat_complex,new_dist]
+					
 				
-				for c_id, all_complex in all_complexes.items():
-					if stat_complex == all_complex[0]:
-						#print("1:",stat_complex)
-						all_complexes[c_id] = [stat_complex,new_dist]
-				
-			else:
-				
-				all_complexes["Id_" + str(str(len(all_complexes) + 1))] = [stat_complex,new_dist]
-				
-			
-			for r_complex in resulting_complexes:
-				if stat_complex == r_complex: 
-					print(stat_complex,float(new_dist))
-					r_complex.occupancy = float(new_dist)
-					summe += float(new_dist)
+				for r_complex in resulting_complexes:
+					if stat_complex == r_complex: 
+						r_complex.occupancy = float(new_dist)
+						summe += float(new_dist)
 
 	assert round(summe,4) == 1, f'Occupancies sum up to {summe} and not 1' 
 			
 			
-	#print("Resulting all_complexes")
-	#for key,complex in all_complexes.items():
-		#print(complex, complex[0].occupancy)
-	#print("\n\nEnd Macropops\n\n")
-	#print(all_complexes)
-	#for each macrostate get input kernel and mulitply all results with 
-
-	
 
 
 
@@ -555,7 +499,6 @@ def enumerate_step(complexes, reactions, parameter, all_complexes):
 	Returns:
 		resulting_complexes(list): Resulting PepperComplexes
 	"""
-	#print("\n\nComplexes ", complexes)
 	k_slow = parameter["k_slow"]
 	
 	if bind21 in BI_REACTIONS:
@@ -601,7 +544,7 @@ def enumerate_step(complexes, reactions, parameter, all_complexes):
 
 
 
-def map_transient_states(resting_complexes,transient_complexes,all_complexes,enum):
+def map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,args):
 
 	
 	logger.debug(f"\n\nMap Transient states\n\n")
@@ -618,17 +561,14 @@ def map_transient_states(resting_complexes,transient_complexes,all_complexes,enu
 		for t_complex in transient_complexes:
 			# Check if the current complex matches a transient complex
 			if complex[0] == t_complex:
-				print("\n\n________",complex[0])
 				for tup, va in enum.condensation.cplx_decay_prob.items():
 					
 					if tup[0] == t_complex:
 						macrostate = tup[1][0]
 						stat_dist = enum.condensation.stationary_dist[macrostate]
-						#print(tup,va)
 
 						
 						for stat_complex, value in stat_dist.items():
-							print("Stat complex",stat_complex)
 							##new_conc = curr_conc + (va(exit prob of transient) * value(stationary of resting state in macrostate) * t_c(concentration of transient state)) 
 							try:
 								if stat_complex.occupancy:
@@ -639,13 +579,14 @@ def map_transient_states(resting_complexes,transient_complexes,all_complexes,enu
 									new_conc = va * value * t_complex.occupancy
 							stat_complex.occupancy = new_conc
 
-						
-							# Check if the new complex is not already in all_complexes
-							if not is_complex_in_all_complexes(stat_complex,all_complexes) and not is_complex_in_all_complexes(stat_complex,new_complexes):
-								all_complexes["Id_" + str(len(all_complexes) + 1)] = [stat_complex, new_conc]
-								
-							elif is_complex_in_all_complexes(stat_complex,all_complexes):
-								update_complex_in_all_complexes(stat_complex,new_complexes)	
+							if new_conc > args.cutoff:#exclude structures below the cutoff 
+			
+								# Check if the new complex is not already in all_complexes
+								if not is_complex_in_all_complexes(stat_complex,all_complexes) and not is_complex_in_all_complexes(stat_complex,new_complexes):
+									all_complexes["Id_" + str(len(all_complexes) + 1)] = [stat_complex, new_conc]
+									
+								elif is_complex_in_all_complexes(stat_complex,all_complexes):
+									update_complex_in_all_complexes(stat_complex,new_complexes)	
 
 								
 	#all_complexes.update(new_complexes)
@@ -663,7 +604,7 @@ def update_complex_in_all_complexes(complex,all_complexes):
 			all_complexes[key] = [complex,complex.occupancy]
 
 
-
+'''
 def update_occupancies(resulting_complexes,enum,all_complexes):
 	"""Updates Occupancies based on the resulting condensed stationary distribution. 
 		
@@ -675,7 +616,6 @@ def update_occupancies(resulting_complexes,enum,all_complexes):
 			resulting_complexes(list): Updated list of the resulting complexes with their respective concentrations
 	
 	"""	
-	#print("\n\n_______________Begin update Occupancy___________________________\n\n")
 	# First calculate the distribution in the Macrostates to calculate the reactant occupancy of the outgoing reaction 
 	
 	macrostates = []
@@ -697,28 +637,14 @@ def update_occupancies(resulting_complexes,enum,all_complexes):
 
 			exit_probs[reaction_product[0]] = exit_prob
 
-	#print(f"\n\nExit Probs: {exit_probs}\n\n")
 
 	condensed_rates = {}
 	stationary_dist = enum.condensation.stationary_dist
 	for reaction in enum.condensation.condensed_reactions:
-		#print(reaction)
 		macrostates.append(reaction._reactants[0]._complexes)
-		#print(reaction._reactants,reaction._reactants)
 		for reactant,product in zip(reaction._reactants,reaction._products):
-			#print("reactant",reactant,product)
 			condensed_rates[(reactant._complexes[0], product._complexes[0])] = reaction._const
 
-	#print(f"Condensed Rates: ",condensed_rates)
-	#print(f"\n{macrostates}")
-	#print(f"\n {exit_probs}\n")
-	#print(f"\n {stationary_dist}\n\n\n")
-
-	#print(resulting_complexes)
-	
-	#print("All Complexes: ")
-	#for key, complex in all_complexes.items():
-		#print(f"{key} {complex[0]._name}	{complex[0].kernel_string}	{complex[0].occupancy}")
 
 
 
@@ -770,12 +696,12 @@ def update_occupancies(resulting_complexes,enum,all_complexes):
 
 	rate_matrix_np[zero_mask] = None
 	
-
+	raise SystemExit('function is necessary')
 	###
 	### Here Pilsimulator Stuff
 	###
 
-
+'''
 	
 
 def write_output(final_structures,d_seq,parameters = None):
@@ -785,12 +711,12 @@ def write_output(final_structures,d_seq,parameters = None):
 
 	ts = 1
 	data_output += ("\nResting Complexes after each Spacer:\n\n")
-	data_output += "Transcription Step | Structure  \n"
+	data_output += "Transcription Step |  Occupancy   |    Structure  \n"
 	for x in final_structures:
 		if x and x[0].kernel_string[-2] == "S": 
 			for complex in x:
 				if complex.occupancy >= 0.001:
-					data_output += f"{ts} 	{complex.kernel_string} {complex.occupancy}\n"
+					data_output += f"{ts:3}  |	{float(round(complex.occupancy,6)):7}	|	{complex.kernel_string} \n"
 			ts += 1 
 
 			data_output += "\n"
@@ -798,18 +724,36 @@ def write_output(final_structures,d_seq,parameters = None):
 	
 	ts = 1
 	data_output += ("\n\nOnly Logic Domain pairings:\n\n")
-	data_output += "Transcription Step | Structure	| Concentration \n"
+	data_output += "Transcription Step | Occupancy  |  Structure	 \n"
 
+
+
+	struct_list = []
 	for x in final_structures:
+		struct_dict = {}
 		if x and x[0].kernel_string[-2] == "S": 
 			data_output += "\n"
 			for complex in x:
 				if complex.occupancy >= 0.0001:
 					kernel_string = kernel_to_dot_bracket(complex.kernel_string)
 					db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
-					data_output += f"{ts}	{db_struct} 	{round(complex.occupancy,4)}\n"
+					
+					data_output += f"{ts:3}  |	{float(round(complex.occupancy,6)):8}   |   {db_struct} 	\n"
+					if db_struct in struct_dict: 
+						struct_dict[db_struct] += complex.occupancy
+					else: 	
+						struct_dict[db_struct] = complex.occupancy	
 			ts += 1
-			#data_output += "\n"
+			struct_list.append(struct_dict)
+
+	data_output += ("\n\nOnly Logic Domain pairings condensed:\n\n")
+	data_output += "Transcription Step | Occupancy  |  Structure	 \n"
+	t_s = 1
+	for dict in struct_list:
+		data_output += "\n"
+		for struct,occ in dict.items():
+			data_output += f"{t_s:3}  |	{float(occ):8.5}   |   {struct} 	\n"
+		t_s += 1
 
 	return data_output
 
@@ -893,11 +837,12 @@ def main():
 	parser.add_argument("--k-slow", type=float, help="Specify k-slow. Determines the cutoffpoint for slow reactions.", default=0.0001)
 	parser.add_argument("-v", "--verbose", action="count", default=0, help="Increase verbosity level. -v only shows peppercorn output")
 	parser.add_argument("-c","--condensed", action= "store_true",default=True, help="Condense reactions into only resting complexexes. (default: False)")
-
+	parser.add_argument("-cutoff","--cutoff", action= "store",default=float('-inf'), help="Cutoff value at which structures won't get accepted (default: -inf)")
+	
 
 
 	args = parser.parse_args()
-	
+	args.cutoff = float(args.cutoff)
 	set_verbosity(logger,args.verbose)
 
 	if args.input_file.isatty():
@@ -913,7 +858,7 @@ def main():
 
 
 
-	parameters = {"k_slow": args.k_slow, "condensed":args.condensed, "complexes": {}}
+	parameters = {"k_slow": args.k_slow, "condensed":args.condensed, "cutoff": args.cutoff,'complexes': {}}
 
 
 
@@ -937,16 +882,16 @@ def main():
 	
 
 	#_____Writing_and_printing_output___# 
-
+	print('before output')
 	output = ""
 
 	if args.verbose > 0:
 		ts = 1
 		output += ("\nResting Complexes after each step:\n\n")
-		output += "Transcription Step | Structure \n"
+		output += "Transcription Step |    Occupancy | Structure \n"
 		for x in simulated_structures: 
 			for complex in x:
-				output += f"{ts}	{complex.kernel_string} {complex.occupancy}\n"
+				output += f"{ts:3}   |	{float(round(complex.occupancy,6)):8}      |   {complex.kernel_string}\n"
 			ts += 1 
 			output += "\n"
 	

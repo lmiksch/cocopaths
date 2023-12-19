@@ -9,7 +9,7 @@ from peppercornenumerator.input import read_pil
 from peppercornenumerator.enumerator import Enumerator
 from peppercornenumerator.reactions import bind21
 from peppercornenumerator.enumerator import BI_REACTIONS
-
+import argparse
 from natsort import natsorted
 #setup logger                                      
 @pytest.fixture(scope="function")
@@ -41,7 +41,11 @@ def create_input(filename,occupancies,input_path):
 			filename(str): filename of input file (.pil format)
 			occupancies(list): list of occupancies of the corresponding complexes as in the input file 
 	"""
+	parser = argparse.ArgumentParser(description="cocosim is a cotranscriptional folding path simulator using peppercornenumerate to simulate a domain level sequence during transcription.")
+	parser.add_argument("-cutoff","--cutoff", action= "store",default=float('-inf'), help="Cutoff value at which structures won't get accepted (default: -inf)")
 	
+	args = args = parser.parse_args()
+	args.cutoff = float(args.cutoff)
 	file_path = os.path.join(input_path,filename)
 	with open(file_path, 'r') as file:
 		file_content = file.read()
@@ -79,19 +83,18 @@ def create_input(filename,occupancies,input_path):
 	transient_complexes = [cplx for cplx in natsorted(enum.transient_complexes)]
 
 
-	return enum,resting_complexes,transient_complexes,all_complexes,complex_count
+	return enum,resting_complexes,transient_complexes,all_complexes,complex_count,args
 
 def test_map_transient_states_1(configure_logger,input_path):
 	#2 transient to 1 resting state
 
 	
-	
-	enum,resting_complexes,transient_complexes,all_complexes, complex_count = create_input("map_transient_1.txt",[0.5,0.5],input_path)
+	enum,resting_complexes,transient_complexes,all_complexes, complex_count,args = create_input("map_transient_1.txt",[0.5,0.5],input_path)
 
 	print(transient_complexes)
 	print(resting_complexes)
 	old_all_complexes = all_complexes.copy()
-	map_transient_states(resting_complexes,transient_complexes,all_complexes,enum)
+	map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,args)
 	
 	for id,complex in all_complexes.items():
 		print(id,complex,complex[0].occupancy)
@@ -108,12 +111,11 @@ def test_map_transient_states_1(configure_logger,input_path):
 
 def test_map_transient_states_2(configure_logger,input_path):
 	#2 transient to 1 resting state
-	enum,resting_complexes,transient_complexes,all_complexes, complex_count = create_input("map_transient_2.txt",[1],input_path)
-
+	enum,resting_complexes,transient_complexes,all_complexes, complex_count,args = create_input("map_transient_2.txt",[1],input_path)
 	print(transient_complexes)
 	print(resting_complexes)
 	old_all_complexes = all_complexes.copy()
-	map_transient_states(resting_complexes,transient_complexes,all_complexes,enum)
+	map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,args)
 	
 	for id,complex in all_complexes.items():
 		print(id,complex,complex[0].occupancy)
@@ -129,12 +131,12 @@ def test_map_transient_states_2(configure_logger,input_path):
 
 def test_map_transient_states_3(configure_logger,input_path):
 	#2 transient to 1 resting state
-	enum,resting_complexes,transient_complexes,all_complexes, complex_count = create_input("map_transient_3.txt",[0.3,0.3,0.3],input_path)
+	enum,resting_complexes,transient_complexes,all_complexes, complex_count ,args = create_input("map_transient_3.txt",[0.3,0.3,0.3],input_path)
 
 	print(transient_complexes)
 	print(resting_complexes)
 	old_all_complexes = all_complexes.copy()
-	map_transient_states(resting_complexes,transient_complexes,all_complexes,enum)
+	map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,args)
 	
 	for id,complex in all_complexes.items():
 		print(id,complex,complex[0].occupancy)
@@ -150,12 +152,12 @@ def test_map_transient_states_3(configure_logger,input_path):
 
 def test_map_transient_states_4(configure_logger,input_path):
 	#2 transient to 1 resting state
-	enum,resting_complexes,transient_complexes,all_complexes, complex_count = create_input("map_transient_4.txt",[0.2,0.2,0.2,0.2,0.2],input_path)
+	enum,resting_complexes,transient_complexes,all_complexes, complex_count,args = create_input("map_transient_4.txt",[0.2,0.2,0.2,0.2,0.2],input_path)
 
 	print(transient_complexes)
 	print(resting_complexes)
 	old_all_complexes = all_complexes.copy()
-	map_transient_states(resting_complexes,transient_complexes,all_complexes,enum)
+	map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,args)
 	
 	for id,complex in all_complexes.items():
 		print(id,complex,complex[0].occupancy)
@@ -172,13 +174,13 @@ def test_map_transient_states_4(configure_logger,input_path):
 def test_calc_macrostate_oc_1(configure_logger,input_path):
 
 
-	enum,resting_complexes,transient_complexes,all_complexes, complex_count = create_input("calc_macrostate1.txt",[0.5,0.5],input_path)
+	enum,resting_complexes,transient_complexes,all_complexes, complex_count,args = create_input("calc_macrostate1.txt",[0.5,0.5],input_path)
 	old_all_complexes = all_complexes.copy()
 
-	map_transient_states(resting_complexes,transient_complexes,all_complexes,enum)
+	map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,args)
 
 
-	calc_macro_pop(enum,all_complexes,resting_complexes)
+	calc_macro_pop(enum,all_complexes,resting_complexes,args)
 
 	print(all_complexes)
 	for key,complex in all_complexes.items():
@@ -197,17 +199,17 @@ def test_calc_macrostate_oc_1(configure_logger,input_path):
 
 def test_calc_macrostate_oc_2(configure_logger,input_path):
 
-	enum,resting_complexes,transient_complexes,all_complexes, complex_count = create_input("calc_macrostate2.txt",[1],input_path)
+	enum,resting_complexes,transient_complexes,all_complexes, complex_count,args = create_input("calc_macrostate2.txt",[1],input_path)
 	old_all_complexes = all_complexes.copy()
 
 	
 	print('\n\n\n\n complex count ',complex_count)
-	map_transient_states(resting_complexes,transient_complexes,all_complexes,enum)
+	map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,args)
 
 	print("\n\nResting Complexes before\n")
 	for complex in resting_complexes:
 		print(complex)
-	calc_macro_pop(enum,all_complexes,resting_complexes)
+	calc_macro_pop(enum,all_complexes,resting_complexes,args)
 	print("\n\nResting Complexes after\n")
 	for complex in resting_complexes:
 		print(complex)
@@ -228,17 +230,17 @@ def test_calc_macrostate_oc_2(configure_logger,input_path):
 def test_calc_macrostate_oc_3(configure_logger,input_path):
 
 	
-	enum,resting_complexes,transient_complexes,all_complexes, complex_count = create_input("calc_macrostate3.txt",[0.25,0.25,0.25,0.25],input_path)
+	enum,resting_complexes,transient_complexes,all_complexes, complex_count,args = create_input("calc_macrostate3.txt",[0.25,0.25,0.25,0.25],input_path)
 	old_all_complexes = all_complexes.copy()
 	print('\n\n\n\n complex count ',complex_count)
-	map_transient_states(resting_complexes,transient_complexes,all_complexes,enum)
+	map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,args)
 
 
 	print("\n\nResting Complexes before\n")
 	for complex in resting_complexes:
 		print(complex,complex.occupancy)
 	print("\n\nMAcrocalc")
-	calc_macro_pop(enum,all_complexes,resting_complexes)
+	calc_macro_pop(enum,all_complexes,resting_complexes,args)
 	print("\n\nResting Complexes after\n")
 	for complex in resting_complexes:
 		print(complex,complex.occupancy)
