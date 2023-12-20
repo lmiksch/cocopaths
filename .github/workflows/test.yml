@@ -26,7 +26,12 @@ jobs:
 
     - name: Run pytest
       run: |
-        pytest --cov=cocopaths --cov-report=xml tests/
+        pytest
+      working-directory: .
+
+    - name: Run coverage
+      run: |
+        coverage run -m pytest
       working-directory: .
 
     - name: Upload coverage reports to Codecov
