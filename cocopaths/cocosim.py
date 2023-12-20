@@ -500,6 +500,7 @@ def enumerate_step(complexes, reactions, parameter, all_complexes):
 		resulting_complexes(list): Resulting PepperComplexes
 	"""
 	k_slow = parameter["k_slow"]
+	k_fast = parameter['k_fast']
 	
 	if bind21 in BI_REACTIONS:
 		BI_REACTIONS.remove(bind21)
@@ -512,9 +513,13 @@ def enumerate_step(complexes, reactions, parameter, all_complexes):
 	if k_slow: 
 		enum.k_slow = k_slow
 
-
+	logger.debug(f'Init complexes: {init_cplxs}')
+	logger.debug(f'Name complexes: {name_cplxs}')
+	
 	#need to find suitable k_fast
-	enum.k_fast = 20
+	if k_fast: 
+		enum.k_fast= k_fast
+	
 	
 	# Start to enumerate
 	enum.enumerate()
@@ -604,104 +609,6 @@ def update_complex_in_all_complexes(complex,all_complexes):
 			all_complexes[key] = [complex,complex.occupancy]
 
 
-'''
-def update_occupancies(resulting_complexes,enum,all_complexes):
-	"""Updates Occupancies based on the resulting condensed stationary distribution. 
-		
-		Args:
-			resulting_complexes(list): List of the resulting resting complexes from enumeration step 
-			enum(object): enumerator object which was used to calculate the resulting complexes
-
-		Returns:
-			resulting_complexes(list): Updated list of the resulting complexes with their respective concentrations
-	
-	"""	
-	# First calculate the distribution in the Macrostates to calculate the reactant occupancy of the outgoing reaction 
-	
-	macrostates = []
-	exit_probs = {}
-
-
-	# modify it so that it uses the stationary distribution 
-	# Iterate over the outer dictionary 
-	for key, inner_dict in enum.condensation.exit_prob.items():
-		# Iterate over the inner dictionary 
-		for reaction, value in inner_dict.items():
-			# Extracting the float value 
-			exit_prob = value
-			
-
-			# Extracting the product of the reaction
-			reaction_product = reaction[1]._products  
-			
-
-			exit_probs[reaction_product[0]] = exit_prob
-
-
-	condensed_rates = {}
-	stationary_dist = enum.condensation.stationary_dist
-	for reaction in enum.condensation.condensed_reactions:
-		macrostates.append(reaction._reactants[0]._complexes)
-		for reactant,product in zip(reaction._reactants,reaction._products):
-			condensed_rates[(reactant._complexes[0], product._complexes[0])] = reaction._const
-
-
-
-
-	#create rate matrix based on condensed reactions
-	rate_matrix = [[0 for _ in resulting_complexes] for _ in resulting_complexes]
-
-	for y,y_complex in enumerate(resulting_complexes):
-		
-		for x,x_complex in enumerate(resulting_complexes):
-			if (y_complex,x_complex) in condensed_rates:
-				rate_matrix[y][x] = condensed_rates[(y_complex,x_complex)]
-				#rate_matrix[x][y] = - condensed_rates[(y_complex,x_complex)]
-			else:
-				rate_matrix[y][y] -= rate_matrix[y][x]
-	
-	for i in range(len(resulting_complexes)):
-		rate_matrix[i][i] = -sum(rate_matrix[i][:i] + rate_matrix[i][i+1:])
-
-	
-	
-
-
-	# adjust populations based on exit probs
-
-	
-	populations = [] 
-
-	for complex in resulting_complexes: 
-		if complex in exit_probs and complex.occupancy != None:
-			populations.append(complex.occupancy * exit_probs[complex])
-		else:
-			populations.append(0)
-
-	#logger.debug(f"\nAfter Addition of new Structures\n{[parameter['complexes']]}")
-	t1 = 0.1 
-	t8 = 0.02
-
-	lin_times = np.array([t1], dtype='float128')
-	log_times = np.array(np.logspace(np.log10(t1), np.log10(t8), num=10, dtype='float128'))
-	log_times = np.delete(log_times, 0)
-	
-	log_times = []
-
-	times = np.concatenate([lin_times, log_times])
-
-	rate_matrix_np = np.array(rate_matrix)
-
-	zero_mask = rate_matrix_np == 0
-
-	rate_matrix_np[zero_mask] = None
-	
-	raise SystemExit('function is necessary')
-	###
-	### Here Pilsimulator Stuff
-	###
-
-'''
 	
 
 def write_output(final_structures,d_seq,parameters = None):
@@ -835,6 +742,7 @@ def main():
 	parser.add_argument("-i", "--input_file", nargs='?', type=argparse.FileType('r'), default=sys.stdin,
 						help="Input file. If not provided, reads from stdin.")
 	parser.add_argument("--k-slow", type=float, help="Specify k-slow. Determines the cutoffpoint for slow reactions.", default=0.0001)
+	parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
 	parser.add_argument("-v", "--verbose", action="count", default=0, help="Increase verbosity level. -v only shows peppercorn output")
 	parser.add_argument("-c","--condensed", action= "store_true",default=True, help="Condense reactions into only resting complexexes. (default: False)")
 	parser.add_argument("-cutoff","--cutoff", action= "store",default=float('-inf'), help="Cutoff value at which structures won't get accepted (default: -inf)")
@@ -850,15 +758,20 @@ def main():
 		d_seq = input()
 		if len(d_seq) == 0:
 			raise SystemExit("No Input given")
+		afp = None
 	else:
 		input_lines = args.input_file.readlines()
 		d_seq = extract_domain_sequence(input_lines)
 		afp = extract_afp(input_lines)
 		args.input_file.close()
+		
+		print("Following AFP was given for Sequence design:")
+		for step in afp:
+			print(step)
+		print("\n")
 
 
-
-	parameters = {"k_slow": args.k_slow, "condensed":args.condensed, "cutoff": args.cutoff,'complexes': {}}
+	parameters = {"k_slow": args.k_slow,'k_fast': args.k_fast, "condensed":args.condensed, "cutoff": args.cutoff,'complexes': {}}
 
 
 
@@ -868,11 +781,7 @@ def main():
 
 	print("Given Domain Sequence:", d_seq)
 
-	if afp:
-		print("Following AFP was given for Sequence design:")
-		for step in afp:
-			print(step)
-		print("\n")
+	
 
 
 

@@ -3,7 +3,7 @@
 import pytest
 import logging, os, re, subprocess
 from unittest.mock import patch
-from cocopaths.cocosim import map_transient_states,calc_macro_pop,enumerate_step
+from cocopaths.cocosim import map_transient_states,calc_macro_pop,enumerate_step,run_sim
 
 from peppercornenumerator.input import read_pil 
 from peppercornenumerator.enumerator import Enumerator
@@ -258,7 +258,23 @@ def test_calc_macrostate_oc_3(configure_logger,input_path):
 		solution_occs.remove(complex.occupancy)
 
 
-def test_simulate_system():
+def test_run_sim():
+	
+
+
+	parser = argparse.ArgumentParser(description="cocosim is a cotranscriptional folding path simulator using peppercornenumerate to simulate a domain level sequence during transcription.")
+	parser.add_argument("-cutoff","--cutoff", action= "store",default=float('-inf'), help="Cutoff value at which structures won't get accepted (default: -inf)")
+	parser.add_argument("--k-slow", type=float, help="Specify k-slow. Determines the cutoffpoint for slow reactions.", default=0.0001)
+	parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
+
+	args = args = parser.parse_args()
+	args.cutoff = float(args.cutoff)
+	args.condensed = True
+	parameters = {"k_slow": args.k_slow, 'k_fast': args.k_fast,"condensed":args.condensed, "cutoff": args.cutoff,'complexes': {}}
+
+	simulated_strudctures = run_sim('a b a*',parameters,args)
+	
+
 	pass 
 
 def simulate_condensed_reactions():
