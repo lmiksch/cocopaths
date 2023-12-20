@@ -272,8 +272,21 @@ def test_run_sim():
 	args.condensed = True
 	parameters = {"k_slow": args.k_slow, 'k_fast': args.k_fast,"condensed":args.condensed, "cutoff": args.cutoff,'complexes': {}}
 
-	simulated_strudctures = run_sim('a b a*',parameters,args)
+	simulated_structures = run_sim('a b a*',parameters,args)
 	
+	print(simulated_structures)
+
+	steps = [[] for _ in simulated_structures]
+
+	for x,step in enumerate(simulated_structures):
+		for complex in step:
+			steps[x].append(complex.kernel_string)
+
+
+	set1 = {tuple(set(sublist)) for sublist in steps}
+	set2 = {tuple(set(sublist)) for sublist in [['a b'],['a b a*','a( b )']]}
+
+	assert set1 == set2
 
 	pass 
 

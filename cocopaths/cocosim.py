@@ -525,9 +525,7 @@ def enumerate_step(complexes, reactions, parameter, all_complexes):
 	enum.enumerate()
 	
 	
-	condensed = parameter["condensed"]
-	if condensed:
-		enum.condense()
+	enum.condense()
 
 
 	resulting_complexes = [cplx for cplx in natsorted(enum.resting_complexes)] 
@@ -535,7 +533,7 @@ def enumerate_step(complexes, reactions, parameter, all_complexes):
 	transient_complexes = [cplx for cplx in natsorted(enum.transient_complexes)]
 	
 	
-	output = enum.to_pil(condensed=condensed,detailed = condensed) # should be not condensed for same output format like peppercorn
+	output = enum.to_pil(condensed=True,detailed = True) # should be not condensed for same output format like peppercorn
 	
 
 	
@@ -744,7 +742,6 @@ def main():
 	parser.add_argument("--k-slow", type=float, help="Specify k-slow. Determines the cutoffpoint for slow reactions.", default=0.0001)
 	parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
 	parser.add_argument("-v", "--verbose", action="count", default=0, help="Increase verbosity level. -v only shows peppercorn output")
-	parser.add_argument("-c","--condensed", action= "store_true",default=True, help="Condense reactions into only resting complexexes. (default: False)")
 	parser.add_argument("-cutoff","--cutoff", action= "store",default=float('-inf'), help="Cutoff value at which structures won't get accepted (default: -inf)")
 	
 
@@ -771,7 +768,7 @@ def main():
 		print("\n")
 
 
-	parameters = {"k_slow": args.k_slow,'k_fast': args.k_fast, "condensed":args.condensed, "cutoff": args.cutoff,'complexes': {}}
+	parameters = {"k_slow": args.k_slow,'k_fast': args.k_fast, "cutoff": args.cutoff,'complexes': {}}
 
 
 
@@ -791,21 +788,20 @@ def main():
 	
 
 	#_____Writing_and_printing_output___# 
-	print('before output')
 	output = ""
 
-	if args.verbose > 0:
-		ts = 1
-		output += ("\nResting Complexes after each step:\n\n")
-		output += "Transcription Step |    Occupancy | Structure \n"
-		for x in simulated_structures: 
-			for complex in x:
-				output += f"{ts:3}   |	{float(round(complex.occupancy,6)):8}      |   {complex.kernel_string}\n"
-			ts += 1 
-			output += "\n"
 	
-
-	output += write_output(simulated_structures,d_seq)
+	ts = 1
+	output += ("\nResting Complexes after each transcription step:\n\n")
+	output += "Transcription Step |    Occupancy | Structure \n"
+	for x in simulated_structures: 
+		for complex in x:
+			output += f"{ts:3}   |	{float(round(complex.occupancy,6)):8}      |   {complex.kernel_string}\n"
+		ts += 1 
+		output += "\n"
+	
+	if 'S' in d_seq:
+		output += write_output(simulated_structures,d_seq)
 	
 	output += f"\n\nFollowing sequence was simulated:\n{d_seq}"
 
