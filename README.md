@@ -86,6 +86,13 @@ Please enter a domain level sequence:
   - print structure information as input and not output informations
   - rewrite logger informations/ debugging
   - investigate floating point errors/ number error i think they are floating point errors 
+    - add rounding to 10-15 comma stellen
+  - find way to incorperate cutoff points 
+  
+    - enforce_cutoff_macrostate
+      - dont know if setting occupancy to 0 is enough or if should remove cut complex from macrostate
+      - current implemenation keeps the complex in the macrostates
+      - still not quiete right approach found
 
 
   - peppercorn complexes limit at around 13000 complexes and at step 97 of fp_3  
