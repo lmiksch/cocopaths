@@ -78,3 +78,14 @@ Please enter a domain level sequence:
 ### Current Bugs: 
 
  - Complementary domains must be separated by another domain 
+
+
+
+### Cocosim ToDO: 
+
+  - print structure information as input and not output informations
+  - rewrite logger informations/ debugging
+  - investigate floating point errors/ number error i think they are floating point errors 
+
+
+  - peppercorn complexes limit at around 13000 complexes and at step 97 of fp_3  

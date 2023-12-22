@@ -71,7 +71,7 @@ def test_main_with_file_input(tmp_path,capsys):
         main()
 
     captured = capsys.readouterr()
-    assert "\n\nInput folding path:\n['.', '()', '.()']\n\n\nResulting Domain Level sequence:   L0*  S0 a L0 b S1 b* L0* a* S2\n" in captured.out 
+    assert "\n\nInput folding path:\n['.', '()', '.()']\n\n\nResulting Domain Level sequence:  L0*  S0 a L0 b S1 b* L0* a* S2\nLength of domain seq =  10\n" in captured.out 
 
 def test_is_balanced_structure():
     structure_1 = "()()"

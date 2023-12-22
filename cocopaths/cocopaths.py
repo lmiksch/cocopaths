@@ -664,7 +664,8 @@ The AFP must have following propperties to be translated to a domain level seque
         afp_graph = build_graph(afp)
         
 
-        print("Resulting Domain Level sequence: "," ".join(afp_graph.get_domain_seq()))
+        print(f"Resulting Domain Level sequence: {' '.join(afp_graph.get_domain_seq())}")
+        print('Length of domain seq = ', len(" ".join(afp_graph.get_domain_seq()).split()))
 
         
 
