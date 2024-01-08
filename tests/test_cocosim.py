@@ -286,25 +286,31 @@ def test_enforce_cutoff(input_path):
         except:
             pass
 
-    parameters = {"k_slow": None,'k_fast': None, "cutoff": args.cutoff,"d_length":None}
+    parameters = {"k_slow": None,'k_fast': None, "cutoff": 0.22,"d_length":None}
 
     map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,args)
     macrostates = enum._resting_macrostates
     calc_macro_pop(enum,all_complexes,resting_complexes,args)
 
-    for complex1,complex2 in zip(resting_complexes,transient_complexes):
-        print(complex1,complex2)
-        try:
-            complex1.occupancy = round(complex1.occupancy,15)
-            complex2.occupancy = round(complex2.occupancy,15)
-        except:
-            pass
+
+    
+    bellow_t_count_all = 0
+    bellow_t_count_resting = 0 
+   
         
     apply_cutoff(enum,parameters,all_complexes)
-    
+
+    for complex in all_complexes.values():
+        if complex[1] == 0: 
+            bellow_t_count_all += 1
+    for complex in resting_complexes:
+        if complex.occupancy == 0: 
+                bellow_t_count_resting += 1
 
     
-
+    assert bellow_t_count_all == bellow_t_count_resting
+    
+    assert bellow_t_count_all == 1
 
 
 def test_run_sim():
