@@ -261,7 +261,7 @@ def test_calc_macrostate_oc_3(configure_logger,input_path):
         assert float(round(complex.occupancy,10)) in solution_occs
         solution_occs.remove(float(round(complex.occupancy,10)))
 
-def test_enforce_cutoff(input_path):
+def test_enforce_cutoff_complex(input_path):
 
     parser = argparse.ArgumentParser(description="cocosim is a cotranscriptional folding path simulator using peppercornenumerate to simulate a domain level sequence during transcription.")
     parser.add_argument("-cutoff","--cutoff", action= "store",default=float('-inf'), help="Cutoff value at which structures won't get accepted (default: -inf)")
@@ -293,7 +293,7 @@ def test_enforce_cutoff(input_path):
     calc_macro_pop(enum,all_complexes,resting_complexes,args)
 
 
-    
+
     bellow_t_count_all = 0
     bellow_t_count_resting = 0 
    

@@ -723,20 +723,22 @@ def write_output(final_structures,d_seq,parameters = None):
     data_output = ""
     
 
-    ts = 1
+    spacer_indices = [index for index, entry in enumerate(d_seq.split()) if entry.startswith('S')]
+    ts = 0
+    print(spacer_indices)
     data_output += ("\nResting Complexes after each Spacer:\n\n")
     data_output += "Transcription Step |  Occupancy   |    Structure  \n"
     for x in final_structures:
         if x and x[0].kernel_string[-2] == "S": 
             for complex in x:
                 if complex.occupancy >= 0.001:
-                    data_output += f"{ts:3}  |	{complex.occupancy:7.5f}	|	{complex.kernel_string} \n"
+                    data_output += f"{spacer_indices[ts]+ 1:3}  |	{complex.occupancy:7.5f}	|	{complex.kernel_string} \n"
             ts += 1 
 
             data_output += "\n"
     
     
-    ts = 1
+    ts = 0
     data_output += ("\n\nOnly Logic Domain pairings:\n\n")
     data_output += "Transcription Step | Occupancy  |  Structure	 \n"
 
@@ -751,8 +753,8 @@ def write_output(final_structures,d_seq,parameters = None):
                 if complex.occupancy >= 0.0001:
                     kernel_string = kernel_to_dot_bracket(complex.kernel_string)
                     db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
-                    
-                    data_output += f"{ts:3}  |	{np.float128(complex.occupancy):8.5f}   |   {db_struct} 	\n"
+                    print(ts)
+                    data_output += f"{spacer_indices[ts]+ 1:3}  |	{np.float128(complex.occupancy):8.5f}   |   {db_struct} 	\n"
                     if db_struct in struct_dict: 
                         struct_dict[db_struct] += complex.occupancy
                     else: 	
@@ -762,11 +764,11 @@ def write_output(final_structures,d_seq,parameters = None):
 
     data_output += ("\n\nOnly Logic Domain pairings condensed:\n\n")
     data_output += "Transcription Step | Occupancy  |  Structure	 \n"
-    t_s = 1
+    t_s = 0
     for s_dict in sorted(struct_list, key=lambda d: len(list(d.keys())[0]), reverse=False):
         data_output += "\n"
         for struct, occ in sorted(s_dict.items(), key=lambda item: item[1], reverse=True):
-            data_output += f"{t_s:3}  |  {float(occ):8.5f}   |   {struct}  \n"
+            data_output += f"{spacer_indices[t_s]+ 1:3}  |  {float(occ):8.5f}   |   {struct}  \n"
         t_s += 1
 
 
@@ -914,15 +916,18 @@ def main():
     #_____Writing_and_printing_output___# 
     output = ""
 
-    
-    ts = 1
-    output += ("\nResting Complexes after each transcription step:\n\n")
+    d_seq
+    ts = 2
+    """
+    redundant since we print the output during calculations 
+    output += ("\nResting Complexes before each transcription step:\n\n")
     output += "Transcription Step |    Occupancy | Structure \n"
-    for x in simulated_structures: 
+    for x in simulated_structures[:-1]: 
         for complex in x:
-            output += f"{ts:3}   |	{complex.occupancy:7.5f}      |   {complex.kernel_string}\n"
+            output += f"{ts:3}   |	{complex.occupancy:7.5f}      |   {str(complex.kernel_string + ' ' + d_seq.split()[ts])}\n"
+
         ts += 1 
-        output += "\n"
+        output += "\n"""
     
     if 'S' in d_seq:
         output += write_output(simulated_structures,d_seq)
