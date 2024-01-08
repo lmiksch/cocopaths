@@ -92,7 +92,7 @@ Please enter a domain level sequence:
     - enforce_cutoff_macrostate
       - dont know if setting occupancy to 0 is enough or if should remove cut complex from macrostate
       - current implemenation keeps the complex in the macrostates
-      - still not quiete right approach found
+      - still not quite right approach found
 
 
   - peppercorn complexes limit at around 13000 complexes and at step 97 of fp_3  

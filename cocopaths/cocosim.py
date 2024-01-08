@@ -71,14 +71,22 @@ def run_sim(d_seq, parameters,args):
     
     #only in first step this should only result in 1 structure
     for complex in resulting_complexes:
-        all_complexes["Id_" + str(str(len(all_complexes) + 1))] = [complex,1/len(resulting_complexes)]
+        all_complexes["Id_" + str(str(len(all_complexes) + 1))] = [complex,complex.occupancy]
         complex.occupancy = 1
         
     
 
     folding_step_complexes.append(resulting_complexes)	
+   
     
-
+    #Print continous output
+    for x, complex in complexes.items():
+        
+        occupancy = np.float128(complex.occupancy)
+        
+        print(f"{2:3}   |	      {occupancy:8.4f}   | {complex.kernel_string}")
+    print()    
+    
 
     for step in range(2, len(d_seq_split)):
         logger.warning("\n\n\n______________________________________________")
@@ -91,7 +99,11 @@ def run_sim(d_seq, parameters,args):
     
         new_complexes = {}
         
+        occ_sum = 0 
+        for complex in folding_step_complexes[-1]:
+            occ_sum += complex.occupancy
 
+        assert abs(occ_sum - 1 ) < 1e-10,"Difference at the beginning -> previous step was fucked"
 
         #______Function_for_extending_and_updating_names__ 
 
@@ -107,12 +119,12 @@ def run_sim(d_seq, parameters,args):
             old_names.append(c_name)
 
         
-
+        
         complexes, reactions = input_parsing(d_seq_split[0:step + 1], new_complexes,parameters)
 
         #Update all_complexes with new complexes 
 
-
+        
         new_complexes = complexes.copy() 
         new_complex_items = []
 
@@ -150,16 +162,22 @@ def run_sim(d_seq, parameters,args):
     
         total_occupancy = 0
 
+
+
+        #Print continous output
         for x, complex in complexes.items():
             try:
                 occupancy = np.float128(complex.occupancy)
                 total_occupancy += occupancy
-                print(f"{step:3}   |	      {occupancy:25.20f}   | {complex.kernel_string}")
+                print(f"{step + 1:3}   |	      {occupancy:8.4f}   | {complex.kernel_string}")
             except: 
-                print(f"{step:3}   |	{0:8.4f}      | {complex.kernel_string} \n")
+                pass
+                print(f"{step + 1:3}   |	{0:8.4f}      | {complex.kernel_string} \n")
+        print()
 
-        print("Total Occupancy:", total_occupancy,"\n")
-                        
+
+        logger.debug(f"Step:{step} Total Occupancy:{total_occupancy:20.20f}\n")
+        assert abs(total_occupancy - 1) < 1e-10,f"Occupancy is not equal 1 difference is {abs(total_occupancy - 1)}"         
         resting_complexes,transient_complexes,enum = enumerate_step(complexes=complexes, reactions=reactions, parameter=parameters,all_complexes=all_complexes)
         
         
@@ -167,7 +185,17 @@ def run_sim(d_seq, parameters,args):
         #checks if there is a transient state which needs to be mapped
         
         map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,args)
-                        
+        resting_complexes = list(set(resting_complexes))
+        oc_sum = 0
+        for complex in resting_complexes:
+            try: 
+                oc_sum += complex.occupancy 
+            except: 
+                pass
+        oc_sum = round(oc_sum,8) #can be later adjusted       
+        if abs(oc_sum - 1) >= 1e-6:	
+
+            raise SystemExit(f"SystemExit: Occupancies summ up to {oc_sum}")
         
         #Additionally maps resting states 
         calc_macro_pop(enum,all_complexes,resting_complexes,args)
@@ -181,11 +209,11 @@ def run_sim(d_seq, parameters,args):
         oc_sum = 0
         for complex in resting_complexes:
             oc_sum += complex.occupancy 
-        oc_sum = round(oc_sum,4) #can be later adjusted
+        oc_sum = round(oc_sum,6) #can be later adjusted
 
 
         # checks to see of occupancies sum up to 1
-        if oc_sum == 1:	
+        if abs(oc_sum - 1) <= 1e-6:	
             folding_step_complexes.append(resting_complexes)
             for complex in resting_complexes:
                 if not is_complex_in_all_complexes(complex,all_complexes):
@@ -193,6 +221,11 @@ def run_sim(d_seq, parameters,args):
         else:
             raise SystemExit(f"SystemExit: Occupancies summ up to {oc_sum}")
         
+        # apply cutoffs 
+
+        apply_cutoff(enum,parameters,all_complexes)
+
+
 
     
 
@@ -203,7 +236,7 @@ def simulate_system(enum,args,resting_complexes,all_complexes,new_domain_length)
     
     
     condensed_reactions = enum.condensation._condensed_reactions
-    
+    logger.info("Begin with simulating system")
     reactions = []
 
     oc_vector = []
@@ -281,7 +314,7 @@ def update_macrostates(result_occ,all_complexes,enum,resting_complexes,args):
 
 
     
-    logger.info("Summe over resting complexes:", sum([complex.occupancy for complex in resting_complexes]))
+    logger.info(f"Summe over resting complexes:{sum([complex.occupancy for complex in resting_complexes])}")
     return resting_complexes
 
 def is_complex_in_all_complexes(complex,all_complexes):
@@ -422,57 +455,158 @@ def sim_condensed_rates(reactants,concvect,args,d_length):
 
 
 def calc_macro_pop(enum,all_complexes,resulting_complexes,args):
+    """Function to calculate the distribution of occupancies in each Macrostate. 
+    Uses the stationary distribution to distribute the occpancies. 
+
+    Args: 
+        enum(object): Enumerator object from peppercorn
+        all_complexes(dict): Dictionary of all seen complexes in the simulation
+        resulting_complexes(dict): Dictionary of the resulting complexes in this step. 
+
+    
+    """
+
+
     logger.info("\n______________\nCalc Macropop\n\n")
     resting_macrostates = enum._resting_macrostates
 
     stat_dist = enum.condensation.stationary_dist
-
     summe = 0 
     for macrostate in resting_macrostates:
+        #print('macrostate',macrostate)
         stat_dist_copy = dict(stat_dist[macrostate])
-        try:
-            macro_pop = np.float128(macrostate.occupancy)
+        
+        macro_pop = np.float128(0)
+        for complex in macrostate._complexes:
+                #print("complex",complex)
+                # add to macrostate population if no occupancy is defined -> complex new 
+                try:
+                    macro_pop += complex.occupancy
+                    #print(complex.occupancy)
+                except:
+                    macro_pop += 0
 
-
-
-        except:
-            macro_pop = np.float128(0)
-            for complex in macrostate._complexes:
-
-                    # add to macrostate population if no occupancy is defined -> complex new 
-                    try:
-                        macro_pop += complex.occupancy
-                    except:
-                        macro_pop += 0
-                        
-            
+        macrostate.occupancy = macro_pop            
+        
         
         for stat_complex,pop in stat_dist_copy.items():
 
             new_dist = pop * macro_pop
-            if new_dist > args.cutoff:
-                if is_complex_in_all_complexes(stat_complex,all_complexes):
-                    
-                    for c_id, all_complex in all_complexes.items():
-                        if stat_complex == all_complex[0]:
-                            all_complexes[c_id] = [stat_complex,new_dist]
-                    
-                else:
-                    
-                    all_complexes["Id_" + str(str(len(all_complexes) + 1))] = [stat_complex,new_dist]
-                    
+        
+            if is_complex_in_all_complexes(stat_complex,all_complexes):
                 
-                for r_complex in resulting_complexes:
-                    #logger.debug(f"New_dist: {new_dist}")
-                    if stat_complex == r_complex: 
-                        r_complex.occupancy = np.float128(new_dist)
-                        summe += np.float128(new_dist)
-    logger.debug(f"Sum over all Macrostates {summe} {type(summe)}")
+                for c_id, all_complex in all_complexes.items():
+                    if stat_complex == all_complex[0]:
+                        all_complexes[c_id] = [stat_complex,new_dist]
+                
+            else:
+                
+                all_complexes["Id_" + str(str(len(all_complexes) + 1))] = [stat_complex,new_dist]
+                
+        
+            for r_complex in resulting_complexes:
+                #logger.debug(f"New_dist: {new_dist}")
+                if stat_complex == r_complex: 
+                    r_complex.occupancy = np.float128(new_dist)
+
+  
+    logger.debug("endo of update macrostates")
+    for r_complex in resulting_complexes:
+            #logger.debug(f"New_dist: {new_dist}")
+            logger.debug(r_complex)
+            summe += np.float128(r_complex.occupancy)
+
+    logger.debug(f"Sum over all Macrostates {summe:.20f} {type(summe)}")
+
+
+    
     assert round(summe,8) == 1, f'Occupancies sum up to {summe} and not 1' 
             
-            
+def apply_cutoff(enum,parameters,all_complexes):
+    """Applies the user defined cutoff on the system. 
+    First looks at the each macrostate if the whole macrostate is under the treshhold. 
+
+    If macrostate < threshold: (Solution not fixed below is a possible solution)
+        - look if there are outgoing condensed rates if yes radjust macrostate occupancies based on the outgoing rates of the removed macrostate
+        - if no outgoing condensed rate, readjust whole system (don't know if this is best solution)
+
+    If only a complex in a macrostate is under the threshold, the complex gets removed and the whole macrostate gets readjusted. 
+    
+    
+    """
+
+    macrostates = enum._resting_macrostates 
+
+    for macrostate in macrostates:
+        macro_occ = sum([occ.occupancy for occ in macrostate._complexes]) 
+        if macro_occ <= parameters['cutoff']:
+            print("Macrostate to be cut and occupancy",macrostate,macro_occ)
+            enforce_cutoff_macrostate(macrostate)
+        
+        for complex in macrostate._complexes: 
+            if complex.occupancy <= parameters['cutoff']:
+                enforce_cutoff_complex(enum,macrostate,complex,parameters,all_complexes)
+
+        
+def enforce_cutoff_macrostate(macrostate):
 
 
+    print("Macrostate to be cut ",macrostate,macrostate.occupancy)
+    raise SystemExit('Whole macrostate is under threshold')
+
+
+def enforce_cutoff_complex(enum,macrostate,cut_complex,args,all_complexes):
+
+    logger.debug(f'\n\n\nEnforcing Cutoff for {cut_complex} with occupancy {cut_complex.occupancy}\n\n')
+    
+    #check if total macrostate gets cut
+    macro_occ = np.float128(0)
+
+    for complex in macrostate._complexes:
+        macro_occ += complex.occupancy
+   
+
+    free_occ = cut_complex.occupancy
+    stat_dist = enum.condensation.stationary_dist
+
+
+    stat_dist_copy = dict(stat_dist[macrostate])
+    #macro_pop = np.float128(macrostate.occupancy)
+
+    sum_remaining_occs = macro_occ - free_occ
+
+    logger.debug('Sum remaining occs: ',sum_remaining_occs) 
+    check_num = 0 
+    for complex in macrostate._complexes:
+            if complex != cut_complex:
+                logger.debug("1: ",complex,complex.occupancy,type(complex.occupancy),type(free_occ))
+                new_dist = np.float128(complex.occupancy) / sum_remaining_occs  
+                logger.debug("New dist",new_dist)
+                new_dist = new_dist * macro_occ
+                logger.debug("after * macro_occ New dist",new_dist)
+                
+                if is_complex_in_all_complexes(complex,all_complexes):
+                    
+                    for c_id, all_complex in all_complexes.items():
+                        if complex == all_complex[0]:
+                            all_complexes[c_id][1] = new_dist
+                            complex.occupancy = new_dist
+                            check_num = new_dist
+
+
+    cut_complex.occupancy = 0 
+
+    update_complex_in_all_complexes(cut_complex,all_complexes)
+
+    updated_macro_occupancy = 0 
+
+    for complex in macrostate._complexes:
+        logger.debug(complex,complex.occupancy)
+        updated_macro_occupancy += complex.occupancy
+        
+    logger.debug(free_occ, type(free_occ),type(check_num),check_num)
+
+    assert abs(updated_macro_occupancy - macro_occ) <= 1e-10,f'Updated Macro Occupancy {updated_macro_occupancy:.10f} initial macro_occ {macro_occ:.10f}' 
 
 def enumerate_step(complexes, reactions, parameter, all_complexes):
     """Takes complexes in form of PepperComplexes and uses Peppercorn Enumerator to find possible structures and their respective occupancies. 
@@ -596,7 +730,7 @@ def write_output(final_structures,d_seq,parameters = None):
         if x and x[0].kernel_string[-2] == "S": 
             for complex in x:
                 if complex.occupancy >= 0.001:
-                    data_output += f"{ts:3}  |	{complex.occupancy:7}	|	{complex.kernel_string} \n"
+                    data_output += f"{ts:3}  |	{complex.occupancy:7.5f}	|	{complex.kernel_string} \n"
             ts += 1 
 
             data_output += "\n"
@@ -618,7 +752,7 @@ def write_output(final_structures,d_seq,parameters = None):
                     kernel_string = kernel_to_dot_bracket(complex.kernel_string)
                     db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
                     
-                    data_output += f"{ts:3}  |	{np.float128(complex.occupancy):20.20f}   |   {db_struct} 	\n"
+                    data_output += f"{ts:3}  |	{np.float128(complex.occupancy):8.5f}   |   {db_struct} 	\n"
                     if db_struct in struct_dict: 
                         struct_dict[db_struct] += complex.occupancy
                     else: 	
@@ -629,11 +763,12 @@ def write_output(final_structures,d_seq,parameters = None):
     data_output += ("\n\nOnly Logic Domain pairings condensed:\n\n")
     data_output += "Transcription Step | Occupancy  |  Structure	 \n"
     t_s = 1
-    for dict in struct_list:
+    for s_dict in sorted(struct_list, key=lambda d: len(list(d.keys())[0]), reverse=False):
         data_output += "\n"
-        for struct,occ in dict.items():
-            data_output += f"{t_s:3}  |	{np.float128(occ):8.5f}   |   {struct} 	\n"
+        for struct, occ in sorted(s_dict.items(), key=lambda item: item[1], reverse=True):
+            data_output += f"{t_s:3}  |  {float(occ):8.5f}   |   {struct}  \n"
         t_s += 1
+
 
     return data_output
 
@@ -785,7 +920,7 @@ def main():
     output += "Transcription Step |    Occupancy | Structure \n"
     for x in simulated_structures: 
         for complex in x:
-            output += f"{ts:3}   |	{complex.occupancy:8}      |   {complex.kernel_string}\n"
+            output += f"{ts:3}   |	{complex.occupancy:7.5f}      |   {complex.kernel_string}\n"
         ts += 1 
         output += "\n"
     

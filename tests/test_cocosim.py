@@ -3,15 +3,14 @@
 import pytest
 import logging, os, re, subprocess
 from unittest.mock import patch
-from cocopaths.cocosim import map_transient_states,calc_macro_pop,enumerate_step,run_sim
-
+from cocopaths.cocosim import map_transient_states,calc_macro_pop,enumerate_step,run_sim, enforce_cutoff_macrostate,apply_cutoff
 from peppercornenumerator.input import read_pil 
 from peppercornenumerator.enumerator import Enumerator
 from peppercornenumerator.reactions import bind21
 from peppercornenumerator.enumerator import BI_REACTIONS
 import argparse
 from natsort import natsorted
-
+from decimal import Decimal,getcontext
 import numpy as np 
 #setup logger                                      
 @pytest.fixture(scope="function")
@@ -35,7 +34,7 @@ def test_enumerate_step():
 
 
 def create_input(filename,occupancies,input_path):
-
+    
     """Creates complexes and structures for further testing
     
 
@@ -62,7 +61,7 @@ def create_input(filename,occupancies,input_path):
 
     for complex,occ in zip(complexes.values(),occupancies):
         
-        complex.occupancy = occ
+        complex.occupancy = np.float128(occ)
         all_complexes["Id_" + str(complex_count)] = [complex,occ]
         complex_count += 1
 
@@ -261,6 +260,51 @@ def test_calc_macrostate_oc_3(configure_logger,input_path):
     for complex,occ in zip(resting_complexes,solution_occs): 
         assert float(round(complex.occupancy,10)) in solution_occs
         solution_occs.remove(float(round(complex.occupancy,10)))
+
+def test_enforce_cutoff(input_path):
+
+    parser = argparse.ArgumentParser(description="cocosim is a cotranscriptional folding path simulator using peppercornenumerate to simulate a domain level sequence during transcription.")
+    parser.add_argument("-cutoff","--cutoff", action= "store",default=float('-inf'), help="Cutoff value at which structures won't get accepted (default: -inf)")
+    parser.add_argument("--k-slow", type=float, help="Specify k-slow. Determines the cutoffpoint for slow reactions.", default=0.0001)
+    parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
+    parser.add_argument("-v","--verbosity",action="count")
+
+    args  = parser.parse_args()
+    args.cutoff = float(args.cutoff)
+    args.condensed = True
+
+
+    
+    enum,resting_complexes,transient_complexes,all_complexes, complex_count,args = create_input("calc_macrostate3.txt",[np.float128(0.2),np.float128(0.3),np.float128(0.25),np.float128(0.25)],input_path)
+    
+    
+    for complex1,complex2 in zip(resting_complexes,transient_complexes):
+        
+        try:
+            complex1.occupancy = round(complex1.occupancy,15)
+            complex2.occupancy = round(complex2.occupancy,15)
+        except:
+            pass
+
+    parameters = {"k_slow": None,'k_fast': None, "cutoff": args.cutoff,"d_length":None}
+
+    map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,args)
+    macrostates = enum._resting_macrostates
+    calc_macro_pop(enum,all_complexes,resting_complexes,args)
+
+    for complex1,complex2 in zip(resting_complexes,transient_complexes):
+        print(complex1,complex2)
+        try:
+            complex1.occupancy = round(complex1.occupancy,15)
+            complex2.occupancy = round(complex2.occupancy,15)
+        except:
+            pass
+        
+    apply_cutoff(enum,parameters,all_complexes)
+    
+
+    assert x == 2
+
 
 
 def test_run_sim():
