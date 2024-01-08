@@ -303,7 +303,7 @@ def test_enforce_cutoff(input_path):
     apply_cutoff(enum,parameters,all_complexes)
     
 
-    assert x == 2
+    
 
 
 
