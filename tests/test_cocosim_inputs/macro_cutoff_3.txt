@@ -1,0 +1,15 @@
+length S2 = 8 
+length S0 = 8 
+length c = 5 
+length a = 5 
+length L0 = 8 
+length S1 = 8 
+length f = 5 
+length g = 5 
+length e = 5 
+length d = 5 
+length b = 5 
+
+E18 = L0* S0 a L0( b( S1 c* d* ) ) a*( e*( f* S2 g ) ) L0
+E19 = L0* S0 a( L0( b( S1 c* d* ) ) ) e* f* S2 g e a L0
+E20 = L0* S0 a( L0( b( S1 c* d* ) ) ) e*( f* S2 g ) a L0
