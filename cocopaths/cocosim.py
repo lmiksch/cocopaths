@@ -25,6 +25,7 @@ import logging
 import numpy as np 
 import copy
 import os
+import random
 
 
 logger = logging.getLogger('cocosim')
@@ -555,23 +556,40 @@ def apply_cutoff(enum,parameters,all_complexes):
     
     """
     logger.info("\n\nEnforcing Cutoffs\n\n")
-    macrostates = enum._resting_macrostates 
+    
     stat_dist = enum.condensation.stationary_dist
 
     #necessary to not reassign occupancies to cut complexes later on 
     cut_macrostates = set()
+    macrostates = enum._resting_macrostates 
+    
+    print("\n\nBegin with pruning")
 
-    for macrostate in macrostates: 
-        macrostate.occupancy = sum([complex.occupancy for complex in macrostate._complexes])
+    rm_occ = 0 # keeps track of the allready removed occupancy of the system
 
-    #print(f"\n\nCut Macrostates:")
-    for macrostate in macrostates:
-        macro_occ = sum([occ.occupancy for occ in macrostate._complexes]) 
-        print("Macro Occ",macro_occ)
-        if macro_occ <= parameters['cutoff']:
-            logger.debug(f"Macrostate to be cut and occupancy {macrostate},{macro_occ:.20f}")
-            cut_macrostates.add(macrostate)
-            enforce_cutoff_macrostate(macrostate,enum,all_complexes,cut_macrostates)
+    occupancy_groups = {}
+    for macrostate in enum._resting_macrostates:
+        occupancy = macrostate.occupancy
+        if occupancy not in occupancy_groups:
+            occupancy_groups[occupancy] = []
+        occupancy_groups[occupancy].append(macrostate)
+
+    # Iterate through sorted groups and shuffle within each group
+    for occupancy, group in sorted(occupancy_groups.items()):
+        random.shuffle(group)
+
+        # Iterate through shuffled group
+        for macro in group:
+            print(macro, macro.occupancy)
+
+            if rm_occ + macro.occupancy > parameters["cutoff"]:
+                break
+
+            cut_macrostates.add(macro)
+            print(f"Macrostate to be cut and occupancy {macro},{macro.occupancy:.20f} rm_occ + macro occ: {rm_occ + macro.occupancy}")
+
+            enforce_cutoff_macrostate(macro, enum, all_complexes, cut_macrostates)
+
 
 
     oc_sum = 0
