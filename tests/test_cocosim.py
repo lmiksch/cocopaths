@@ -3,7 +3,7 @@
 import pytest
 import logging, os, re, subprocess
 from unittest.mock import patch
-from cocopaths.cocosim import map_transient_states,calc_macro_pop,enumerate_step,run_sim, enforce_cutoff_macrostate,apply_cutoff
+from cocopaths.cocosim import simulate_system,map_transient_states,calc_macro_pop,enumerate_step,run_sim, enforce_cutoff_macrostate,apply_cutoff
 from peppercornenumerator.input import read_pil 
 from peppercornenumerator.enumerator import Enumerator
 from peppercornenumerator.reactions import bind21
@@ -69,7 +69,7 @@ def create_input(filename,occupancies,input_path):
     name_cplxs = list(complexes.values())
     enum = Enumerator(init_cplxs, reactions, named_complexes=name_cplxs)
 
-    enum.k_slow = 1
+    enum.k_slow = 0.001
     if bind21 in BI_REACTIONS:
         BI_REACTIONS.remove(bind21)
     enum.k_fast = 20 
@@ -261,8 +261,6 @@ def test_calc_macrostate_oc_3(configure_logger,input_path):
         assert float(round(complex.occupancy,10)) in solution_occs
         solution_occs.remove(float(round(complex.occupancy,10)))
 
-   
-
 def test_enforce_cutoff_macrostate_1(input_path):
  
     parser = argparse.ArgumentParser(description="cocosim is a cotranscriptional folding path simulator using peppercornenumerate to simulate a domain level sequence during transcription.")
@@ -325,7 +323,8 @@ def test_enforce_cutoff_macrostate_1(input_path):
     assert occ_sum_all == occ_sum_resting 
 
     assert abs(1 - occ_sum_all) <= 1e-10
-
+   
+   
 
 def test_enforce_cutoff_macrostate_2(input_path):
  
@@ -338,8 +337,19 @@ def test_enforce_cutoff_macrostate_2(input_path):
     args  = parser.parse_args()
     args.cutoff = float(args.cutoff)
     args.condensed = True
+    d_seq = "a* b* L0* c* d* S0 c L0 b S1 L0* S2 e d c L0 b a"
 
-    enum,resting_complexes,transient_complexes,all_complexes, complex_count,args = create_input("calc_macrostate3.txt",[np.float128(0.25),np.float128(0.3),np.float128(0.2),np.float128(0.25)],input_path)
+    d_seq_split = d_seq.split()
+
+    d_length = {}
+
+    for domain in d_seq.split():
+        if domain[0] == "L" or domain[0] == "S":
+            d_length[domain] = 8
+        else: 
+            d_length[domain] = 3 
+
+    enum,resting_complexes,transient_complexes,all_complexes, complex_count,args = create_input("macro_cutoff_2.txt",[np.float128(1)],input_path)
     
     
     for complex1,complex2 in zip(resting_complexes,transient_complexes):
@@ -349,13 +359,14 @@ def test_enforce_cutoff_macrostate_2(input_path):
             complex2.occupancy = round(complex2.occupancy,15)
         except:
             pass
-
-    parameters = {"k_slow": None,'k_fast': None, "cutoff": 0.22,"d_length":None}
+    
+    parameters = {"k_slow": 0.0001,'k_fast': 20, "cutoff": 0.05,"d_length":d_length}
 
     map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,args)
     macrostates = enum._resting_macrostates
     calc_macro_pop(enum,all_complexes,resting_complexes,args)
 
+    resting_complexes = simulate_system(enum,args,resting_complexes,all_complexes,parameters["d_length"][d_seq_split[17]])
 
 
     below_t_count_all = 0
@@ -387,9 +398,91 @@ def test_enforce_cutoff_macrostate_2(input_path):
     assert below_t_count_all == below_t_count_resting, f"Below t count all {below_t_count_all} == {below_t_count_resting} below t count resting "
     
     assert occ_sum_all == occ_sum_resting 
+    
+    assert below_t_count_resting == 1
 
     assert abs(1 - occ_sum_all) <= 1e-10
+
+def test_enforce_cutoff_macrostate_3(input_path):
+ 
+    parser = argparse.ArgumentParser(description="cocosim is a cotranscriptional folding path simulator using peppercornenumerate to simulate a domain level sequence during transcription.")
+    parser.add_argument("-cutoff","--cutoff", action= "store",default=float('-inf'), help="Cutoff value at which structures won't get accepted (default: -inf)")
+    parser.add_argument("--k-slow", type=float, help="Specify k-slow. Determines the cutoffpoint for slow reactions.", default=0.0001)
+    parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
+    parser.add_argument("-v","--verbosity",action="count")
+
+    args  = parser.parse_args()
+    args.cutoff = float(args.cutoff)
+    args.condensed = True
+    d_seq = "a* b* L0* c* d* S0 c L0 b S1 L0* S2 e d c L0 b a"
+
+    d_seq_split = d_seq.split()
+
+    d_length = {}
+
+    for domain in d_seq.split():
+        if domain[0] == "L" or domain[0] == "S":
+            d_length[domain] = 8
+        else: 
+            d_length[domain] = 3 
+
+    enum,resting_complexes,transient_complexes,all_complexes, complex_count,args = create_input("macro_cutoff_3.txt",[np.float128(1/3),np.float128(1/3),np.float128(1/3)],input_path)
+    
+    
+    for complex1,complex2 in zip(resting_complexes,transient_complexes):
+        
+        try:
+            complex1.occupancy = round(complex1.occupancy,15)
+            complex2.occupancy = round(complex2.occupancy,15)
+        except:
+            pass
+    
+    parameters = {"k_slow": 0.0001,'k_fast': 20, "cutoff": 0.31,"d_length":d_length}
+
+    map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,args)
+    macrostates = enum._resting_macrostates
+    calc_macro_pop(enum,all_complexes,resting_complexes,args)
+
+    resting_complexes = simulate_system(enum,args,resting_complexes,all_complexes,parameters["d_length"][d_seq_split[17]])
+
+
+    below_t_count_all = 0
+    below_t_count_resting = 0 
    
+        
+    apply_cutoff(enum,parameters,all_complexes)
+
+    calc_macro_pop(enum,all_complexes,resting_complexes,args)
+    occ_sum_all = 0
+    for complex in all_complexes.values():
+        if complex[0] in resting_complexes:
+            print(complex)
+            occ_sum_all += complex[1]
+            if complex[1] == 0: 
+                below_t_count_all += 1
+            
+    cut_macros = 0
+    for macro in enum._resting_macrostates:
+        if macro.occupancy == 0:
+            cut_macros += 1 
+
+    occ_sum_resting = 0
+    for complex in resting_complexes:
+        print(complex,complex.occupancy)
+        occ_sum_resting += complex.occupancy
+        if complex.occupancy == 0: 
+                below_t_count_resting += 1
+                
+    print("\nMacrostates at the end of the test:")
+    for macro in enum._resting_macrostates:
+        print(macro,macro.occupancy)
+    assert below_t_count_all == below_t_count_resting, f"Below t count all {below_t_count_all} == {below_t_count_resting} below t count resting "
+    
+    assert occ_sum_all == occ_sum_resting 
+    
+    assert cut_macros == 1, f"Macrocomplexes under the threshold {cut_macros}"
+
+    assert abs(1 - occ_sum_all) <= 1e-10
 
 
 

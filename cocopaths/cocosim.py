@@ -549,7 +549,7 @@ def apply_cutoff(enum,parameters,all_complexes):
     First looks at the each macrostate if the whole macrostate is under the treshhold. 
 
     If macrostate < threshold: (Solution not fixed below is a possible solution)
-        - look if there are outgoing condensed rates if yes radjust macrostate occupancies based on the outgoing rates of the removed macrostate
+        - look if there are outgoing condensed rates if yes readjust macrostate occupancies based on the outgoing rates of the removed macrostate
         - if no outgoing condensed rate, readjust whole system (don't know if this is best solution)
 
     If only a complex in a macrostate is under the threshold, the complex gets removed and the whole macrostate gets readjusted. 
@@ -563,7 +563,7 @@ def apply_cutoff(enum,parameters,all_complexes):
     cut_macrostates = set()
     macrostates = enum._resting_macrostates 
     
-    print("\n\nBegin with pruning")
+
 
     rm_occ = 0 # keeps track of the allready removed occupancy of the system
 
@@ -580,13 +580,11 @@ def apply_cutoff(enum,parameters,all_complexes):
 
         # Iterate through shuffled group
         for macro in group:
-            print(macro, macro.occupancy)
 
             if rm_occ + macro.occupancy > parameters["cutoff"]:
                 break
 
             cut_macrostates.add(macro)
-            print(f"Macrostate to be cut and occupancy {macro},{macro.occupancy:.20f} rm_occ + macro occ: {rm_occ + macro.occupancy}")
 
             enforce_cutoff_macrostate(macro, enum, all_complexes, cut_macrostates)
 
@@ -633,24 +631,22 @@ def enforce_cutoff_macrostate(macrostate,enum,all_complexes,cut_macrostates):
                 macro.occupancy += cut_occ*(1/(len(enum._resting_macrostates) - len(cut_macrostates)))
 
     else: 
-        sum_rates = sum([reaction._const for reaction in enum.condensation.condensed_reactions if all([macrostate == reaction._reactants[0],  macrostate not in cut_macrostates])])
         
-        if sum_rates == 0: #no outgoing reactions same fate as above 
+        
+        sum_rates = sum([reaction._const for reaction in enum.condensation.condensed_reactions if all([macrostate == reaction._reactants[0],  macrostate in cut_macrostates])])
+        
+        if sum_rates == 0: #no outgoing reactions same fate as above
             for macro in enum._resting_macrostates: 
                 if macro != macrostate and macro not in cut_macrostates:
                     macro.occupancy += cut_occ*(1/(len(enum._resting_macrostates) - len(cut_macrostates)))
                   
 
             assert abs(1 - sum([macro.occupancy for macro in enum._resting_macrostates])) < 1e-10,f"Macro occupancies sum up to {sum([macro.occupancy for macro in enum._resting_macrostates])}"
-                
-
-
-
+            
             #raise SystemExit("Cut complex has no outgoing reaction") 
         else:
-           
             for reaction in enum.condensation.condensed_reactions:
-                if macrostate == reaction._reactants[0] and macrostate not in cut_macrostates: #check if the cut macrostate has an outgoing reaction
+                if macrostate == reaction._reactants[0] and macrostate in cut_macrostates: #check if the cut macrostate has an outgoing reaction
                     reaction._products[0].occupancy += cut_occ * (reaction._const/sum_rates)
                     
 
