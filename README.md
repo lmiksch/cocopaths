@@ -95,4 +95,4 @@ Please enter a domain level sequence:
       - new approach with percent cutoff
 
 
-  - peppercorn complexes limit at around 13000 complexes and at step 97 of fp_3  
+  - peppercornenumerator.enumerator.PolymerizationError: Too many reactions enumerated! (50049)
