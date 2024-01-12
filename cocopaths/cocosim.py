@@ -586,7 +586,8 @@ def apply_cutoff(enum,parameters,all_complexes):
 
             cut_macrostates.add(macro)
 
-            enforce_cutoff_macrostate(macro, enum, all_complexes, cut_macrostates)
+            #enforce_cutoff_macrostate(macro, enum, all_complexes, cut_macrostates)
+            enforce_via_transient(macro,enum,all_complexes,cut_macrostates,parameters)
 
 
 
@@ -603,8 +604,135 @@ def apply_cutoff(enum,parameters,all_complexes):
         
     #print("end of cutting")
 
+def enforce_via_transient(cut_macrostate,enum,all_complexes,cut_macrostates,parameter):
+
+    """Idea: By setting all outgoing reactions of the macrostate to > k_fast resting_complex -> transient complex. 
+    """
+
+    mult_factor = 10e4
+
+    output = enum.to_pil(condensed=True,detailed = True) 
+
+            
+    print(f"\n\n\n\Before pruning: \n {output} \n\n\n")
+
+    cut_complexes = cut_macrostate._complexes
 
 
+    modified_reactions = []
+    for reaction in enum._reactions:
+
+        
+        if reaction._reactants[0] in cut_complexes: 
+            #print(reaction._const)
+            reaction._const = reaction._const * mult_factor
+            modified_reactions.append(reaction)
+    """
+    print("Reactions Consuming: ",enum.condensation.reactions_consuming)
+    for x in enum.condensation.reactions_consuming:
+        print(x)
+    for cplx in cut_macrostate._complexes:
+        print("SCC containing cplx ",enum.condensation.scc_containing[cplx],type(enum.condensation.scc_containing[cplx]))
+    print("complex fates",enum.condensation._complex_fates)
+    for x in enum.condensation._complex_fates:
+        print(x)
+
+    """
+
+    """
+    print("\n\nComplex fates before")
+    for x,y in enum.condensation._complex_fates.items():
+        print(x,y)
+ 
+    del_items = set()
+    print("--------------------------------------")
+    #print("\n\nLooking at complex fates entries")
+    for fate,x in enum.condensation._complex_fates.items(): 
+        if fate is not None and x.states is not None:
+            for element in x.states:
+                #print(fate)
+                if cut_macrostate in element:
+                    #print("None entry found")
+                    del_items.add(fate)
+
+   # print("Del items",del_items)
+    for item in del_items:                
+        del enum.condensation._complex_fates[item]
+
+    print("\n\nComplex fates after")
+    for x,y in enum.condensation._complex_fates.items():
+        print(x,y)
+    
+    """
+
+
+    
+
+    macrostates = [macro._complexes for macro in enum._resting_macrostates]
+    
+    complexes = [complex for complex in macrostates]
+
+    d_seq = parameter["d_seq"]
+
+
+    complexes = flatten(complexes)
+    
+
+    k_slow = parameter["k_slow"]
+    k_fast = parameter['k_fast']
+    print("complexes",complexes)
+    print("reactions",modified_reactions)
+
+    new_complexes = {}
+    new_count = 1
+    for complex in complexes: 
+        new_complexes['C' + str(new_count)] = (complex.kernel_string,complex.occupancy)
+        new_count += 1
+
+
+    print("\n\n New Complexes #######", new_complexes)
+    #complexes,reactions  = input_parsing(parameter["d_seq"],new_complexes,parameter)
+
+    new_enum = Enumerator(complexes, modified_reactions, named_complexes=[])
+    
+
+    if k_slow: 
+        new_enum.k_slow = k_slow
+
+
+    if k_fast: 
+        new_enum.k_fast= k_fast
+    
+    
+    new_enum.enumerate()
+    new_enum._resting_macrostates = list(filter(lambda x: x is not None, new_enum._resting_macrostates))
+    print(new_enum._resting_macrostates)
+
+    
+
+    #Condense network again
+    enum.condense()
+
+    
+    
+    output = enum.to_pil(condensed=False,detailed = True) 
+
+     
+    print(f"\n\n\n\After Pruning: \n {output} \n\n\n")
+
+
+
+    exit()
+
+
+def flatten(lst):
+    result = []
+    for item in lst:
+        if isinstance(item, list):
+            result.extend(flatten(item))
+        else:
+            result.append(item)
+    return result
 
 def enforce_cutoff_macrostate(macrostate,enum,all_complexes,cut_macrostates):
         
@@ -626,6 +754,7 @@ def enforce_cutoff_macrostate(macrostate,enum,all_complexes,cut_macrostates):
 
     if len(enum.condensation._condensed_reactions) == 0:
         #redistribute removed occupancy to remaining macrostates 
+        print("\n\nOpt 1____________")
         for macro in enum._resting_macrostates:
             if macro != macrostate:
                 macro.occupancy += cut_occ*(1/(len(enum._resting_macrostates) - len(cut_macrostates)))
@@ -636,6 +765,8 @@ def enforce_cutoff_macrostate(macrostate,enum,all_complexes,cut_macrostates):
         sum_rates = sum([reaction._const for reaction in enum.condensation.condensed_reactions if all([macrostate == reaction._reactants[0],  macrostate in cut_macrostates])])
         
         if sum_rates == 0: #no outgoing reactions same fate as above
+            print("\n\n_________Opt 2____________")
+
             for macro in enum._resting_macrostates: 
                 if macro != macrostate and macro not in cut_macrostates:
                     macro.occupancy += cut_occ*(1/(len(enum._resting_macrostates) - len(cut_macrostates)))
@@ -645,6 +776,8 @@ def enforce_cutoff_macrostate(macrostate,enum,all_complexes,cut_macrostates):
             
             #raise SystemExit("Cut complex has no outgoing reaction") 
         else:
+            print("\n\n_____________________Opt 3____________")
+
             for reaction in enum.condensation.condensed_reactions:
                 if macrostate == reaction._reactants[0] and macrostate in cut_macrostates: #check if the cut macrostate has an outgoing reaction
                     reaction._products[0].occupancy += cut_occ * (reaction._const/sum_rates)
@@ -751,8 +884,8 @@ def enumerate_step(complexes, reactions, parameter, all_complexes):
     if k_slow: 
         enum.k_slow = k_slow
 
-    
-    
+
+
     #need to find suitable k_fast
     if k_fast: 
         enum.k_fast= k_fast
@@ -1015,7 +1148,7 @@ def main():
             d_length[domain] = 3 
 
 
-    parameters = {"k_slow": args.k_slow,'k_fast': args.k_fast, "cutoff": args.cutoff,"d_length":d_length}
+    parameters = {"k_slow": args.k_slow,'k_fast': args.k_fast, "cutoff": args.cutoff,"d_length":d_length,"d_seq":d_seq}
 
 
 

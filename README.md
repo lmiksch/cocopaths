@@ -90,9 +90,12 @@ Please enter a domain level sequence:
     - enforce_cutoff_macrostate
       - dont know if setting occupancy to 0 is enough or if should remove cut complex from macrostate
       - current implemenation keeps the complex in the macrostates
-      - still not quite right approach found
+      
 
-      - new approach with percent cutoff
+      - new approach with percent cutoff --> DONE 
 
 
-  - peppercorn complexes limit at around 13000 complexes and at step 97 of fp_3  
+      - new approach with modifying outgoing reactions of cut_complex to fast reactions --> complex is transient --> new condensed reactions 
+
+
+  - peppercornenumerator.enumerator.PolymerizationError: Too many reactions enumerated! (50049)
