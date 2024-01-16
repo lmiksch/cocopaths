@@ -12,6 +12,7 @@ from peppercornenumerator import Enumerator
 from peppercornenumerator.enumerator import BI_REACTIONS
 from peppercornenumerator.reactions import bind21
 from peppercornenumerator.objects import PepperComplex
+from peppercornenumerator.condense import is_outgoing , SetOfFates
 
 from crnsimulator import ReactionGraph, get_integrator
 from crnsimulator.odelib_template import add_integrator_args
@@ -587,6 +588,8 @@ def apply_cutoff(enum,parameters,all_complexes):
             cut_macrostates.add(macro)
 
             #enforce_cutoff_macrostate(macro, enum, all_complexes, cut_macrostates)
+
+
             enforce_via_transient(macro,enum,all_complexes,cut_macrostates,parameters)
 
 
@@ -609,121 +612,112 @@ def enforce_via_transient(cut_macrostate,enum,all_complexes,cut_macrostates,para
     """Idea: By setting all outgoing reactions of the macrostate to > k_fast resting_complex -> transient complex. 
     """
 
-    mult_factor = 10e4
+    rxncon = enum.condensation.reactions_consuming
 
-    output = enum.to_pil(condensed=True,detailed = True) 
+    scc = enum.condensation.scc_containing[cut_macrostate._complexes[0]]
+    scc_set = frozenset(scc)
+    out_rxns = [r for c in scc for r in rxncon[c] \
+                        if enum.condensation.is_fast(r) and is_outgoing(r, scc_set)]
+    
 
-            
-    print(f"\n\n\n\Before pruning: \n {output} \n\n\n")
 
     cut_complexes = cut_macrostate._complexes
 
+    outgoing_reactions = []
+    new_fates = []
+    
+    for reaction in enum.condensation._condensed_reactions:
+        if reaction._reactants[0] == cut_macrostate:
+            outgoing_reactions.append(reaction)
+            new_fates.append(reaction._products[0])
+
+    
+    new_fates = frozenset({(item,) for item in new_fates})
+    new_fates = SetOfFates(new_fates)
+    
+    
+    if len(outgoing_reactions) == 0:
+
+        logger.warning("\n\n\n______No outgoing reaction of cut macrostate --> can't enforce cutoff_________")
+        #exit()
+        return
+
+
+    mult_factor = 10e8
+
+    output = enum.to_pil(condensed=True,detailed = False) 
+
+    
+            
+    logger.debug(f"\n\n\nBefore pruning: \n {output} \n\n\n")
+
+    cut_occ = cut_macrostate.occupancy
+    
+    
 
     modified_reactions = []
     for reaction in enum._reactions:
 
-        
+        # Maybe change to just outgoing reaction
         if reaction._reactants[0] in cut_complexes: 
-            #print(reaction._const)
             reaction._const = reaction._const * mult_factor
             modified_reactions.append(reaction)
-    """
-    print("Reactions Consuming: ",enum.condensation.reactions_consuming)
-    for x in enum.condensation.reactions_consuming:
-        print(x)
-    for cplx in cut_macrostate._complexes:
-        print("SCC containing cplx ",enum.condensation.scc_containing[cplx],type(enum.condensation.scc_containing[cplx]))
-    print("complex fates",enum.condensation._complex_fates)
-    for x in enum.condensation._complex_fates:
-        print(x)
+            fin_complex = reaction._products[0]
 
-    """
+    tot_out = 0
+    for reaction in modified_reactions:
+        if reaction._reactants[0] == cut_macrostate:
+            tot_out += reaction._const   
 
-    """
-    print("\n\nComplex fates before")
-    for x,y in enum.condensation._complex_fates.items():
-        print(x,y)
- 
-    del_items = set()
-    print("--------------------------------------")
-    #print("\n\nLooking at complex fates entries")
+    
+    old_condensed_rxn = [reaction for reaction in enum.condensation._condensed_reactions]
+    
+    #change fate of complex which would've ended up in cut complex to neigbour complexes
     for fate,x in enum.condensation._complex_fates.items(): 
         if fate is not None and x.states is not None:
-            for element in x.states:
-                #print(fate)
+            for element in x.states:    
                 if cut_macrostate in element:
-                    #print("None entry found")
-                    del_items.add(fate)
+                    enum.condensation._complex_fates[fate] = new_fates
+                
 
-   # print("Del items",del_items)
-    for item in del_items:                
-        del enum.condensation._complex_fates[item]
-
-    print("\n\nComplex fates after")
-    for x,y in enum.condensation._complex_fates.items():
-        print(x,y)
+  
     
-    """
+    enum._B = set(enum._resting_complexes)
+    enum._E = []
+ 
 
 
-    
-
-    macrostates = [macro._complexes for macro in enum._resting_macrostates]
-    
-    complexes = [complex for complex in macrostates]
-
-    d_seq = parameter["d_seq"]
-
-
-    complexes = flatten(complexes)
-    
-
-    k_slow = parameter["k_slow"]
-    k_fast = parameter['k_fast']
-    print("complexes",complexes)
-    print("reactions",modified_reactions)
-
-    new_complexes = {}
-    new_count = 1
-    for complex in complexes: 
-        new_complexes['C' + str(new_count)] = (complex.kernel_string,complex.occupancy)
-        new_count += 1
-
-
-    print("\n\n New Complexes #######", new_complexes)
-    #complexes,reactions  = input_parsing(parameter["d_seq"],new_complexes,parameter)
-
-    new_enum = Enumerator(complexes, modified_reactions, named_complexes=[])
-    
-
-    if k_slow: 
-        new_enum.k_slow = k_slow
-
-
-    if k_fast: 
-        new_enum.k_fast= k_fast
-    
-    
-    new_enum.enumerate()
-    new_enum._resting_macrostates = list(filter(lambda x: x is not None, new_enum._resting_macrostates))
-    print(new_enum._resting_macrostates)
-
-    
+    #enumerate the whole system again but with changed rates
+    enum.enumerate()
 
     #Condense network again
-    enum.condense()
+
+    #now problem with double condensation 
+
+    enum.condensation._condensed_reactions = None #solution? 
+    enum.condensation.condense()
 
     
     
-    output = enum.to_pil(condensed=False,detailed = True) 
+    output = enum.to_pil(condensed=False,detailed = False) 
 
-     
-    print(f"\n\n\n\After Pruning: \n {output} \n\n\n")
-
+    logger.debug(f"\n\n\nAfter Pruning: \n {output} \n\n\n")
 
 
-    exit()
 
+    #readjust occupancies 
+    cut_occ = cut_macrostate.occupancy
+    
+    tot_out = 0
+    for reaction in old_condensed_rxn:
+        if reaction._reactants[0].name == cut_macrostate.name:
+            tot_out += reaction._const
+
+    for reaction in old_condensed_rxn:
+            if reaction._reactants[0].name == cut_macrostate.name:
+                reaction._products[0].occupancy += cut_occ * (  reaction._const/tot_out)
+    
+    return 
 
 def flatten(lst):
     result = []
