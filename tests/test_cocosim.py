@@ -514,7 +514,7 @@ def test_run_sim():
 
     parameters = {"k_slow": args.k_slow, 'k_fast': args.k_fast,"condensed":args.condensed, "cutoff": args.cutoff,'complexes': {},"d_length":d_length}
 
-    simulated_structures = run_sim('a b a*',parameters,args)
+    simulated_structures = run_sim('a b a*',parameters)
     
     print(simulated_structures)
 
