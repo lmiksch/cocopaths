@@ -38,7 +38,7 @@ logger.addHandler(console_handler)
 
 
 
-def run_sim(d_seq, parameters,args):
+def run_sim(d_seq, parameters):
     """
     Runs a cotranscriptional simulation of the given d_seq using peppercorn from the peppercornenumerator
 
@@ -65,7 +65,7 @@ def run_sim(d_seq, parameters,args):
     
     
     
-    map_transient_states(resulting_complexes,transient_complexes,all_complexes,enum,args)
+    map_transient_states(resulting_complexes,transient_complexes,all_complexes,enum,parameters)
     
     
     
@@ -93,8 +93,8 @@ def run_sim(d_seq, parameters,args):
     
 
     for step in range(2, len(d_seq_split)):
-        logger.warning("\n\n\n______________________________________________")
-        logger.warning(f"Step: {step} Current Complexes: {parameters}")
+        logger.info("\n\n\n______________________________________________")
+        logger.info(f"Step: {step} Current Complexes: {parameters}")
 
         next_complexes = []
         
@@ -190,7 +190,8 @@ def run_sim(d_seq, parameters,args):
         
         #checks if there is a transient state which needs to be mapped
         
-        map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,args)
+        map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,parameters)
+
         resting_complexes = list(set(resting_complexes))
         oc_sum = 0
         for complex in resting_complexes:
@@ -201,14 +202,14 @@ def run_sim(d_seq, parameters,args):
         oc_sum = round(oc_sum,8) #can be later adjusted       
         if abs(oc_sum - 1) >= 1e-6:	
 
-            raise SystemExit(f"SystemExit: Occupancies summ up to {oc_sum}")
+            raise SystemExit(f"SystemExit: Occupancies summ up to {oc_sum}, Line 205")
         
         #Additionally maps resting states 
-        calc_macro_pop(enum,all_complexes,resting_complexes,args)
+        calc_macro_pop(enum,all_complexes,resting_complexes,parameters)
 
         
         #simulate the condensed reactions
-        resting_complexes = simulate_system(enum,args,resting_complexes,all_complexes,parameters["d_length"][d_seq_split[step]])
+        resting_complexes = simulate_system(enum,parameters,resting_complexes,all_complexes,parameters["d_length"][d_seq_split[step]])
 
         
         oc_sum = 0
@@ -258,7 +259,7 @@ def run_sim(d_seq, parameters,args):
     return folding_step_complexes
 
 
-def simulate_system(enum,args,resting_complexes,all_complexes,new_domain_length):
+def simulate_system(enum,parameters,resting_complexes,all_complexes,new_domain_length):
     
     
     condensed_reactions = enum.condensation._condensed_reactions
@@ -306,19 +307,19 @@ def simulate_system(enum,args,resting_complexes,all_complexes,new_domain_length)
 
 
 
-        resulting_occupancies =	sim_condensed_rates(reactions,oc_vector,args,new_domain_length)
+        resulting_occupancies =	sim_condensed_rates(reactions,oc_vector,parameters,new_domain_length)
         logger.debug(f"resulting occupancies: {resulting_occupancies}")
         #Update occupancies
 
-        resting_complexes = update_macrostates(resulting_occupancies,all_complexes = all_complexes,enum= enum,resting_complexes=resting_complexes,args=args)
+        resting_complexes = update_macrostates(resulting_occupancies,all_complexes = all_complexes,enum= enum,resting_complexes=resting_complexes,parameters=parameters)
         logger.debug(f"Numger of Resulting resting complexes {len(resting_complexes)}")
         
     return resting_complexes
 
-def update_macrostates(result_occ,all_complexes,enum,resting_complexes,args):
+def update_macrostates(result_occ,all_complexes,enum,resting_complexes,parameters):
     
     """
-    Args: 
+    parameters: 
         result_occ(dict): Dictionary, key = complex._name, value float
         all_complexes(dict): Id: [Complex,conc]
         enum(object): enumerated object from peppercorn
@@ -342,7 +343,7 @@ def update_macrostates(result_occ,all_complexes,enum,resting_complexes,args):
     occ_sum = round(sum([complex.occupancy for complex in resting_complexes]),4) 
 
     assert occ_sum == 1, f"Sum of occupancies is {occ_sum} not 1"
-    calc_macro_pop(enum,all_complexes,resting_complexes,args)
+    calc_macro_pop(enum,all_complexes,resting_complexes,parameters)
 
     
     logger.info(f"Summe over resting complexes:{sum([complex.occupancy for complex in resting_complexes])}")
@@ -357,11 +358,23 @@ def is_complex_in_all_complexes(complex,all_complexes):
     return False
 
 
-def sim_condensed_rates(reactants,concvect,args,d_length):
+def sim_condensed_rates(reactants,concvect,parameters,d_length):
     """Script is based on Pillsimulator script from Peppercorn and uses CRNsimulator to simulate a chemical reaction network. 
     In this case it calculates the occupancies after accounting for the condensed rates.
     """
+    parser = argparse.ArgumentParser(description="cocosim is a cotranscriptional folding path simulator using peppercornenumerate to simulate a domain level sequence during transcription.")
     
+    parser.add_argument("-i", "--input_file", nargs='?', type=argparse.FileType('r'), default=sys.stdin,
+                        help="Input file. If not provided, reads from stdin.")
+    parser.add_argument("--k-slow", type=float, help="Specify k-slow. Determines the cutoffpoint for slow reactions.", default=0.0001)
+    parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
+    parser.add_argument("-v", "--verbose", action="count", default=0, help="Increase verbosity level. -v only shows peppercorn output")
+    parser.add_argument("-cutoff", "--cutoff", action="store", type=valid_cutoff, default=float('-inf'),help="Cutoff value at which structures won't get accepted (default: -inf, valid range: 0 to 1)")
+    
+
+
+    args = parser.parse_args()
+    args.cutoff = float(args.cutoff)
 
     #need to hardcode all args:
     logger.info("\n\n\nBegin simulation setup\n\n")
@@ -480,7 +493,7 @@ def sim_condensed_rates(reactants,concvect,args,d_length):
 
 
 
-def calc_macro_pop(enum,all_complexes,resulting_complexes,args):
+def calc_macro_pop(enum,all_complexes,resulting_complexes,parameters):
     """Function to calculate the distribution of occupancies in each Macrostate. 
     Uses the stationary distribution to distribute the occpancies. 
 
@@ -638,7 +651,7 @@ def enforce_via_transient(cut_macrostate,enum,all_complexes,cut_macrostates,para
     
     if len(outgoing_reactions) == 0:
 
-        logger.warning("\n\n\n______No outgoing reaction of cut macrostate --> can't enforce cutoff_________")
+        logger.info("\n\n\n______No outgoing reaction of cut macrostate --> can't enforce cutoff_________")
         #exit()
         return
 
@@ -806,7 +819,7 @@ def enforce_cutoff_macrostate(macrostate,enum,all_complexes,cut_macrostates):
     #raise SystemExit('Whole macrostate is under threshold')
 
 
-def enforce_cutoff_complex(enum,macrostate,cut_complex,args,all_complexes,cut_complexes):
+def enforce_cutoff_complex(enum,macrostate,cut_complex,parameters,all_complexes,cut_complexes):
 
     logger.info(f'\n\n\nEnforcing Complex Cutoff for {cut_complex} with occupancy {cut_complex.occupancy}\n\n')
     
@@ -900,14 +913,14 @@ def enumerate_step(complexes, reactions, parameter, all_complexes):
     output = enum.to_pil(condensed=True,detailed = True) 
 
         
-    logger.warning(f"\n\n\n\nOutput: \n {output} \n\n\n")
+    logger.info(f"\n\n\n\nOutput: \n {output} \n\n\n")
     return resulting_complexes, transient_complexes, enum
 
     
 
 
 
-def map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,args):
+def map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,parameters):
 
     
     logger.info(f"\n\nMap Transient states\n\n")
@@ -937,7 +950,7 @@ def map_transient_states(resting_complexes,transient_complexes,all_complexes,enu
                                     new_conc = va * value * np.float128(t_complex.occupancy)
                             stat_complex.occupancy = np.float128(new_conc)
 
-                            if new_conc > args.cutoff:#exclude structures below the cutoff 
+                            if new_conc > parameters["cutoff"]:#exclude structures below the cutoff 
             
                                 # Check if the new complex is not already in all_complexes
                                 if not is_complex_in_all_complexes(stat_complex,all_complexes) and not is_complex_in_all_complexes(stat_complex,new_complexes):
@@ -1113,6 +1126,7 @@ def main():
     args = parser.parse_args()
     args.cutoff = float(args.cutoff)
     set_verbosity(logger,args.verbose)
+    console_handler.setLevel(logging.INFO)
 
     if args.input_file.isatty():
         print("Please enter a domain level sequence:")

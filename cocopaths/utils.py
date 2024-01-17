@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-This module contains all the different convert functions which can be used to convert outputs into different annotations. 
+This module contains all the different util functions. 
 """
 
 def is_balanced_structure(s):

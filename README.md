@@ -43,7 +43,6 @@ the abstract folding path(AFP) can be either put in as a .txt file or directly i
 
 The AFP must have following propperties to be translated to a domain level sequence:
   - Pseudoknot-Free
-  - Structure must be fully saturated
   - If a structure was defined it can't be changed if no additional step influences the defined substructure
 
 # How to use cocopaths and cocosim 
@@ -81,9 +80,8 @@ Please enter a domain level sequence:
 
 
 
-### Cocosim ToDO: 
+### CocoPathsToDO: 
 
-  - rewrite logger informations/ debugging
   - investigate floating point errors/ number error i think they are floating point errors 
     - add rounding to 10-15 comma stellen
   
@@ -91,11 +89,9 @@ Please enter a domain level sequence:
       - dont know if setting occupancy to 0 is enough or if should remove cut complex from macrostate
       - current implemenation keeps the complex in the macrostates
       
+  - write analysis script to make some statistics about whats possible to design and what not 
 
-      - new approach with percent cutoff --> DONE 
-
-
-      - new approach with modifying outgoing reactions of cut_complex to fast reactions --> complex is transient --> new condensed reactions 
+  - begin with design of nucleotide sequences
 
 
   - peppercornenumerator.enumerator.PolymerizationError: Too many reactions enumerated! (50049)
