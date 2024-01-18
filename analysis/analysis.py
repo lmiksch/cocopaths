@@ -65,7 +65,7 @@ def statistical_analysis(tsv):
 
         # Read the TSV file into a DataFrame
     df = pd.read_csv(tsv, sep='\t')
-
+    n = tsv[0]
     # Display the DataFrame
     print("Original DataFrame:")
     print(df.head())
@@ -111,7 +111,7 @@ def statistical_analysis(tsv):
     counts.plot(kind='bar', width=0.8, align='center')
     plt.xlabel('Threshold Bins')
     plt.ylabel('Number of Rows')
-    plt.title('Number of Rows in Threshold Bins')
+    plt.title(f'Number of Rows in Threshold Bins for {n} Steps')
     plt.xticks(rotation=45)
     plt.show()
 
