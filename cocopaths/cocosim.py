@@ -168,7 +168,7 @@ def run_sim(d_seq, parameters):
         total_occupancy = 0
 
 
-
+        
         #Print continous output
         for x, complex in complexes.items():
             try:
@@ -217,7 +217,6 @@ def run_sim(d_seq, parameters):
 
         for complex in resting_complexes:
             oc_sum += complex.occupancy
-            #print(complex,complex.occupancy)
         for macro in enum._resting_macrostates:
             macro_sum += macro.occupancy
 
@@ -233,16 +232,16 @@ def run_sim(d_seq, parameters):
         
         # apply cutoffs 
         
-        apply_cutoff(enum,parameters,all_complexes)
+        enum = apply_cutoff(enum,parameters,all_complexes)
 
-
-
-        #print("After cutoff enfrocign")
-        resting_complexes = list(set(resting_complexes))
+        
+        resting_complexes = list(set(enum._resting_complexes))
         oc_sum = 0
-        for macro in enum._resting_macrostates: 
-            oc_sum += macro.occupancy
+        
+        for complex in enum._resting_complexes:
+            oc_sum += complex.occupancy
         oc_sum = round(oc_sum,10) #can be later adjusted
+
         # checks to see of occupancies sum up to 1
         if abs(oc_sum - 1) <= 1e-10:	
             folding_step_complexes.append(resting_complexes)
@@ -252,9 +251,6 @@ def run_sim(d_seq, parameters):
         else:
             raise SystemExit(f"SystemExit: Occupancies summ up to {oc_sum}")
         
-        #print("Folding step complexes",)
-        #for complex in folding_step_complexes[-1]:
-        #    print(complex,complex.occupancy)
 
     return folding_step_complexes
 
@@ -516,6 +512,7 @@ def calc_macro_pop(enum,all_complexes,resulting_complexes,parameters):
         
         macro_pop = np.float128(0)
         for complex in macrostate._complexes:
+                
                 # add to macrostate population if no occupancy is defined -> complex new 
                 try:
                     macro_pop += complex.occupancy
@@ -523,7 +520,6 @@ def calc_macro_pop(enum,all_complexes,resulting_complexes,parameters):
                     macro_pop += 0
 
         macrostate.occupancy = macro_pop            
-        
         
         for stat_complex,pop in stat_dist_copy.items():
             new_dist = pop * macro_pop
@@ -540,21 +536,18 @@ def calc_macro_pop(enum,all_complexes,resulting_complexes,parameters):
                 
         
             for r_complex in resulting_complexes:
-                #logger.debug(f"New_dist: {new_dist}")
                 if stat_complex == r_complex: 
                     r_complex.occupancy = np.float128(new_dist)
 
   
-    logger.debug("endo of update macrostates")
     for r_complex in resulting_complexes:
-            #logger.debug(f"New_dist: {new_dist}")
+
             summe += np.float128(r_complex.occupancy)
 
     logger.debug(f"Sum over all Macrostates after cal macropop {summe:.20f} {type(summe)}")
 
-
     
-    assert round(summe,8) == 1, f'Occupancies sum up to {summe} and not 1' 
+    assert round(summe,10) == 1, f'Occupancies sum up to {summe} and not 1' 
 
     return resulting_complexes
             
@@ -603,28 +596,27 @@ def apply_cutoff(enum,parameters,all_complexes):
             #enforce_cutoff_macrostate(macro, enum, all_complexes, cut_macrostates)
 
 
-            enforce_via_transient(macro,enum,all_complexes,cut_macrostates,parameters)
+            enum = enforce_via_transient(macro,enum,all_complexes,cut_macrostates,parameters)
 
 
 
     oc_sum = 0
-    
+    """
     for macro in macrostates:
         for complex in macro._complexes:
             oc_sum += complex.occupancy
-    if abs(oc_sum -1) > 1e-10:
+    if abs(oc_sum - 1) > 1e-10:
         raise SystemExit(f"SystemExit: After macro cutoff Occupancies summ up to {oc_sum}")
-        
+        """
 
-
+    return enum
         
-    #print("end of cutting")
 
 def enforce_via_transient(cut_macrostate,enum,all_complexes,cut_macrostates,parameter):
 
     """Idea: By setting all outgoing reactions of the macrostate to > k_fast resting_complex -> transient complex. 
     """
-
+    """
     rxncon = enum.condensation.reactions_consuming
 
     scc = enum.condensation.scc_containing[cut_macrostate._complexes[0]]
@@ -662,7 +654,7 @@ def enforce_via_transient(cut_macrostate,enum,all_complexes,cut_macrostates,para
 
     
             
-    logger.debug(f"\n\n\nBefore pruning: \n {output} \n\n\n")
+    logger.info(f"\n\nCut Macrostate: {cut_macrostate} \nBefore pruning: \n {output} \n\n\n")
 
     cut_occ = cut_macrostate.occupancy
     
@@ -698,25 +690,66 @@ def enforce_via_transient(cut_macrostate,enum,all_complexes,cut_macrostates,para
     enum._B = set(enum._resting_complexes)
     enum._E = []
  
+    """
+    
 
 
-    #enumerate the whole system again but with changed rates
-    enum.enumerate()
+    #exiting the function if non cutable macrostates
+    #no outgoing reaction
+    out_rxns = []
+    
+    for reaction in enum.condensation._condensed_reactions:
+        if reaction._reactants[0] == cut_macrostate:
+            out_rxns.append(reaction)
+
+
+    if len(out_rxns) == 0:
+        
+        
+        logger.info("\n\n\n______No outgoing reaction of cut macrostate --> can't enforce cutoff_________")
+        
+        return enum
+
+
+    output = enum.to_pil(condensed=True,detailed = False) 
+
+            
+    logger.debug(f"\n\nCut Macrostate: {cut_macrostate} {cut_macrostate.occupancy}  \n{cut_macrostates}\nBefore pruning: \n {output} \n\n\n")
+
+    
+    mult_factor = 10e6
+
+    #safe for old_condensed for redistribution later
+    old_condensed_rxn = [reaction for reaction in enum.condensation._condensed_reactions]
 
     #Condense network again
+    cut_complexes = cut_macrostate._complexes
+
 
     #now problem with double condensation 
+    for reaction in enum._reactions:
+        
+        # Maybe change to just outgoing reaction
+        if reaction._reactants[0] in cut_complexes: 
+            reaction._const = reaction._const * mult_factor
+            #modified_reactions.append(reaction)
+            #fin_complex = reaction._products[0]
+    #enum.condensation._condensed_reactions = None #solution? 
+            
+    for complex in cut_complexes:
+        if complex in enum._resting_complexes:
+            enum._resting_complexes.remove(complex)
+            enum._transient_complexes.append(complex)
 
-    enum.condensation._condensed_reactions = None #solution? 
-    enum.condensation.condense()
+    enum._resting_macrostates = None
 
+
+    enum.condense()
     
     
-    output = enum.to_pil(condensed=False,detailed = False) 
+    output = enum.to_pil(condensed=True,detailed = False) 
 
-    logger.debug(f"\n\n\nAfter Pruning: \n {output} \n\n\n")
-
-
+    logger.info(f"\n\n\nAfter Pruning: \n {output} \n\n\n")
 
     #readjust occupancies 
     cut_occ = cut_macrostate.occupancy
@@ -726,11 +759,57 @@ def enforce_via_transient(cut_macrostate,enum,all_complexes,cut_macrostates,para
         if reaction._reactants[0].name == cut_macrostate.name:
             tot_out += reaction._const
 
+
     for reaction in old_condensed_rxn:
             if reaction._reactants[0].name == cut_macrostate.name:
-                reaction._products[0].occupancy += cut_occ * (  reaction._const/tot_out)
+                reaction._products[0].occupancy += cut_occ * (reaction._const/tot_out)
+
     
-    return 
+        
+    
+    sum = 0
+    for complex in enum._resting_complexes:
+        sum += complex.occupancy
+
+
+    
+    stat_dist = enum.condensation.stationary_dist
+
+
+
+    #redistribute occupancies in macrostate 
+
+    for macro in enum.condensation.stationary_dist.keys(): 
+        stat_dist = enum.condensation.stationary_dist
+        if macro not in cut_macrostates:
+            macro_dist = dict(stat_dist[macro])
+
+            for complex,value in macro_dist.items(): 
+                new_occ = value * macro.occupancy
+                
+                complex.occupancy = new_occ
+
+
+    enum._resting_macrostates = enum.condensation.resting_macrostates
+   
+
+    summe = 0
+    for complex in enum._resting_complexes: 
+        summe += complex.occupancy
+
+
+    #update all_complexes
+        
+    for complex in enum._resting_complexes: 
+        update_complex_in_all_complexes(complex,all_complexes)
+
+    
+
+    assert abs(summe - 1) <= 1e-10,f"Redistribution was not succesfull summe = {summe}"
+
+    assert not any([cut_complex in enum._resting_complexes for cut_complex in cut_complexes ])
+
+    return enum
 
 def flatten(lst):
     result = []
@@ -754,14 +833,12 @@ def enforce_cutoff_macrostate(macrostate,enum,all_complexes,cut_macrostates):
         complex.occupancy = 0 
     macrostate.occupancy = 0
 
-    #print("\n\ncut occ:",cut_occ)
     
 
 
 
     if len(enum.condensation._condensed_reactions) == 0:
         #redistribute removed occupancy to remaining macrostates 
-        print("\n\nOpt 1____________")
         for macro in enum._resting_macrostates:
             if macro != macrostate:
                 macro.occupancy += cut_occ*(1/(len(enum._resting_macrostates) - len(cut_macrostates)))
@@ -772,7 +849,6 @@ def enforce_cutoff_macrostate(macrostate,enum,all_complexes,cut_macrostates):
         sum_rates = sum([reaction._const for reaction in enum.condensation.condensed_reactions if all([macrostate == reaction._reactants[0],  macrostate in cut_macrostates])])
         
         if sum_rates == 0: #no outgoing reactions same fate as above
-            print("\n\n_________Opt 2____________")
 
             for macro in enum._resting_macrostates: 
                 if macro != macrostate and macro not in cut_macrostates:
@@ -783,7 +859,6 @@ def enforce_cutoff_macrostate(macrostate,enum,all_complexes,cut_macrostates):
             
             #raise SystemExit("Cut complex has no outgoing reaction") 
         else:
-            print("\n\n_____________________Opt 3____________")
 
             for reaction in enum.condensation.condensed_reactions:
                 if macrostate == reaction._reactants[0] and macrostate in cut_macrostates: #check if the cut macrostate has an outgoing reaction
@@ -1172,7 +1247,7 @@ def main():
 
 
     #______Running_Simulation___________# 
-    simulated_structures = run_sim(d_seq, parameters,args)
+    simulated_structures = run_sim(d_seq, parameters)
     
 
     #_____Writing_and_printing_output___# 

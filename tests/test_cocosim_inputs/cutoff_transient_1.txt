@@ -1,0 +1,26 @@
+length L0 = 8
+length S0 = 8
+length S1 = 8
+length S2 = 8
+length S3 = 8
+length S4 = 8
+length S5 = 8
+length a = 5
+length b = 5
+length c = 5
+length d = 5
+length e = 5
+length f = 5
+length g = 5
+length h = 5
+length i = 5
+length j = 5
+length k = 5
+
+# Resting complexes (6) 
+e12689 = L0* S0 a( L0( b( S1 c* ) ) ) d* S2 e( d( a( L0( b( c( f( S3 g* ) ) ) ) ) ) ) h*( S4 i ) e d( a( L0( b( c( f( g( j( S5 k* ) ) ) ) ) ) ) )
+e12693 = L0* S0 a( L0( b( S1 c* ) ) ) d* S2 e( d( a( L0( b( c( f( S3 g* ) ) ) ) ) ) ) h* S4 i h e d( a( L0( b( c( f( g( j( S5 k* ) ) ) ) ) ) ) )
+e12730 = L0* S0 a( L0( b( S1 c* ) ) ) d* S2 e d( a( L0( b( c( f( S3 g*( f*( c*( b*( L0*( a*( d*( e*( h*( S4 i ) ) ) ) ) ) ) ) ) j( S5 k* ) g* ) ) ) ) ) )
+e12731 = L0* S0 a( L0( b( S1 c* ) ) ) d* S2 e d( a( L0( b( c( f( S3 g*( f*( c*( b*( L0*( a*( d*( e*( h*( S4 i ) ) ) ) ) ) ) ) ) j S5 k* j* g* ) ) ) ) ) )
+e12727 = L0* S0 a( L0( b( S1 c* ) ) ) d* S2 e d( a( L0( b( c( f( S3 g* f*( c*( b*( L0*( a*( d*( e*( h*( S4 i ) ) ) ) ) ) ) ) g( j( S5 k* ) ) ) ) ) ) ) )
+e12697 = L0* S0 a( L0( b( S1 c* ) ) ) d* S2 e d( a( L0( b( c( f( S3 g* ) ) ) ) ) ) e*( h*( S4 i ) ) d( a( L0( b( c( f( g( j( S5 k* ) ) ) ) ) ) ) )
