@@ -168,18 +168,21 @@ def run_sim(d_seq, parameters):
         total_occupancy = 0
 
 
-        
+
         #Print continous output
         for x, complex in complexes.items():
             try:
                 occupancy = np.float128(complex.occupancy)
                 total_occupancy += occupancy
+                kernel_string = kernel_to_dot_bracket(complex.kernel_string)
+                db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
                 if occupancy != 0:
-                    print(f"{step + 1:3}   |	      {occupancy:8.4f}   | {complex.kernel_string}")
+                    print(f"{step + 1:3}\t|\t{occupancy:8.4f}\t|\t{db_struct:8}|\t{complex.kernel_string}\t")
             except: 
                 pass
                 #print(f"{step + 1:3}   |	{0:8.4f}      | {complex.kernel_string} \n")
-        print(f"Number of complexes: {len(complexes.items())} Total occupancy: {total_occupancy}\n")
+        print()
+        #print(f"Number of complexes: {len(complexes.items())} Total occupancy: {total_occupancy}\n")
 
 
         logger.debug(f"Step:{step} Total Occupancy:{total_occupancy:20.20f}\n")
@@ -1225,8 +1228,10 @@ def main():
     d_length = {}
 
     for domain in d_seq.split():
-        if domain[0] == "L" or domain[0] == "S":
-            d_length[domain] = 8
+        if domain[0] == "L":
+            d_length[domain] = 12
+        elif domain[0] == 'S':
+            d_length[domain] = round(int(domain[1]) * 1.5)
         else: 
             d_length[domain] = 3 
 

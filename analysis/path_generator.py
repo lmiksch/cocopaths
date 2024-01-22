@@ -6,7 +6,7 @@ import random
 import math
 
 from cocopaths.utils import path_to_pairtablepath
-
+import os
 def generate_structures_with_unpaired(n):
     structures = [ ]
     def helper(open_count, close_count, dot_count, current_structure):
@@ -63,13 +63,15 @@ def hamming_distance(str1, str2):
     return sum(c1 != c2 for c1, c2 in zip(str1, str2))
 
 
+def write_paths_to_file(file_path, paths):
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    with open(file_path, 'w') as file:
+        for step in paths:
+            file.write(str(step) + '\n')
 
+def generate_path(n,file_path):
 
-
-
-def generate_path(n):
-
-    final_paths = [['.']]
+    final_paths = [["."]]
     for _ in range(n-1):
         final_paths.append([])
 
@@ -97,6 +99,7 @@ def generate_path(n):
         for path in step:
             print(path)     
 
+
     return final_paths        
     
     
@@ -106,5 +109,5 @@ def generate_path(n):
 
 if __name__ == "__main__":
     # Example: generate structures for length 4
-    generate_path(4)
+    generate_path(4,"test.txt")
 

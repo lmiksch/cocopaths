@@ -4,67 +4,81 @@
 
 
 
-#from path_generator import generate_path
-#from cocopaths.cocopaths import build_graph
-#from cocopaths.cocosim import run_sim, write_output
-#from peppercornenumerator.objects import clear_memory
-#from cocopaths.cocosim import kernel_to_dot_bracket,only_logic_domain_struct
+from path_generator import generate_path
+from cocopaths.cocopaths import build_graph
+from cocopaths.cocosim import run_sim, write_output
+from cocopaths.utils import is_balanced_structure
+from peppercornenumerator.objects import clear_memory
+from cocopaths.cocosim import kernel_to_dot_bracket,only_logic_domain_struct
 import logging 
 import pandas as pd
 import matplotlib.pyplot as plt
+import os
 
 def analyze_cocosim_output(simulated_structures,afp,d_seq):
     print("\n\nBeginning with analyzing cocosim output")
     print("Afp",afp)
     print("D_Seq",d_seq)
     occupancy_sum = 0
-    target_dominant = False
+    target_dominant = True
 
     dominant_path = ["."]
     i = 0
+
+    target_occupancies = []
     for step in simulated_structures:
-        print("\n\nStep",step)
+        
 
         occupancies = [complex.occupancy for complex in step]
+        t_occ_append = False
         for complex in step: 
+            print(complex,complex.kernel_string)
             kernel_string = kernel_to_dot_bracket(complex.kernel_string)
             db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
-            print(db_struct)
-            print(afp,i)
+            
             #part for avg occupancy of target
-            if max(occupancies) == complex.occupancy and dominant_path[-1] != db_struct:
-                dominant_path.append(db_struct)
-            try:
-                if db_struct == afp[i] and complex.kernel_string.split()[-1][0] == "S":
-                    print(complex,complex.kernel_string,complex.occupancy)
-                    occupancy_sum += complex.occupancy
-                    
-
-                    #target dominant in ensemble? 
-                    if max(occupancies) == complex.occupancy:
+            if complex.kernel_string.split()[-1][0] == "S":
+                if max(occupancies) == complex.occupancy and dominant_path[-1] != db_struct:
+                    dominant_path.append(db_struct)
+                    if  not is_balanced_structure(db_struct):
+                        print("huh:",db_struct)
+                        exit()
+                try:
+                    if db_struct == afp[i]:
+                        occupancy_sum += complex.occupancy
+                        target_occupancies.append(round(complex.occupancy,6))
+                        t_occ_append = True
+                        #target dominant in ensemble? 
+                        if max(occupancies) != complex.occupancy:
+                            target_dominant = False
                         
-                        target_dominant = True
-                    else:
-                        target_dominant = False
-                    
-                    i += 1   
-            except:
-                continue
+                        i += 1
+                      
+                except:
+                    continue
+
+        if not t_occ_append and step[0].kernel_string.split()[-1][0] == "S":
+            target_occupancies.append(0)
+
+    final_occupancy = None
+    for complex in simulated_structures[-1]:
+        kernel_string = kernel_to_dot_bracket(complex.kernel_string)
+        db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
+        if db_struct == afp[-1]:
+            final_occupancy = round(complex.occupancy,4)
         
-    print(occupancy_sum)
 
     avg_occupancy = occupancy_sum/(i)
-
-    print(avg_occupancy)
     
-    return f"0\t{afp}\t{target_dominant}\t{round(avg_occupancy,4):8}\t{dominant_path}\t{d_seq}\n"
+    
+    return f"0\t{afp}\t{target_dominant}\t{round(avg_occupancy,4):8}\t{final_occupancy}\t{dominant_path}\t{target_occupancies}\t{d_seq}\n"
 
 
 
 def statistical_analysis(tsv):
 
         # Read the TSV file into a DataFrame
-    df = pd.read_csv(tsv, sep='\t')
+    df = pd.read_csv(tsv, sep='\t', comment = "#")
     n = tsv[0]
     # Display the DataFrame
     print("Original DataFrame:")
@@ -72,32 +86,21 @@ def statistical_analysis(tsv):
     # Basic analysis
     print("\nBasic Analysis:")
     print("Total entries:", len(df))
-    
+    print("\nColumn Names:")
+    print(df.columns)
     print("Average occupancy:", df['avg_occupancy'].mean())
 
     # Count the total occurrences of True and False in dominant_fp
     total_counts = df['dominating_struct'].value_counts()
 
+
+
+
     print("Total counts of True and False in dominant_fp:")
     print(total_counts)
 
-    """ Cumulative binning 
-    # Add additional analysis based on your specific requirements
-    threshold_range = [i / 10 for i in range(1, 10)] 
-    # Store the counts for each threshold
-    counts = []
 
-    # Iterate over threshold values
-    for threshold in threshold_range:
-        filtered_rows = df[df['avg_occupancy'] > threshold]
-        counts.append(len(filtered_rows))
 
-    # Plot the results
-    plt.bar(threshold_range, counts, width=0.1, align='center')
-    plt.xlabel('Threshold')
-    plt.ylabel('Entries')
-    plt.title('Number of Rows vs. Threshold')
-    """
 
     bin_edges = [i / 10 for i in range(1, 12)]  # [0.1, 0.2, ..., 1.0]
 
@@ -116,31 +119,161 @@ def statistical_analysis(tsv):
     plt.show()
 
 
+def find_next_folder_number(base_folder):
+    existing_folders = [name for name in os.listdir('.') if os.path.isdir(name) and name.endswith('_run') and name.split('_')[0].isdigit()]
+    print(existing_folders)
+    print(os.path.abspath('.'))
+    if not existing_folders:
+        return 1
+    existing_numbers = [int(name.split('_')[0]) for name in existing_folders]
+    return max(existing_numbers) + 1
+
+def write_paths_to_file(file_path, paths):
+    print("beginn writing")
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    with open(file_path, 'w') as file:
+        for step in paths:
+            file.write(str(step) + '\n')
+
+def read_paths_from_file(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            paths = [eval(line.strip()) for line in file.readlines()]
+        return paths
+    except FileNotFoundError:
+        print(f"Error: File '{file_path}' not found.")
+        return []
 
 
-    
 
-
-
-
-def main():
-
+def get_data(n,current_folder):
 
     #Generating all folding paths 
     
-    n = 6
 
     print(f"Generating all possible Folding Paths upto a length of {n}")
 
-    folding_paths = generate_path(n)
-
+    
 
     #Calculating all domain level sequences for the folding paths
+    fp_locs = "./folding_paths"
+
+    
+    fp_locs = "./folding_paths" + "/" + str(n) + "_FPs.txt"
+
+    if os.path.exists(fp_locs):
+        folding_paths = read_paths_from_file(fp_locs)
+    else:    
+        folding_paths = generate_path(n,fp_locs)
+    
+    
 
     domain_sequences = []
     
     real_paths = []
     for i,path in enumerate(folding_paths[-1]):
+        #print("\n\nCurrent Path",path)
+
+        try:
+            afp_graph = build_graph(path)
+
+            domain_sequences.append(" ".join(afp_graph.get_domain_seq()))
+            real_paths.append(path)
+            #print("Worked for : ",afp_graph.get_domain_seq())
+        except: 
+            
+            print("Didn't work for:",path)
+
+    write_paths_to_file(fp_locs, real_paths)
+
+
+    tsv_header = "ID\tAFP\tdominating_struct\tavg_occupancy\tlast_step_occ\tstep_occs\tdominant_fp\td_seq\n"
+    for d_seq,fp in zip(domain_sequences,real_paths):
+        
+
+
+    #Now simulate the whole thing and evalute the output
+        d_length = {}
+
+        for domain in d_seq.split():
+            if domain[0] == "L":
+                d_length[domain] = 12
+
+            elif domain[0] == 'S':
+                d_length[domain] = round(int(domain[1]) * 1.5)
+
+            else: 
+                d_length[domain] = 3
+
+
+        parameters = {"k_slow": 0.001 , 'k_fast': 20, "cutoff": float('-inf'),"d_length":d_length,"d_seq":d_seq}
+
+        try:
+            simulated_structures = run_sim(d_seq,parameters)
+            print(simulated_structures)
+        
+            with open(os.path.join(current_folder, f"{n}_steps_out.tsv"), "a") as file:
+                new_data = analyze_cocosim_output(simulated_structures,fp,d_seq) 
+                if file.tell() == 0:
+                    file.write("#" + str(parameters) + "\n")
+                    file.write(tsv_header)
+
+                file.write(new_data)
+        
+            output = ""
+            if 'S' in d_seq:
+                output += write_output(simulated_structures,d_seq)
+            print(output)
+            
+        except KeyboardInterrupt:
+                    print("User stopped the script")
+                    raise SystemExit
+        except:
+            print("Error: Something went wrong during Cocosim analysis")
+            pass
+
+        
+        
+        
+        #Clear memory of Peppercorn objects
+        clear_memory()
+    
+    
+
+    print("\n\nend of script\n\n")
+
+def fill_data(n,tsv_file): 
+
+    #Generating all folding paths 
+    
+
+    print(f"Generating all possible Folding Paths upto a length of {n}")
+
+
+
+    #Calculating all domain level sequences for the folding paths
+    fp_locs = "./folding_paths"
+
+    with open(tsv_file,"r") as file:
+        lines = file.readlines()
+
+        start_line = len(lines) - 2 
+
+    fp_locs = "./folding_paths" + "/" + str(n) + "_FPs.txt"
+
+    if os.path.exists(fp_locs):
+        folding_paths = read_paths_from_file(fp_locs)
+    else:
+        print("\n\nNew paths must be generated this can lead to duplicate fps and missing fps in the analysis\n\n")    
+        folding_paths = generate_path(n,fp_locs)
+
+    
+
+
+    domain_sequences = []
+    
+    real_paths = []
+    for i,path in enumerate(folding_paths):
         print("\n\nCurrent Path",path)
 
         try:
@@ -152,50 +285,70 @@ def main():
         except: 
             
             print("Didn't work for:",path)
+    print("Start line:",start_line)
+    print(domain_sequences)
+    domain_sequences = domain_sequences[start_line:]
+    real_paths = real_paths[start_line:]
 
+    print(domain_sequences)
     for d_seq in domain_sequences:
         print(d_seq)
 
+    write_paths_to_file
 
-    tsv_header = "ID\tAFP\tdominating_struct\tavg_occupancy\tdominant_fp\td_seq\n"
+
+
+    tsv_header = "ID\tAFP\tdominating_struct\tavg_occupancy\tlast_step_occ\tstep_occs\tdominant_fp\td_seq\n"
     for d_seq,fp in zip(domain_sequences,real_paths):
-        print("Current domain sequence",d_seq)
-        print("Current Folding path",fp)
+        print("Current domain sequence")
+        print("Current Folding path")
 
 
     #Now simulate the whole thing and evalute the output
         d_length = {}
 
         for domain in d_seq.split():
-            if domain[0] == "L" or domain[0] == "S":
-                d_length[domain] = 8
+            if domain[0] == "L":
+                d_length[domain] = 12
+
+            elif domain[0] == 'S':
+                d_length[domain] = round(int(domain[1]) * 1.5)
+
             else: 
-                d_length[domain] = 3 
+                d_length[domain] = 3
 
 
         parameters = {"k_slow": 0.001 , 'k_fast': 20, "cutoff": float('-inf'),"d_length":d_length,"d_seq":d_seq}
 
-        try:
-            simulated_structures = run_sim(d_seq,parameters)
-            print(simulated_structures)
+        #try:
+        simulated_structures = run_sim(d_seq,parameters)
+        print(simulated_structures)
+        print("file:",tsv_file)
+        with open(tsv_file, "a") as _file:
 
+            new_data = analyze_cocosim_output(simulated_structures,fp,d_seq) 
+            print("\n\n\nnew data",new_data)
+            if _file.tell() == 0:
+                _file.write("#" + str(parameters) + "\n")
+                _file.write(tsv_header)
 
-            with open(str(n) + "_steps_out.tsv", "a") as file: 
-                new_data = analyze_cocosim_output(simulated_structures,fp,d_seq) 
-                if file.tell() == 0:
-                    file.write(tsv_header)
+            _file.write(new_data)
+    
+        output = ""
+        if 'S' in d_seq:
+            output += write_output(simulated_structures,d_seq)
+        print(output)
+        
+        #except KeyboardInterrupt:
+        #            print("User stopped the script")
+        #            raise SystemExit
+        #except:
+        #    print("Error: Something went wrong during Cocosim analysis")
+        #    pass
 
-                file.write(new_data)
-
-            output = ""
-            if 'S' in d_seq:
-                output += write_output(simulated_structures,d_seq)
-            print(output)
-        except KeyboardInterrupt:
-            raise SystemExit
-        except:
-            pass
-
+        
+        
+        
 
         clear_memory()
     
@@ -204,9 +357,38 @@ def main():
     print("\n\nend of script\n\n")
 
 
+def main():
+
+    base_folder = "run"
+    next_folder_number = find_next_folder_number(base_folder)
+
+    current_folder = f'{next_folder_number}_{base_folder}'
+    os.makedirs(current_folder, exist_ok=True)
+    
+    for i in range(5,7):
+        get_data(i,current_folder)
+
+
+
+
+    #uncomment to fill up file if segfault happended 
+    #check if parameters match 
+    #fill_data(5,"6_run/5_steps_out.tsv")
+
+
+
+    #for filename in os.listdir(current_folder):
+    #    if filename.endswith(".tsv") and os.path.isfile(os.path.join(current_folder, filename)):
+    #        tsv_filepath = os.path.join(current_folder, filename)
+    #        statistical_analysis(tsv_filepath)
 
 
 
 if __name__ == "__main__":
-    #main()
-    statistical_analysis("6_steps_out.tsv")
+    
+    
+    main()
+
+    
+
+    #statistical_analysis("7_steps_out.tsv")

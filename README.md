@@ -75,8 +75,16 @@ Please enter a domain level sequence:
 
 
 ### Current Bugs: 
-
- - Complementary domains must be separated by another domain 
+ - CocoPaths
+  - Following Path is not possible but still accepted: 
+    - Desired: ['.', '()', '().', '(..)', '(...)', '(.(.))']
+    - Simulat: ['.', '()', '.()', '(())', '(().)', '(()..)']
+    - see prob1.txt 
+ 
+ 
+ - Cocosim:
+  - Complementary domains must be separated by another domain 
+  - sometime segmentation fault(coredumped) during steps -> bug not reproducable
 
 
 
