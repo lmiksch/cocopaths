@@ -14,8 +14,8 @@ from decimal import Decimal,getcontext
 import numpy as np 
 #setup logger                                      
 @pytest.fixture(scope="function")
-def configure_logger():
-    logger = logging.getLogger("copaths")  # Use the same logger name as in your main code
+def configure_logger(caplog):
+    logger = logging.getLogger("cocosim")  # Use the same logger name as in your main code
     console_handler = logging.StreamHandler()
     formatter = logging.Formatter("# %(levelname)s - %(message)s")
     console_handler.setFormatter(formatter)
@@ -569,7 +569,38 @@ def test_enforce_cutoff_transient_4(input_path):
 
 
 
+def test_enforce_v_transient_from_dseq(input_path,configure_logger):
 
+
+    configure_logger
+
+    parser = argparse.ArgumentParser(description="cocosim is a cotranscriptional folding path simulator using peppercornenumerate to simulate a domain level sequence during transcription.")
+    parser.add_argument("-cutoff","--cutoff", action= "store",default=float('-inf'), help="Cutoff value at which structures won't get accepted (default: -inf)")
+    parser.add_argument("--k-slow", type=float, help="Specify k-slow. Determines the cutoffpoint for slow reactions.", default=0.0001)
+    parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
+    parser.add_argument("-v","--verbosity",action="count")
+
+    args  = parser.parse_args()
+    args.cutoff = float(args.cutoff)
+    args.condensed = True
+    d_seq = "L0*  S0 a b L0 c d S1 c* L0* b* S2  L0  S3 d* c* L0* b* a* S4  L0  S5"
+    d_length = {}
+
+    for domain in d_seq.split():
+        if domain[0] == "L":
+            d_length[domain] = 12
+
+        elif domain[0] == 'S':
+            d_length[domain] = round(int(domain[1]) * 1.5)
+
+        else: 
+            d_length[domain] = 3
+
+
+    parameters = {"k_slow": 0.001,'k_fast': 20, "cutoff": 0.05,"d_length":d_length}
+
+    
+    simulated_structures = run_sim(d_seq, parameters)
 
 def test_wierd_outcome(input_path):
  
@@ -635,7 +666,7 @@ def test_wierd_outcome(input_path):
     
     assert below_t_count_all == below_t_count_resting, f"Below t count all {below_t_count_all} == {below_t_count_resting} below t count resting "
     
-    assert occ_sum_all == occ_sum_resting 
+    assert abs(occ_sum_all - occ_sum_resting) < 1e-10 
 
     assert abs(1 - occ_sum_all) <= 1e-10
    

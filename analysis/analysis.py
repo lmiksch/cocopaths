@@ -16,9 +16,6 @@ import matplotlib.pyplot as plt
 import os
 
 def analyze_cocosim_output(simulated_structures,afp,d_seq):
-    print("\n\nBeginning with analyzing cocosim output")
-    print("Afp",afp)
-    print("D_Seq",d_seq)
     occupancy_sum = 0
     target_dominant = True
 
@@ -44,6 +41,7 @@ def analyze_cocosim_output(simulated_structures,afp,d_seq):
                         print("huh:",db_struct)
                         exit()
                 try:
+                    print("\n\n",db_struct,",",afp[i],"\n\n")
                     if db_struct == afp[i]:
                         occupancy_sum += complex.occupancy
                         target_occupancies.append(round(complex.occupancy,6))
@@ -51,7 +49,6 @@ def analyze_cocosim_output(simulated_structures,afp,d_seq):
                         #target dominant in ensemble? 
                         if max(occupancies) != complex.occupancy:
                             target_dominant = False
-                        
                         i += 1
                       
                 except:
@@ -59,6 +56,7 @@ def analyze_cocosim_output(simulated_structures,afp,d_seq):
 
         if not t_occ_append and step[0].kernel_string.split()[-1][0] == "S":
             target_occupancies.append(0)
+            i += 1
 
     final_occupancy = None
     for complex in simulated_structures[-1]:
@@ -67,9 +65,8 @@ def analyze_cocosim_output(simulated_structures,afp,d_seq):
         if db_struct == afp[-1]:
             final_occupancy = round(complex.occupancy,4)
         
-
-    avg_occupancy = occupancy_sum/(i)
-    
+    print("occ sum /len",occupancy_sum,len(target_occupancies))
+    avg_occupancy = occupancy_sum/len(target_occupancies)
     
     return f"0\t{afp}\t{target_dominant}\t{round(avg_occupancy,4):8}\t{final_occupancy}\t{dominant_path}\t{target_occupancies}\t{d_seq}\n"
 
@@ -163,15 +160,17 @@ def get_data(n,current_folder):
 
     if os.path.exists(fp_locs):
         folding_paths = read_paths_from_file(fp_locs)
+        print(len(folding_paths),"1")
+        
     else:    
-        folding_paths = generate_path(n,fp_locs)
+        folding_paths = generate_path(n)
+        print(len(folding_paths),"2")
     
-    
-
+    print(folding_paths)
     domain_sequences = []
     
     real_paths = []
-    for i,path in enumerate(folding_paths[-1]):
+    for i,path in enumerate(folding_paths):
         #print("\n\nCurrent Path",path)
 
         try:
@@ -183,9 +182,10 @@ def get_data(n,current_folder):
         except: 
             
             print("Didn't work for:",path)
-
-    write_paths_to_file(fp_locs, real_paths)
-
+    print("real paths",real_paths)
+    if not os.path.exists(fp_locs):
+        write_paths_to_file(fp_locs, real_paths)
+    
 
     tsv_header = "ID\tAFP\tdominating_struct\tavg_occupancy\tlast_step_occ\tstep_occs\tdominant_fp\td_seq\n"
     for d_seq,fp in zip(domain_sequences,real_paths):
@@ -200,40 +200,31 @@ def get_data(n,current_folder):
                 d_length[domain] = 12
 
             elif domain[0] == 'S':
-                d_length[domain] = round(int(domain[1]) * 1.5)
+                d_length[domain] = 0
 
             else: 
                 d_length[domain] = 3
 
 
-        parameters = {"k_slow": 0.001 , 'k_fast': 20, "cutoff": float('-inf'),"d_length":d_length,"d_seq":d_seq}
+        parameters = {"k_slow": 0.001 , 'k_fast': 20, "cutoff": 0.05,"d_length":d_length,"d_seq":d_seq}
 
-        try:
-            simulated_structures = run_sim(d_seq,parameters)
-            print(simulated_structures)
-        
-            with open(os.path.join(current_folder, f"{n}_steps_out.tsv"), "a") as file:
-                new_data = analyze_cocosim_output(simulated_structures,fp,d_seq) 
-                if file.tell() == 0:
-                    file.write("#" + str(parameters) + "\n")
-                    file.write(tsv_header)
+    
+        simulated_structures = run_sim(d_seq,parameters)
+        print(simulated_structures)
+    
+        with open(os.path.join(current_folder, f"{n}_steps_out.tsv"), "a") as file:
+            new_data = analyze_cocosim_output(simulated_structures,fp,d_seq) 
+            if file.tell() == 0:
+                file.write("#" + str(parameters) + "\n")
+                file.write(tsv_header)
 
-                file.write(new_data)
-        
-            output = ""
-            if 'S' in d_seq:
-                output += write_output(simulated_structures,d_seq)
-            print(output)
-            
-        except KeyboardInterrupt:
-                    print("User stopped the script")
-                    raise SystemExit
-        except:
-            print("Error: Something went wrong during Cocosim analysis")
-            pass
-
-        
-        
+            file.write(new_data)
+    
+        output = ""
+        if 'S' in d_seq:
+            output += write_output(simulated_structures,d_seq)
+        print(output)
+    
         
         #Clear memory of Peppercorn objects
         clear_memory()
@@ -265,7 +256,7 @@ def fill_data(n,tsv_file):
         folding_paths = read_paths_from_file(fp_locs)
     else:
         print("\n\nNew paths must be generated this can lead to duplicate fps and missing fps in the analysis\n\n")    
-        folding_paths = generate_path(n,fp_locs)
+        folding_paths = generate_path(n)
 
     
 
@@ -312,15 +303,14 @@ def fill_data(n,tsv_file):
                 d_length[domain] = 12
 
             elif domain[0] == 'S':
-                d_length[domain] = round(int(domain[1]) * 1.5)
+                d_length[domain] = 0
 
             else: 
                 d_length[domain] = 3
 
 
-        parameters = {"k_slow": 0.001 , 'k_fast': 20, "cutoff": float('-inf'),"d_length":d_length,"d_seq":d_seq}
+        parameters = {"k_slow": 0.001 , 'k_fast': 20, "cutoff": 0.05,"d_length":d_length,"d_seq":d_seq}
 
-        #try:
         simulated_structures = run_sim(d_seq,parameters)
         print(simulated_structures)
         print("file:",tsv_file)
@@ -338,13 +328,8 @@ def fill_data(n,tsv_file):
         if 'S' in d_seq:
             output += write_output(simulated_structures,d_seq)
         print(output)
-        
-        #except KeyboardInterrupt:
-        #            print("User stopped the script")
-        #            raise SystemExit
-        #except:
-        #    print("Error: Something went wrong during Cocosim analysis")
-        #    pass
+
+       
 
         
         
@@ -363,17 +348,17 @@ def main():
     next_folder_number = find_next_folder_number(base_folder)
 
     current_folder = f'{next_folder_number}_{base_folder}'
-    os.makedirs(current_folder, exist_ok=True)
     
-    for i in range(5,7):
+    os.makedirs(current_folder, exist_ok=True)
+    for i in range(2,7):
         get_data(i,current_folder)
-
+        
 
 
 
     #uncomment to fill up file if segfault happended 
     #check if parameters match 
-    #fill_data(5,"6_run/5_steps_out.tsv")
+    #fill_data(6,"9_run/6_steps_out.tsv")
 
 
 

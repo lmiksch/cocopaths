@@ -34,9 +34,13 @@ console_handler = logging.StreamHandler()
 formatter = logging.Formatter('# %(levelname)s \n - %(message)s')
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
+logger.setLevel(logging.DEBUG)
 
-
-
+file_handler = logging.FileHandler('cocosim.log')
+file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(file_formatter)
+logger.addHandler(file_handler)
+file_handler.setLevel(logging.DEBUG)
 
 def run_sim(d_seq, parameters):
     """
@@ -594,7 +598,7 @@ def apply_cutoff(enum,parameters,all_complexes):
             if rm_occ + macro.occupancy > parameters["cutoff"]:
                 break
 
-            cut_macrostates.add(macro)
+            #cut_macrostates.add(macro)
 
             #enforce_cutoff_macrostate(macro, enum, all_complexes, cut_macrostates)
 
@@ -709,10 +713,11 @@ def enforce_via_transient(cut_macrostate,enum,all_complexes,cut_macrostates,para
     if len(out_rxns) == 0:
         
         
-        logger.info("\n\n\n______No outgoing reaction of cut macrostate --> can't enforce cutoff_________")
+        logger.info(f"\n\n\n______No outgoing reaction of cut macrostate --> can't enforce cutoff for {cut_macrostate} _________")
         
         return enum
 
+    cut_macrostates.add(cut_macrostate)
 
     output = enum.to_pil(condensed=True,detailed = False) 
 
@@ -757,6 +762,7 @@ def enforce_via_transient(cut_macrostate,enum,all_complexes,cut_macrostates,para
     #readjust occupancies 
     cut_occ = cut_macrostate.occupancy
     
+    logger.debug(f"Cutocc:{cut_occ}")
     tot_out = 0
     for reaction in old_condensed_rxn:
         if reaction._reactants[0].name == cut_macrostate.name:
@@ -775,16 +781,18 @@ def enforce_via_transient(cut_macrostate,enum,all_complexes,cut_macrostates,para
         sum += complex.occupancy
 
 
-    
+    logger.debug(f"Sum: {sum}")
+
     stat_dist = enum.condensation.stationary_dist
 
 
 
     #redistribute occupancies in macrostate 
-
+    
     for macro in enum.condensation.stationary_dist.keys(): 
         stat_dist = enum.condensation.stationary_dist
         if macro not in cut_macrostates:
+            logger.debug(f"Macro:{macro}")
             macro_dist = dict(stat_dist[macro])
 
             for complex,value in macro_dist.items(): 
@@ -802,8 +810,8 @@ def enforce_via_transient(cut_macrostate,enum,all_complexes,cut_macrostates,para
 
 
     #update all_complexes
-        
     for complex in enum._resting_complexes: 
+        logger.debug(f"{complex},{complex.occupancy}")
         update_complex_in_all_complexes(complex,all_complexes)
 
     
@@ -1194,7 +1202,7 @@ def main():
     
     parser.add_argument("-i", "--input_file", nargs='?', type=argparse.FileType('r'), default=sys.stdin,
                         help="Input file. If not provided, reads from stdin.")
-    parser.add_argument("--k-slow", type=float, help="Specify k-slow. Determines the cutoffpoint for slow reactions.", default=0.0001)
+    parser.add_argument("--k-slow", type=float, help="Specify k-slow. Determines the cutoffpoint for slow reactions.", default=0.001)
     parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
     parser.add_argument("-v", "--verbose", action="count", default=0, help="Increase verbosity level. -v only shows peppercorn output")
     parser.add_argument("-cutoff", "--cutoff", action="store", type=valid_cutoff, default=float('-inf'),help="Cutoff value at which structures won't get accepted (default: -inf, valid range: 0 to 1)")
@@ -1260,16 +1268,7 @@ def main():
 
     d_seq
     ts = 2
-    """
-    redundant since we print the output during calculations 
-    output += ("\nResting Complexes before each transcription step:\n\n")
-    output += "Transcription Step |    Occupancy | Structure \n"
-    for x in simulated_structures[:-1]: 
-        for complex in x:
-            output += f"{ts:3}   |	{complex.occupancy:7.5f}      |   {str(complex.kernel_string + ' ' + d_seq.split()[ts])}\n"
 
-        ts += 1 
-        output += "\n"""
     
     if 'S' in d_seq:
         output += write_output(simulated_structures,d_seq)
@@ -1285,7 +1284,9 @@ def main():
     print(output)
 
 
-
+    logger.removeHandler(file_handler)  # Remove the file handler from the logger
+    file_handler.close()  # Close the file handler to release the file
+    os.remove("cocosim.log")
 
 if __name__ == "__main__":
     main()
