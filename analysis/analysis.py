@@ -57,6 +57,7 @@ def analyze_cocosim_output(simulated_structures,afp,d_seq):
         if not t_occ_append and step[0].kernel_string.split()[-1][0] == "S":
             target_occupancies.append(0)
             i += 1
+            target_dominant = False
 
     final_occupancy = None
     for complex in simulated_structures[-1]:
@@ -67,14 +68,30 @@ def analyze_cocosim_output(simulated_structures,afp,d_seq):
         
     print("occ sum /len",occupancy_sum,len(target_occupancies))
     avg_occupancy = occupancy_sum/len(target_occupancies)
+
+    if target_dominant:
+        print("Target dominant",target_dominant)
+        print("final occupancy")
+        assert final_occupancy != None 
     
     return f"0\t{afp}\t{target_dominant}\t{round(avg_occupancy,4):8}\t{final_occupancy}\t{dominant_path}\t{target_occupancies}\t{d_seq}\n"
 
 
 
-def statistical_analysis(tsv):
+def statistical_analysis(folder_path,tsv,filename):
 
-        # Read the TSV file into a DataFrame
+
+    if not os.path.exists("results/results.tsv"):
+        print("\n\nMaking direktor")
+        os.makedirs("results")
+        with open("results/results.tsv","a") as file: 
+            header = "Folder_Name     \tn_steps\ttotal\ttrue\tfalse\tavg_occ\tavg_occ_last\t0.0-0.1\t0.1-0.2\t0.2-0.3\t0.3-0.4\t0.4-0.5\t0.5-0.6\t0.6-0.7\t0.8-0.9\t1-1.1\n"
+            file.write(header)
+            print("wrote")
+
+
+    print("start with analysis")
+    # Read the TSV file into a DataFrame
     df = pd.read_csv(tsv, sep='\t', comment = "#")
     n = tsv[0]
     # Display the DataFrame
@@ -85,13 +102,21 @@ def statistical_analysis(tsv):
     print("Total entries:", len(df))
     print("\nColumn Names:")
     print(df.columns)
-    print("Average occupancy:", df['avg_occupancy'].mean())
+
+    avg_occ = df['avg_occupancy'].mean()
+    print("Average occupancy:", avg_occ)
+    avg_last_step_occ = df['last_step_occ'].mean()
 
     # Count the total occurrences of True and False in dominant_fp
     total_counts = df['dominating_struct'].value_counts()
-
-
-
+    dom_true = total_counts.get(True,0)
+    dom_false = total_counts.get(False,0)
+    print(total_counts,type(total_counts))
+    print(dom_false)
+    print(dom_true)
+    print(df.columns)
+    
+    print(tsv)
 
     print("Total counts of True and False in dominant_fp:")
     print(total_counts)
@@ -99,7 +124,7 @@ def statistical_analysis(tsv):
 
 
 
-    bin_edges = [i / 10 for i in range(1, 12)]  # [0.1, 0.2, ..., 1.0]
+    bin_edges = [i / 10 for i in range(0, 12)]  # [0.1, 0.2, ..., 1.0]
 
     # Create bins using pd.cut
     df['bin'] = pd.cut(df['avg_occupancy'], bins=bin_edges, right=False)
@@ -107,13 +132,25 @@ def statistical_analysis(tsv):
     # Count the number of rows in each bin
     counts = df['bin'].value_counts().sort_index()
 
+    bins_dict = dict(zip(counts.index.astype(str), counts.values))
+    print(bins_dict)
+
+    with open("results/results.tsv","a") as file: 
+        file.write(f"{folder_path:15}\t{filename[0]}\t{dom_false + dom_true:8}\t{dom_true:8}\t{dom_false:8}\t{avg_occ:8.4}\t{avg_last_step_occ:8.4}\t")
+        for key,value in bins_dict.items():
+            file.write(f"{value}\t")
+        file.write("\n")
+
+
+
+    print(counts)
     # Plot the results
     counts.plot(kind='bar', width=0.8, align='center')
     plt.xlabel('Threshold Bins')
     plt.ylabel('Number of Rows')
     plt.title(f'Number of Rows in Threshold Bins for {n} Steps')
     plt.xticks(rotation=45)
-    plt.show()
+    #plt.show()
 
 
 def find_next_folder_number(base_folder):
@@ -171,6 +208,8 @@ def get_data(n,current_folder):
     
     real_paths = []
     for i,path in enumerate(folding_paths):
+        
+
         #print("\n\nCurrent Path",path)
 
         try:
@@ -200,7 +239,7 @@ def get_data(n,current_folder):
                 d_length[domain] = 12
 
             elif domain[0] == 'S':
-                d_length[domain] = 0
+                d_length[domain] = 3
 
             else: 
                 d_length[domain] = 3
@@ -210,7 +249,6 @@ def get_data(n,current_folder):
 
     
         simulated_structures = run_sim(d_seq,parameters)
-        print(simulated_structures)
     
         with open(os.path.join(current_folder, f"{n}_steps_out.tsv"), "a") as file:
             new_data = analyze_cocosim_output(simulated_structures,fp,d_seq) 
@@ -228,8 +266,7 @@ def get_data(n,current_folder):
         
         #Clear memory of Peppercorn objects
         clear_memory()
-    
-    
+           
 
     print("\n\nend of script\n\n")
 
@@ -337,7 +374,6 @@ def fill_data(n,tsv_file):
 
         clear_memory()
     
-    
 
     print("\n\nend of script\n\n")
 
@@ -353,19 +389,16 @@ def main():
     for i in range(2,7):
         get_data(i,current_folder)
         
-
+    print("S_3")
 
 
     #uncomment to fill up file if segfault happended 
     #check if parameters match 
-    #fill_data(6,"9_run/6_steps_out.tsv")
+    #fill_data(6,"10_run/6_steps_out.tsv")
 
+    print("data is in ",current_folder)
 
-
-    #for filename in os.listdir(current_folder):
-    #    if filename.endswith(".tsv") and os.path.isfile(os.path.join(current_folder, filename)):
-    #        tsv_filepath = os.path.join(current_folder, filename)
-    #        statistical_analysis(tsv_filepath)
+    
 
 
 
@@ -374,6 +407,10 @@ if __name__ == "__main__":
     
     main()
 
-    
-
-    #statistical_analysis("7_steps_out.tsv")
+    #analyze_folder = "Sx3+2_run"
+    #for filename in os.listdir(analyze_folder):
+    #        print(filename)
+    #        if filename.endswith(".tsv") and os.path.isfile(os.path.join(analyze_folder, filename)):
+    #            tsv_filepath = os.path.join(analyze_folder, filename)
+    #            statistical_analysis(analyze_folder,tsv_filepath,filename)
+    #statistical_analysis(folder_path,"7_steps_out.tsv")

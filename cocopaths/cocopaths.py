@@ -333,7 +333,7 @@ class graph():
         """
         Function to verify if the afp can be formed based on the edge weights alone
         """
-
+        logger.info("\n\nVerifying weights\n\n")
         assigned_edges = {}
         for x,step in enumerate(afp[1:],start=1): 
             collected_edges = self.get_current_edges(x)

@@ -34,13 +34,11 @@ console_handler = logging.StreamHandler()
 formatter = logging.Formatter('# %(levelname)s \n - %(message)s')
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
-logger.setLevel(logging.DEBUG)
 
 file_handler = logging.FileHandler('cocosim.log')
 file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 file_handler.setFormatter(file_formatter)
 logger.addHandler(file_handler)
-file_handler.setLevel(logging.DEBUG)
 
 def run_sim(d_seq, parameters):
     """
@@ -271,7 +269,7 @@ def simulate_system(enum,parameters,resting_complexes,all_complexes,new_domain_l
 
     oc_vector = []
     seen = set()
-    if condensed_reactions:
+    if condensed_reactions and new_domain_length > 0:
         #create reactions list and occupancy_vector needed for crn simulations
         for reaction in condensed_reactions:
             if reaction._reactants[0].name not in seen: 
@@ -309,7 +307,7 @@ def simulate_system(enum,parameters,resting_complexes,all_complexes,new_domain_l
 
 
 
-
+        
         resulting_occupancies =	sim_condensed_rates(reactions,oc_vector,parameters,new_domain_length)
         logger.debug(f"resulting occupancies: {resulting_occupancies}")
         #Update occupancies
@@ -345,7 +343,7 @@ def update_macrostates(result_occ,all_complexes,enum,resting_complexes,parameter
 
     occ_sum = round(sum([complex.occupancy for complex in resting_complexes]),4) 
 
-    assert occ_sum == 1, f"Sum of occupancies is {occ_sum} not 1"
+    assert abs(occ_sum -1) < 1e-10 , f"Sum of occupancies is {occ_sum} not 1"
     calc_macro_pop(enum,all_complexes,resting_complexes,parameters)
 
     
@@ -376,38 +374,41 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
     
 
 
-    args = parser.parse_args()
-    args.cutoff = float(args.cutoff)
+    s_args = parser.parse_args()
+    s_args.cutoff = float(parameters["cutoff"])
 
     #need to hardcode all args:
     logger.info("\n\n\nBegin simulation setup\n\n")
 
-    args.pyplot_labels = None
-    
-    args.list_labels = None
-
-    args.nxy = False
-
-    args.t8 = 0.02 * d_length
-
     
 
-    args.t0 = 0
+    s_args.pyplot_labels = None
+    
+    s_args.list_labels = None
 
-    args.t_log = False
+    s_args.nxy = False
 
-    args.t_lin = 2
+    s_args.t8 = 0.02 * d_length
 
-    args.atol = None
-    args.rtol = None
-    args.mxstep = 0 
-    args.labels_strict = False
-    args.header = True
 
-    args.pyplot = False
-    args.labels = []
-    args.pyplot_xlim = None 
-    args.pyplot_ylim = None
+
+
+    s_args.t0 = 0
+
+    s_args.t_log = False
+
+    s_args.t_lin = 2
+
+    s_args.atol = None
+    s_args.rtol = None
+    s_args.mxstep = 0 
+    s_args.labels_strict = False
+    s_args.header = True
+
+    s_args.pyplot = False
+    s_args.labels = []
+    s_args.pyplot_xlim = None 
+    s_args.pyplot_ylim = None
 
     
 
@@ -417,7 +418,7 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
 
 
     
-    args.p0 = p0
+    s_args.p0 = p0
     
     filename = "filename"
 
@@ -461,7 +462,7 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
         p0.append(str(i) + "=" + str(s))
 
 
-    args.p0 = p0
+    s_args.p0 = p0
     logger.debug(f"Vars: {Vars}, C: {C}")
     filename, odename = RG.write_ODE_lib(sorted_vars = Vars, concvect = C,
                                               jacobian= True,
@@ -476,9 +477,8 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
     #sys redirection necessary to redirect output of integrate
     sys.stderr = open(os.devnull, 'w')
     logger.info("\n\n\nBegin simulation\n\n")
-
     try:
-        time,occupancies = integrate(args) 
+        time,occupancies = integrate(s_args) 
     finally:
         sys.stderr = sys.__stderr__
     
@@ -988,6 +988,7 @@ def enumerate_step(complexes, reactions, parameter, all_complexes):
     enum.enumerate()
     
     
+ 
     enum.condense()
 
     logger.info("\n\nDone Enumerating\n\n")
@@ -1123,20 +1124,15 @@ def input_parsing(d_seq, complexes,parameters):
         d_seq(str) : domain level sequence
         complexes(dict)	: dict of the complexes in the form of {Name:[kernel structure,population]}
     """
-    toehold_length = 5
-    logic_length = 8
-    space_length = 8
+    
     logger.info(f"Input Parsing: Structure input \n {complexes}")
-    unique_domains = set([domain.replace('*', '') for domain in d_seq])
+    unique_domains = set([domain for domain in d_seq])
+
 
     system_input = f""
     for unique_domain in unique_domains:
-        if unique_domain.islower():
-            system_input += f"length {unique_domain} = {toehold_length} \n"
-        elif unique_domain.startswith("L"):
-            system_input += f"length {unique_domain} = {logic_length} \n"
-        elif unique_domain.startswith("S"):
-            system_input += f"length {unique_domain} = {space_length} \n"
+        system_input += f"length {unique_domain} = {parameters['d_length'][unique_domain]} \n"
+      
     
     system_input += "\n"
     for name, lst in complexes.items():
@@ -1144,8 +1140,6 @@ def input_parsing(d_seq, complexes,parameters):
                 system_input += f"{name} = {lst[0]}\n"
         
 
-
-    logger.debug(f"\n\n\nSystem Input \n\n{system_input}\n\n")
     complexes, reactions = read_pil(system_input)
     
     for key,complex in complexes.items():
@@ -1182,12 +1176,20 @@ def extract_afp(input_lines):
 def set_verbosity(console_handler, verbosity):
     if verbosity == 0:
         console_handler.setLevel(logging.CRITICAL)
+        file_handler.setLevel(logging.CRITICAL)
+
     elif verbosity == 1:
         console_handler.setLevel(logging.WARNING)
+        file_handler.setLevel(logging.WARNING)
+
     elif verbosity == 2:
         console_handler.setLevel(logging.INFO)
+        file_handler.setLevel(logging.INFO)
+
     elif verbosity == 3:
         console_handler.setLevel(logging.DEBUG)
+        file_handler.setLevel(logging.DEBUG)
+
 
 def valid_cutoff(value):
     value = float(value)
@@ -1239,7 +1241,7 @@ def main():
         if domain[0] == "L":
             d_length[domain] = 12
         elif domain[0] == 'S':
-            d_length[domain] = round(int(domain[1]) * 1.5)
+            d_length[domain] = round(int(domain[1]) * 3) + 2 
         else: 
             d_length[domain] = 3 
 
@@ -1247,14 +1249,15 @@ def main():
     parameters = {"k_slow": args.k_slow,'k_fast': args.k_fast, "cutoff": args.cutoff,"d_length":d_length,"d_seq":d_seq}
 
 
-
+    print(parameters)
     
     logger.warning(parameters)
 
 
     print("Given Domain Sequence:", d_seq)
 
-    
+   
+
 
 
 

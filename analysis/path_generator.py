@@ -63,13 +63,8 @@ def hamming_distance(str1, str2):
     return sum(c1 != c2 for c1, c2 in zip(str1, str2))
 
 
-def write_paths_to_file(file_path, paths):
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    with open(file_path, 'w') as file:
-        for step in paths:
-            file.write(str(step) + '\n')
 
-def generate_path(n,file_path):
+def generate_path(n):
 
     final_paths = [["."]]
     for _ in range(n-1):
@@ -100,7 +95,7 @@ def generate_path(n,file_path):
             print(path)     
 
 
-    return final_paths        
+    return final_paths[-1]  
     
     
 
@@ -109,5 +104,5 @@ def generate_path(n,file_path):
 
 if __name__ == "__main__":
     # Example: generate structures for length 4
-    generate_path(4,"test.txt")
+    generate_path(4)
 
