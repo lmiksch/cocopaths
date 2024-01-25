@@ -375,7 +375,7 @@ def test_enforce_cutoff_transient_2(input_path):
     macrostates = enum._resting_macrostates
     calc_macro_pop(enum,all_complexes,resting_complexes,args)
 
-    resting_complexes = simulate_system(enum,args,resting_complexes,all_complexes,parameters["d_length"][d_seq_split[17]])
+    resting_complexes = simulate_system(enum,parameters,resting_complexes,all_complexes,parameters["d_length"][d_seq_split[17]])
 
 
     below_t_count_all = 0
@@ -452,7 +452,7 @@ def test_enforce_cutoff_transient_3(input_path):
     macrostates = enum._resting_macrostates
     calc_macro_pop(enum,all_complexes,resting_complexes,args)
 
-    resting_complexes = simulate_system(enum,args,resting_complexes,all_complexes,parameters["d_length"][d_seq_split[17]])
+    resting_complexes = simulate_system(enum,parameters,resting_complexes,all_complexes,parameters["d_length"][d_seq_split[17]])
 
 
     below_t_count_all = 0
