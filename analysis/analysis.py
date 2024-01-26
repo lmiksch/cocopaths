@@ -80,15 +80,17 @@ def analyze_cocosim_output(simulated_structures,afp,d_seq):
 
 def statistical_analysis(folder_path,tsv,filename):
 
+    if not os.path.exists("results"):
+        os.makedirs("results")
 
     if not os.path.exists("results/results.tsv"):
         print("\n\nMaking direktor")
-        os.makedirs("results")
         with open("results/results.tsv","a") as file: 
-            header = "Folder_Name     \tn_steps\ttotal\ttrue\tfalse\tavg_occ\tavg_occ_last\t0.0-0.1\t0.1-0.2\t0.2-0.3\t0.3-0.4\t0.4-0.5\t0.5-0.6\t0.6-0.7\t0.8-0.9\t1-1.1\n"
+            header = "Folder_Name    \tn_steps\ttotal\ttrue\tfalse\tavg_occ\tavg_occ_last\t0.0-0.1\t0.1-0.2\t0.2-0.3\t0.3-0.4\t0.4-0.5\t0.5-0.6\t0.6-0.7\t0.7-0.8\t0.8-0.9\t0.9-1.0\t1.0-1.1\n"
             file.write(header)
             print("wrote")
-
+    
+    
 
     print("start with analysis")
     # Read the TSV file into a DataFrame
@@ -127,7 +129,7 @@ def statistical_analysis(folder_path,tsv,filename):
     bin_edges = [i / 10 for i in range(0, 12)]  # [0.1, 0.2, ..., 1.0]
 
     # Create bins using pd.cut
-    df['bin'] = pd.cut(df['avg_occupancy'], bins=bin_edges, right=False)
+    df['bin'] = pd.cut(df['last_step_occ'], bins=bin_edges, right=False)
 
     # Count the number of rows in each bin
     counts = df['bin'].value_counts().sort_index()
@@ -136,9 +138,9 @@ def statistical_analysis(folder_path,tsv,filename):
     print(bins_dict)
 
     with open("results/results.tsv","a") as file: 
-        file.write(f"{folder_path:15}\t{filename[0]}\t{dom_false + dom_true:8}\t{dom_true:8}\t{dom_false:8}\t{avg_occ:8.4}\t{avg_last_step_occ:8.4}\t")
+        file.write(f"{folder_path:15}\t{filename[0]:>7}\t{dom_false + dom_true:>5}\t{dom_true:>4}\t{dom_false:>4}\t{avg_occ:>7.4}\t{avg_last_step_occ:>12.4}\t")
         for key,value in bins_dict.items():
-            file.write(f"{value}\t")
+            file.write(f"{value:>7}\t")
         file.write("\n")
 
 
@@ -236,11 +238,10 @@ def get_data(n,current_folder):
 
         for domain in d_seq.split():
             if domain[0] == "L":
-                d_length[domain] = 12
+                d_length[domain] = 8
 
             elif domain[0] == 'S':
-                d_length[domain] = 3
-
+                d_length[domain] = 8
             else: 
                 d_length[domain] = 3
 
@@ -407,7 +408,7 @@ if __name__ == "__main__":
     
     main()
 
-    #analyze_folder = "Sx3+2_run"
+    #analyze_folder = "results/L8_S8_r3_run"
     #for filename in os.listdir(analyze_folder):
     #        print(filename)
     #        if filename.endswith(".tsv") and os.path.isfile(os.path.join(analyze_folder, filename)):

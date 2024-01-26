@@ -27,7 +27,7 @@ import numpy as np
 import copy
 import os
 import random
-
+import inspect
 
 logger = logging.getLogger('cocosim')
 console_handler = logging.StreamHandler()
@@ -87,10 +87,11 @@ def run_sim(d_seq, parameters):
     
     #Print continous output
     for x, complex in complexes.items():
-        
+        kernel_string = kernel_to_dot_bracket(complex.kernel_string)
+        db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
         #occupancy = np.float128(complex.occupancy)
         if round(complex.occupancy,4) > 1e-4:
-            print(f"{2:3}   |	      {complex.occupancy:8.4f}   | {complex.kernel_string}")
+            print(f"{2:3}\t|\t{complex.occupancy:8.4f}\t|\t{db_struct:8}|\t{complex.kernel_string}")
     print()    
     
 
@@ -169,8 +170,6 @@ def run_sim(d_seq, parameters):
         
         total_occupancy = 0
 
-
-
         #Print continous output
         for x, complex in complexes.items():
             try:
@@ -212,9 +211,13 @@ def run_sim(d_seq, parameters):
         #Additionally maps resting states 
         calc_macro_pop(enum,all_complexes,resting_complexes,parameters)
 
-        
+
+
+
         #simulate the condensed reactions
         resting_complexes = simulate_system(enum,parameters,resting_complexes,all_complexes,parameters["d_length"][d_seq_split[step]])
+
+
 
         
         oc_sum = 0
@@ -272,7 +275,7 @@ def simulate_system(enum,parameters,resting_complexes,all_complexes,new_domain_l
     if condensed_reactions and new_domain_length > 0:
         #create reactions list and occupancy_vector needed for crn simulations
         for reaction in condensed_reactions:
-            if reaction._reactants[0].name not in seen: 
+            #if reaction._reactants[0].name not in seen: 
                 seen.add(reaction._reactants[0].name)
                 
                 reactants = [reaction._reactants[0].name]
@@ -307,10 +310,12 @@ def simulate_system(enum,parameters,resting_complexes,all_complexes,new_domain_l
 
 
 
-        
+
         resulting_occupancies =	sim_condensed_rates(reactions,oc_vector,parameters,new_domain_length)
         logger.debug(f"resulting occupancies: {resulting_occupancies}")
         #Update occupancies
+
+
 
         resting_complexes = update_macrostates(resulting_occupancies,all_complexes = all_complexes,enum= enum,resting_complexes=resting_complexes,parameters=parameters)
         logger.debug(f"Numger of Resulting resting complexes {len(resting_complexes)}")
@@ -373,7 +378,6 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
     parser.add_argument("-cutoff", "--cutoff", action="store", type=valid_cutoff, default=float('-inf'),help="Cutoff value at which structures won't get accepted (default: -inf, valid range: 0 to 1)")
     
 
-
     s_args = parser.parse_args()
     s_args.cutoff = float(parameters["cutoff"])
 
@@ -403,7 +407,7 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
     s_args.rtol = None
     s_args.mxstep = 0 
     s_args.labels_strict = False
-    s_args.header = True
+    s_args.header = False
 
     s_args.pyplot = False
     s_args.labels = []
@@ -412,15 +416,10 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
 
     
 
-    p0 = []
-    for i,s in enumerate(concvect,start=1):
-        p0.append(str(i) + "=" + str(s))
-
-
     
-    s_args.p0 = p0
     
-    filename = "filename"
+    
+    filename = "filename" + str(reactants[0])
 
     odename = "odename"
 
@@ -434,6 +433,7 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
 
     # Split CRN into irreversible reactions
     crn = reactants
+    print(f"{crn = }")
     new = []
     for [r, p, k] in crn:
         assert not (None in k)
@@ -444,8 +444,11 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
             new.append([r, p, k[0]])
     crn = new
 
+    print(f"{crn = }")
     RG = ReactionGraph(crn)
     
+
+    print(f"{concvect = }")
     C = []
     Vars = []
     seen = set()
@@ -456,6 +459,7 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
             C.append(c)
 
 
+    
     # set p0 
     p0 = []
     for i,s in enumerate(C,start=1):
@@ -463,15 +467,27 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
 
 
     s_args.p0 = p0
-    logger.debug(f"Vars: {Vars}, C: {C}")
+
+    #if os.path.exists(filename):
+    #    os.remove(filename)
+    
+    
+    logger.debug(f"{s_args.p0 = }")
+    logger.debug(f"{Vars = },{C = }")
+
     filename, odename = RG.write_ODE_lib(sorted_vars = Vars, concvect = C,
                                               jacobian= True,
                                               const = [False for x in Vars],
                                              filename = filename,
-                                             odename = odename)
+                                             odename = "odename")
+        
         
 
+
+
     integrate = get_integrator(filename)
+
+
 
 
     #sys redirection necessary to redirect output of integrate
@@ -483,7 +499,7 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
         sys.stderr = sys.__stderr__
     
 
-
+    #os.remove(filename)
 
     end_conc = [oc for oc in occupancies[1:]]
     resulting_concentrations = {}
@@ -491,7 +507,6 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
         resulting_concentrations[i] = {}
         for complex, conc in zip(Vars,end_conc):
             resulting_concentrations[i][complex] = conc
-    
     return resulting_concentrations
 
 
@@ -552,7 +567,8 @@ def calc_macro_pop(enum,all_complexes,resulting_complexes,parameters):
             summe += np.float128(r_complex.occupancy)
 
     logger.debug(f"Sum over all Macrostates after cal macropop {summe:.20f} {type(summe)}")
-
+    for complex in resulting_complexes:
+        logger.info(f"{complex},{complex.occupancy}")
     
     assert round(summe,10) == 1, f'Occupancies sum up to {summe} and not 1' 
 
@@ -1037,19 +1053,16 @@ def map_transient_states(resting_complexes,transient_complexes,all_complexes,enu
                                     new_conc = va * value * np.float128(t_complex.occupancy)
                             stat_complex.occupancy = np.float128(new_conc)
 
-                            if new_conc > parameters["cutoff"]:#exclude structures below the cutoff 
-            
-                                # Check if the new complex is not already in all_complexes
-                                if not is_complex_in_all_complexes(stat_complex,all_complexes) and not is_complex_in_all_complexes(stat_complex,new_complexes):
-                                    all_complexes["Id_" + str(len(all_complexes) + 1)] = [stat_complex, new_conc]
-                                    
-                                elif is_complex_in_all_complexes(stat_complex,all_complexes):
-                                    update_complex_in_all_complexes(stat_complex,new_complexes)	
 
+                            # Check if the new complex is not already in all_complexes
+                            if not is_complex_in_all_complexes(stat_complex,all_complexes) and not is_complex_in_all_complexes(stat_complex,new_complexes):
+                                all_complexes["Id_" + str(len(all_complexes) + 1)] = [stat_complex, new_conc]
                                 
-    #all_complexes.update(new_complexes)
-    logger.info("\n\nEnd Mapping transient states")
+                            elif is_complex_in_all_complexes(stat_complex,all_complexes):
+                                update_complex_in_all_complexes(stat_complex,new_complexes)	
 
+    logger.info("\n\nEnd Mapping transient states")
+    
     
 
 def update_complex_in_all_complexes(complex,all_complexes):
@@ -1186,7 +1199,7 @@ def set_verbosity(console_handler, verbosity):
         console_handler.setLevel(logging.INFO)
         file_handler.setLevel(logging.INFO)
 
-    elif verbosity == 3:
+    elif verbosity >= 3:
         console_handler.setLevel(logging.DEBUG)
         file_handler.setLevel(logging.DEBUG)
 
@@ -1214,7 +1227,6 @@ def main():
     args = parser.parse_args()
     args.cutoff = float(args.cutoff)
     set_verbosity(logger,args.verbose)
-    console_handler.setLevel(logging.INFO)
 
     if args.input_file.isatty():
         print("Please enter a domain level sequence:")
@@ -1241,10 +1253,10 @@ def main():
         if domain[0] == "L":
             d_length[domain] = 12
         elif domain[0] == 'S':
-            d_length[domain] = round(int(domain[1]) * 3) + 2 
+            d_length[domain] = 8 #round(int(domain[1]) * 3)  
         else: 
             d_length[domain] = 3 
-
+        d_length['S0'] = 18
 
     parameters = {"k_slow": args.k_slow,'k_fast': args.k_fast, "cutoff": args.cutoff,"d_length":d_length,"d_seq":d_seq}
 
@@ -1265,6 +1277,17 @@ def main():
     #______Running_Simulation___________# 
     simulated_structures = run_sim(d_seq, parameters)
     
+    last_step = simulated_structures[-1]
+
+    #Print continous output
+    for complex in last_step:
+        kernel_string = kernel_to_dot_bracket(complex.kernel_string)
+        db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
+        #occupancy = np.float128(complex.occupancy)
+        if round(complex.occupancy,4) > 1e-4:
+            print(f"END\t|\t{complex.occupancy:8.4f}\t|\t{db_struct:8}|\t{complex.kernel_string}")
+    print()    
+
 
     #_____Writing_and_printing_output___# 
     output = ""
