@@ -433,7 +433,6 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
 
     # Split CRN into irreversible reactions
     crn = reactants
-    print(f"{crn = }")
     new = []
     for [r, p, k] in crn:
         assert not (None in k)
@@ -444,11 +443,9 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
             new.append([r, p, k[0]])
     crn = new
 
-    print(f"{crn = }")
     RG = ReactionGraph(crn)
     
 
-    print(f"{concvect = }")
     C = []
     Vars = []
     seen = set()
@@ -499,7 +496,7 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
         sys.stderr = sys.__stderr__
     
 
-    #os.remove(filename)
+    os.remove(filename)
 
     end_conc = [oc for oc in occupancies[1:]]
     resulting_concentrations = {}

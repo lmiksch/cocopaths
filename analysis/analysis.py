@@ -238,10 +238,10 @@ def get_data(n,current_folder):
 
         for domain in d_seq.split():
             if domain[0] == "L":
-                d_length[domain] = 8
+                d_length[domain] = 12
 
             elif domain[0] == 'S':
-                d_length[domain] = 8
+                d_length[domain] = 10
             else: 
                 d_length[domain] = 3
 
@@ -390,7 +390,7 @@ def main():
     for i in range(2,7):
         get_data(i,current_folder)
         
-    print("S_3")
+    print("S_10")
 
 
     #uncomment to fill up file if segfault happended 

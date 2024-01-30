@@ -499,6 +499,15 @@ def test_enforce_cutoff_transient_3(input_path):
 
     assert abs(1 - occ_sum_all) <= 1e-10
 
+    #resulting occupancies
+
+    resulting_occs = [np.float64(0.96688541022548714067),np.float64(0.033114589774512491545)]
+    resting_occs = [x.occupancy for x in enum._resting_complexes]
+    resulting_occs.sort()
+    resting_occs.sort()
+    assert np.allclose(resulting_occs,resting_occs,atol = 1e-10),f"{resulting_occs = },{resting_occs = }"
+        
+ 
 
 def test_enforce_cutoff_transient_4(input_path):
  
@@ -565,8 +574,16 @@ def test_enforce_cutoff_transient_4(input_path):
     assert abs(occ_sum_all - occ_sum_resting) < 1e10 
 
     assert abs(1 - occ_sum_all) <= 1e-10
-   
+    
+    resulting_occs = [0.038382816257001896757, 0.038770099035167028878, 0.0006144555402063971569, 8.7879528744050681395e-05, 0.0052310375663540544844, 0.005617991432653917495, 0.3519356958555787332, 0.00019380584501519420874, 6.4610613557798348055e-05, 0.0005378926658468193442, 0.00053600789885841550687, 0.0334075844267117457, 0.03348812881877702489, 0.03324272610860402426, 0.033325155267657873342, 0.00021855457948455538756, 0.004431760052938281573, 0.0037285041001922549505, 0.13884299678243543597, 0.13781190896046257759, 0.0006873918813152298702, 0.13884299678243551357]
+    resting_occs = [x.occupancy for x in enum._resting_complexes]
 
+    resulting_occs.sort()
+    resting_occs.sort()
+
+
+    assert np.allclose(resulting_occs,resting_occs,atol = 1e-10)
+        
 
 
 def test_enforce_v_transient_from_dseq(input_path,configure_logger):
