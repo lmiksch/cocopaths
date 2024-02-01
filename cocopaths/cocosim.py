@@ -392,7 +392,7 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
 
     s_args.nxy = False
 
-    s_args.t8 = 0.02 * d_length
+    s_args.t8 = 10 * d_length
 
 
 
@@ -1214,7 +1214,7 @@ def main():
     
     parser.add_argument("-i", "--input_file", nargs='?', type=argparse.FileType('r'), default=sys.stdin,
                         help="Input file. If not provided, reads from stdin.")
-    parser.add_argument("--k-slow", type=float, help="Specify k-slow. Determines the cutoffpoint for slow reactions.", default=0.001)
+    parser.add_argument("--k-slow", type=float, help="Specify k-slow. Determines the cutoffpoint for slow reactions.", default=0.00001)
     parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
     parser.add_argument("-v", "--verbose", action="count", default=0, help="Increase verbosity level. -v only shows peppercorn output")
     parser.add_argument("-cutoff", "--cutoff", action="store", type=valid_cutoff, default=float('-inf'),help="Cutoff value at which structures won't get accepted (default: -inf, valid range: 0 to 1)")
@@ -1224,7 +1224,7 @@ def main():
     args = parser.parse_args()
     args.cutoff = float(args.cutoff)
     set_verbosity(logger,args.verbose)
-
+    console_handler.setLevel(logging.DEBUG)
     if args.input_file.isatty():
         print("Please enter a domain level sequence:")
         d_seq = input()
@@ -1250,10 +1250,9 @@ def main():
         if domain[0] == "L":
             d_length[domain] = 12
         elif domain[0] == 'S':
-            d_length[domain] = 8 #round(int(domain[1]) * 3)  
+            d_length[domain] = 1#round(int(domain[1]) * 0.5)  
         else: 
             d_length[domain] = 3 
-        d_length['S0'] = 18
 
     parameters = {"k_slow": args.k_slow,'k_fast': args.k_fast, "cutoff": args.cutoff,"d_length":d_length,"d_seq":d_seq}
 
@@ -1266,8 +1265,6 @@ def main():
     print("Given Domain Sequence:", d_seq)
 
    
-
-
 
 
 

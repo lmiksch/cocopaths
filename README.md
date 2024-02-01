@@ -85,7 +85,7 @@ Please enter a domain level sequence:
  - Cocosim:
   - Complementary domains must be separated by another domain 
   - sometime segmentation fault(coredumped) during steps -> bug not reproducable
-  - if spacer length = 0 following error: 
+  - if spacer length = 0 following error: "a* L0* b* S0  L0  S1 c b L0 a d S2 e* d* a* L0* b* c* f* S3 g f c b L0 a d e h S4 h* e* d* a* L0* b* c* f* g* S5"
     
   peppercornenumerator/peppercornenumerator/condense.py", line 200, in condense
     const = (self.get_condensed_rate(prxn), '/M' * (len(reactants)-1) + '/s')
@@ -94,6 +94,9 @@ Please enter a domain level sequence:
     assert 0 <= reactant_probabilities < 1.000001
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   AssertionError
+  
+  - potential bug: really small difference about 10e-4 between S = 0 and no spacers in the sequence need to look into it 
+ 
 
 
 
