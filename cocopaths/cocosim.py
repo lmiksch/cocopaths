@@ -56,6 +56,7 @@ def run_sim(d_seq, parameters):
     d_seq_split = d_seq.split()
     
     print(f'\n\n\nCocosim\nDomain Level seq: {d_seq}\n\n')
+    print(f'Transcription Step | Occupancy  |  Logic domain pairing | Structure	 \n')
 
 
     # before input parsing define name of complexes 
@@ -91,7 +92,7 @@ def run_sim(d_seq, parameters):
         db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
         #occupancy = np.float128(complex.occupancy)
         if round(complex.occupancy,4) > 1e-4:
-            print(f"{2:3}\t|\t{complex.occupancy:8.4f}\t|\t{db_struct:8}|\t{complex.kernel_string}")
+            print(f"{2:3}\t|\t{complex.occupancy:^8.4f}\t|\t{db_struct:16}|\t{complex.kernel_string}")
     print()    
     
 
@@ -178,7 +179,7 @@ def run_sim(d_seq, parameters):
                 kernel_string = kernel_to_dot_bracket(complex.kernel_string)
                 db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
                 if occupancy != 0:
-                    print(f"{step + 1:3}\t|\t{occupancy:8.4f}\t|\t{db_struct:8}|\t{complex.kernel_string}\t")
+                    print(f"{step + 1:3}\t|\t{occupancy:^8.4f}\t|\t{db_struct:16}|\t{complex.kernel_string}\t")
             except: 
                 pass
                 #print(f"{step + 1:3}   |	{0:8.4f}      | {complex.kernel_string} \n")
@@ -558,10 +559,13 @@ def calc_macro_pop(enum,all_complexes,resulting_complexes,parameters):
                 if stat_complex == r_complex: 
                     r_complex.occupancy = np.float128(new_dist)
 
+    if len(resulting_complexes) == 1:
+        resulting_complexes[0].occupancy = 1
   
     for r_complex in resulting_complexes:
 
             summe += np.float128(r_complex.occupancy)
+    
 
     logger.debug(f"Sum over all Macrostates after cal macropop {summe:.20f} {type(summe)}")
     for complex in resulting_complexes:
@@ -1013,7 +1017,7 @@ def enumerate_step(complexes, reactions, parameter, all_complexes):
     output = enum.to_pil(condensed=True,detailed = True) 
 
         
-    logger.info(f"\n\n\n\nOutput: \n {output} \n\n\n")
+    logger.warning(f"\n\n\n\nOutput: \n {output} \n\n\n")
     return resulting_complexes, transient_complexes, enum
 
     
@@ -1084,7 +1088,7 @@ def write_output(final_structures,d_seq,parameters = None):
         if x and x[0].kernel_string[-2] == "S": 
             for complex in x:
                 if complex.occupancy >= 0.001:
-                    data_output += f"{spacer_indices[ts]+ 1:3}  |	{complex.occupancy:7.5f}	|	{complex.kernel_string} \n"
+                    data_output += f"{spacer_indices[ts]+ 1:3}  |	{complex.occupancy:^7.5f}	|	{complex.kernel_string} \n"
             ts += 1 
 
             data_output += "\n"
@@ -1105,7 +1109,7 @@ def write_output(final_structures,d_seq,parameters = None):
                 if complex.occupancy >= 0.0001:
                     kernel_string = kernel_to_dot_bracket(complex.kernel_string)
                     db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
-                    data_output += f"{spacer_indices[ts]+ 1:3}  |	{np.float128(complex.occupancy):8.5f}   |   {db_struct} 	\n"
+                    data_output += f"{spacer_indices[ts]+ 1:3}  |	{np.float128(complex.occupancy):^8.5f}   |   {db_struct} 	\n"
                     if db_struct in struct_dict: 
                         struct_dict[db_struct] += complex.occupancy
                     else: 	
@@ -1248,9 +1252,9 @@ def main():
 
     for domain in d_seq.split():
         if domain[0] == "L":
-            d_length[domain] = 12
+            d_length[domain] = 6
         elif domain[0] == 'S':
-            d_length[domain] = 1#round(int(domain[1]) * 0.5)  
+            d_length[domain] = 3#round(int(domain[1]) * 0.5)  
         else: 
             d_length[domain] = 3 
 
@@ -1279,7 +1283,7 @@ def main():
         db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
         #occupancy = np.float128(complex.occupancy)
         if round(complex.occupancy,4) > 1e-4:
-            print(f"END\t|\t{complex.occupancy:8.4f}\t|\t{db_struct:8}|\t{complex.kernel_string}")
+            print(f"END\t|\t{complex.occupancy:^8.4f}\t|\t{db_struct:16}|\t{complex.kernel_string}")
     print()    
 
 

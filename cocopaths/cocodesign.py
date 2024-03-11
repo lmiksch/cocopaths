@@ -3,6 +3,18 @@ from infrared import rna
 import RNA 
 import random
 import math
+import argparse
+import logging
+from .utils import(is_balanced_structure)
+from cocopaths import __version__
+
+#______define_logger_____#
+logger = logging.getLogger('cocopaths')
+console_handler = logging.StreamHandler()
+formatter = logging.Formatter('# %(levelname)s - %(message)s')
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
+
 
 def objective_function(fe,efe,mse,barrier):
     """
@@ -351,10 +363,10 @@ def rna_design(seq,path,parameters):
                 nt_path.append("".join(split_nt_sequence[:x+1]))
         nt_path.append(sequence)
         
-        for x,y in zip(nt_path,ext_path):
+        """for x,y in zip(nt_path,ext_path):
             print("NT:",x)
             print("Ext:",y)
-
+        """
         total = []
         # add score for first folding step
         fc = RNA.fold_compound(nt_path[0])
@@ -417,7 +429,7 @@ def rna_design(seq,path,parameters):
 
     objective = lambda x: -rstd_objective(rna.ass_to_seq(x))
 
-    best, best_val = mc_optimize(model, objective,steps = 2000, temp = 0.04)
+    best, best_val = mc_optimize(model, objective,steps = parameters['steps'], temp = 0.04)
 
 
     print("Calculated NT sequence:")
@@ -425,13 +437,89 @@ def rna_design(seq,path,parameters):
 
     return rna.ass_to_seq(best), -best_val
 
-def main(domain_seq,folding_path):
+
+def set_verbosity(console_handler,verbosity):
+    if verbosity == 0:
+        console_handler.setLevel(logging.CRITICAL)
+    elif verbosity == 1:
+        console_handler.setLevel(logging.ERROR)
+    elif verbosity == 2:
+        console_handler.setLevel(logging.INFO)
+    elif verbosity >= 3:
+        console_handler.setLevel(logging.DEBUG)
+
+
+
+def main():
     
+
+    #_________________Argparse_________________#
+    parser = argparse.ArgumentParser(
+        formatter_class = argparse.RawDescriptionHelpFormatter,
+        description=f"""Cocodesign version {__version__}: generates a nucleotide level sequence based on a domain level sequence 
+)""")
+
+    parser.add_argument("-i","--input",help="Reads txt file as input if not specified user can input via console.")
+    parser.add_argument("-v", "--verbose",action="count", default = 0,
+        help = "Track process by writing verbose output to STDOUT during calculations.")
+    
+
+    parser.add_argument("-s","--steps",help="Number of steps in the optimization",default=2000,type=int)
+
+
+
+
+
+    args = parser.parse_args()
+
+    #_________________Set_logger_verbosity________________#
+
+    set_verbosity(logger,args.verbose)
+
+
+    if args.input == None:
+            
+            print("\n")
+            print("Please input a domain level sequence:")
+            domain_seq = input()
+            print("Please input the afp by which the domain level sequence was designed:")
+            folding_path = []
+            while True:
+                print("\n")
+                print(f"Current Input: {folding_path}")
+                print("Please input a folding path in dot-bracket annotation or use '$' to exit input and continue use 'r' to reset input:")
+                user_input = input()
+                # Check for exit conditions
+                if user_input == "$":
+                    print(f"\n\nFinal Input:\n{folding_path}\n\n")
+                    break
+                elif user_input == "r" or user_input == "R":
+                    folding_path = []
+                    print("Input cleared")
+                    continue
+                
+                if is_balanced_structure(user_input):
+
+                    # Check if the user input contains only ".", "(", and ")"
+                    
+                    if all(char == "." or char in ("(", ")") for char in user_input):
+                        if len(user_input) == len(folding_path) + 1:
+                            folding_path.append(user_input)
+                        else:
+                            print("Please add 1 character per step")
+                    else:
+                        print("Error: Invalid character in the folding path. Only '.', '(', and ')' are allowed.")
+                else:
+                    print("Structure is not balanced -> closing/opening brackets don't match")
+                
+
+
+
     print(f"{domain_seq = }")
 
     d_length = {}
 
-    for domain in d_seq.split():
+    for domain in domain_seq.split():
         if domain[0] == "L":
             d_length[domain] = 12
         elif domain[0] == 'S':
@@ -440,7 +528,7 @@ def main(domain_seq,folding_path):
             d_length[domain] = 3 
 
    
-    parameters = {'d_length': d_length}
+    parameters = {'d_length': d_length,'steps':args.steps}
 
     # add check to see if number of folding steps = number of spacer domains
 
@@ -453,7 +541,7 @@ def main(domain_seq,folding_path):
 
     ext_folding_path = domain_path_to_nt_path(domain_fp,domain_seq,parameters)
 
-    print(f"Input AFP: {afp}\n\n")    
+    print(f"Input AFP: {folding_path}\n\n")    
     nt_seq, score = rna_design(domain_seq,ext_folding_path,parameters)
 
     print(f"\n\nRNA design done\nSequence = {nt_seq} \n {score = }\n{extend_domain_seq(domain_seq,parameters)}")
@@ -465,8 +553,4 @@ def main(domain_seq,folding_path):
 
 if __name__ == "__main__":
     
-    d_seq = "a* L0* b* S0  L0  S1  L1*  S2 c b L0 a d S3 e* d* a* L0* b* c* f* S4 f c b L0 a d e S5"
-    
-    afp = ['.', '()', '().', '(..)', '().()', '(..)()']
-
-    main(d_seq,afp)
+    main()

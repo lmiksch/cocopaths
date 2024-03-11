@@ -208,7 +208,6 @@ def get_data(n,current_folder):
         
     else:    
         folding_paths = generate_path(n)
-        print(len(folding_paths),"2")
     
     print(folding_paths)
     domain_sequences = []
@@ -243,7 +242,7 @@ def get_data(n,current_folder):
 
         for domain in d_seq.split():
             if domain[0] == "L":
-                d_length[domain] = 8
+                d_length[domain] = 7
 
             elif domain[0] == 'S':
                 d_length[domain] = 1 #round(int(domain[1]) * 0.5)  
@@ -343,16 +342,16 @@ def fill_data(n,tsv_file):
 
         for domain in d_seq.split():
             if domain[0] == "L":
-                d_length[domain] = 12
+                d_length[domain] = 7
 
             elif domain[0] == 'S':
-                d_length[domain] = 3
+                d_length[domain] = 1
 
             else: 
                 d_length[domain] = 3
 
 
-        parameters = {"k_slow": 0.001 , 'k_fast': 20, "cutoff": 0.05,"d_length":d_length,"d_seq":d_seq}
+        parameters = {"k_slow": 0.001 , 'k_fast': 20, "cutoff": 0.10,"d_length":d_length,"d_seq":d_seq}
 
         simulated_structures = run_sim(d_seq,parameters)
         print(simulated_structures)
@@ -391,16 +390,21 @@ def main():
 
     current_folder = f'{next_folder_number}_{base_folder}'
     
-    os.makedirs(current_folder, exist_ok=True)
-    for i in range(3,7):
-        get_data(i,current_folder)
-        
-    print("S3_L8")
+    #os.makedirs(current_folder, exist_ok=True)
+    #for i in range(3,7):
+    #    get_data(i,current_folder)
+
+
+    folder_name = "S1_L7"
+    
+    
+    print(folder_name)
 
 
     #uncomment to fill up file if segfault happended 
     #check if parameters match 
-    #fill_data(6,"10_run/6_steps_out.tsv")
+    fill_data(6,"10_run/6_steps_out.tsv")
+    os.rename(current_folder,folder_name)
 
     print("data is in ",current_folder)
 
@@ -411,12 +415,15 @@ def main():
 if __name__ == "__main__":
     
     
-    main()
+    #main()
 
-    #analyze_folder = "results/S1_run"
-    #for filename in os.listdir(analyze_folder):
-    #        print(filename)
-    #        if filename.endswith(".tsv") and os.path.isfile(os.path.join(analyze_folder, filename)):
-    #            tsv_filepath = os.path.join(analyze_folder, filename)
-    #            statistical_analysis(analyze_folder,tsv_filepath,filename)
+
+
+
+    analyze_folder = "results/S1_L7_run"
+    for filename in os.listdir(analyze_folder):
+            print(filename)
+            if filename.endswith(".tsv") and os.path.isfile(os.path.join(analyze_folder, filename)):
+                tsv_filepath = os.path.join(analyze_folder, filename)
+                statistical_analysis(analyze_folder,tsv_filepath,filename)
     
