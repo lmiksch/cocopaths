@@ -327,16 +327,9 @@ def rna_design(seq,path,parameters):
 
         model.add_constraints(cons)
 
-    print("\n\nIdentical Domains constraint")
     #Identical domain constrain
     unique_domains = set(split_seq)
-    for domain in  unique_domains:
-
-
-        if domain[0] != "S":
-            print(f"{domain = }")
-            #identical_domains_constraint(domain,split_seq,model,parameters)
-    
+   
 
 
     
