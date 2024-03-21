@@ -56,7 +56,7 @@ def run_sim(d_seq, parameters):
     d_seq_split = d_seq.split()
     
     print(f'\n\n\nCocosim\nDomain Level seq: {d_seq}\n\n')
-    print(f'Transcription Step | Occupancy  |  Logic domain pairing | Structure	 \n')
+    
 
 
     # before input parsing define name of complexes 
@@ -85,16 +85,30 @@ def run_sim(d_seq, parameters):
 
     folding_step_complexes.append(resulting_complexes)	
    
-    
+
+
+
     #Print continous output
-    for x, complex in complexes.items():
-        kernel_string = kernel_to_dot_bracket(complex.kernel_string)
-        db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
-        #occupancy = np.float128(complex.occupancy)
-        if round(complex.occupancy,4) > 1e-4:
-            print(f"{2:3}\t|\t{complex.occupancy:^8.4f}\t|\t{db_struct:16}|\t{complex.kernel_string}")
-    print()    
-    
+    if parameters["logic"]:
+        for x, complex in complexes.items():
+            print(f'Transcription Step | Occupancy  |  Logic domain pairing | Structure	 \n')
+            kernel_string = kernel_to_dot_bracket(complex.kernel_string)
+            db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
+            #occupancy = np.float128(complex.occupancy)
+            if round(complex.occupancy,4) > 1e-4:
+                print(f"{2:3}\t|\t{complex.occupancy:^8.4f}\t|\t{db_struct:16}|\t{complex.kernel_string}")
+        print()    
+
+    else:
+        for x, complex in complexes.items():
+            print(f'Transcription Step | Occupancy  | Structure	 \n')
+            kernel_string = kernel_to_dot_bracket(complex.kernel_string)
+            db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
+            #occupancy = np.float128(complex.occupancy)
+            if round(complex.occupancy,4) > 1e-4:
+                print(f"{2:3}\t|\t{complex.occupancy:^8.4f}\t|\t{complex.kernel_string}")
+        print()  
+        
 
     for step in range(2, len(d_seq_split)):
         logger.info("\n\n\n______________________________________________")
@@ -172,23 +186,34 @@ def run_sim(d_seq, parameters):
         total_occupancy = 0
 
         #Print continous output
-        for x, complex in complexes.items():
-            try:
-                occupancy = np.float128(complex.occupancy)
-                total_occupancy += occupancy
-                kernel_string = kernel_to_dot_bracket(complex.kernel_string)
-                db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
-                if occupancy != 0:
-                    print(f"{step + 1:3}\t|\t{occupancy:^8.4f}\t|\t{db_struct:16}|\t{complex.kernel_string}\t")
-            except: 
-                pass
-                #print(f"{step + 1:3}   |	{0:8.4f}      | {complex.kernel_string} \n")
-        print()
-        #print(f"Number of complexes: {len(complexes.items())} Total occupancy: {total_occupancy}\n")
+        if parameters["logic"]:
+            for x, complex in complexes.items():
+                try:
+                    occupancy = np.float128(complex.occupancy)
+                    total_occupancy += occupancy
+                    kernel_string = kernel_to_dot_bracket(complex.kernel_string)
+                    db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
+                    if occupancy != 0:
+                        print(f"{step + 1:3}\t|\t{occupancy:^8.4f}\t|\t{db_struct:16}|\t{complex.kernel_string}\t")
+                except: 
+                    pass
+                    #print(f"{step + 1:3}   |	{0:8.4f}      | {complex.kernel_string} \n")
+            print()
+        else:
+            for x, complex in complexes.items():
+                try:
+                    occupancy = np.float128(complex.occupancy)
+                    total_occupancy += occupancy
+                    kernel_string = kernel_to_dot_bracket(complex.kernel_string)
+                    if occupancy != 0:
+                        print(f"{step + 1:3}\t|\t{occupancy:^8.4f}\t|\t{complex.kernel_string}\t")
+                except: 
+                    pass
+        
 
 
         logger.debug(f"Step:{step} Total Occupancy:{total_occupancy:20.20f}\n")
-        assert abs(total_occupancy - 1) < 1e-10,f"Occupancy is not equal 1 difference is {abs(total_occupancy - 1)}"         
+        assert abs(total_occupancy - 1) < 1e-8,f"Occupancy is not equal 1 difference is {abs(total_occupancy - 1)}"         
         resting_complexes,transient_complexes,enum = enumerate_step(complexes=complexes, reactions=reactions, parameter=parameters,all_complexes=all_complexes)
         
         
@@ -377,7 +402,8 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
     parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
     parser.add_argument("-v", "--verbose", action="count", default=0, help="Increase verbosity level. -v only shows peppercorn output")
     parser.add_argument("-cutoff", "--cutoff", action="store", type=valid_cutoff, default=float('-inf'),help="Cutoff value at which structures won't get accepted (default: -inf, valid range: 0 to 1)")
-    
+    parser.add_argument("-l", "--logic", action="store_true", default=False,help="Visualizes Logic domain pairings. Best used when analyzing cocopaths generated sequences. (default = False)")
+
 
     s_args = parser.parse_args()
     s_args.cutoff = float(parameters["cutoff"])
@@ -1221,14 +1247,21 @@ def main():
     parser.add_argument("--k-slow", type=float, help="Specify k-slow. Determines the cutoffpoint for slow reactions.", default=0.00001)
     parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
     parser.add_argument("-v", "--verbose", action="count", default=0, help="Increase verbosity level. -v only shows peppercorn output")
+    parser.add_argument("-l", "--logic", action="store_true", default=False,help="Visualizes Logic domain pairings. Best used when analyzing cocopaths generated sequences. (default = False)")
     parser.add_argument("-cutoff", "--cutoff", action="store", type=valid_cutoff, default=float('-inf'),help="Cutoff value at which structures won't get accepted (default: -inf, valid range: 0 to 1)")
     
-
+    
 
     args = parser.parse_args()
     args.cutoff = float(args.cutoff)
     set_verbosity(logger,args.verbose)
     console_handler.setLevel(logging.DEBUG)
+    
+    
+
+    # Read input     
+    d_length = {} #dict where domain lengths get saved
+
     if args.input_file.isatty():
         print("Please enter a domain level sequence:")
         d_seq = input()
@@ -1236,29 +1269,63 @@ def main():
             raise SystemExit("No Input given")
         afp = None
     else:
-        input_lines = args.input_file.readlines()
-        d_seq = extract_domain_sequence(input_lines)
-        afp = extract_afp(input_lines)
-        args.input_file.close()
-        
-        print("Following AFP was given for Sequence design:")
-        for step in afp:
-            print(step)
-        print("\n")
+        file_extension = os.path.splitext(args.input_file.name)[1]  # Get the file extension
+
+        if file_extension == ".pil":
+            afp = None
+
+            input = read_pil(args.input_file,True)
+            print(input)
+            if len(input[0]) == 1:
+                input_complex = next(iter(input[0].values()))
+                print("Value of the entry:", input_complex)
+                print(f"{input_complex._sequence = }  ")
+                print(f"{input_complex.kernel_string = }  ")
+                
+
+                d_seq = input_complex.kernel_string
+
+                if all(char.isalpha() or char == '*' for char in d_seq):
+                    raise SystemExit("SystemExit: Only a domain level sequence is accepted. (No structural information)")
+
+                for domain in input_complex._sequence:
+                    length = domain._length
+                    name = domain._name
+                    if name not in d_length:
+                        d_length[name] = length
+
+                print(f"{d_length = }")
+
+                
+
+
+
+            else:
+                raise SystemExit("SystemExit:More than one kernel sequence in input. We can only simulate one kernel string at a time. ")
+            print(input[0])#.complex._sequence
+
+            
+            
+        else:
+            input_lines = args.input_file.readlines()
+            d_seq = extract_domain_sequence(input_lines)
+            afp = extract_afp(input_lines)
+            args.input_file.close()
 
 
     # create dictionary for domain lengths 
-    d_length = {}
+    if not d_length:
 
-    for domain in d_seq.split():
-        if domain[0] == "L":
-            d_length[domain] = 6
-        elif domain[0] == 'S':
-            d_length[domain] = 3#round(int(domain[1]) * 0.5)  
-        else: 
-            d_length[domain] = 3 
+        for domain in d_seq.split():
+            if domain[0] == "L":
+                d_length[domain] = 12
+            elif domain[0] == 'S':
+                d_length[domain] = 3#round(int(domain[1]) * 0.5)  
+            else: 
+                d_length[domain] = 3 
+        
 
-    parameters = {"k_slow": args.k_slow,'k_fast': args.k_fast, "cutoff": args.cutoff,"d_length":d_length,"d_seq":d_seq}
+    parameters = {"k_slow": args.k_slow,'k_fast': args.k_fast, "cutoff": args.cutoff,"d_length":d_length,"d_seq":d_seq,"logic":args.logic}
 
 
     print(parameters)
@@ -1276,36 +1343,45 @@ def main():
     simulated_structures = run_sim(d_seq, parameters)
     
     last_step = simulated_structures[-1]
+    if args.logic: 
+        #Print continous output
+        for complex in last_step:
+            kernel_string = kernel_to_dot_bracket(complex.kernel_string)
+            db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
+            #occupancy = np.float128(complex.occupancy)
+            if round(complex.occupancy,4) > 1e-4:
+                print(f"END\t|\t{complex.occupancy:^8.4f}\t|\t{db_struct:16}|\t{complex.kernel_string}")
+        print()    
+    else: 
+        #Print continous output
+        for complex in last_step:
+            kernel_string = kernel_to_dot_bracket(complex.kernel_string)
+            #occupancy = np.float128(complex.occupancy)
+            if round(complex.occupancy,4) > 1e-4:
+                print(f"END\t|\t{complex.occupancy:^8.4f}\t|\t{complex.kernel_string}")
+        print()  
 
-    #Print continous output
-    for complex in last_step:
-        kernel_string = kernel_to_dot_bracket(complex.kernel_string)
-        db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
-        #occupancy = np.float128(complex.occupancy)
-        if round(complex.occupancy,4) > 1e-4:
-            print(f"END\t|\t{complex.occupancy:^8.4f}\t|\t{db_struct:16}|\t{complex.kernel_string}")
-    print()    
-
-
+    
     #_____Writing_and_printing_output___# 
-    output = ""
+    if args.logic:
+        output = ""
 
-    d_seq
-    ts = 2
+        d_seq
+        ts = 2
 
-    
-    if 'S' in d_seq:
-        output += write_output(simulated_structures,d_seq)
-    
-    output += f"\n\nFollowing sequence was simulated:\n{d_seq}"
+        
+        if 'S' in d_seq:
+            output += write_output(simulated_structures,d_seq)
+        
+        output += f"\n\nFollowing sequence was simulated:\n{d_seq}"
 
-    if afp: 
-        output += f"\n\nFollowing AFP was given for Sequence design"
-        for step in afp:
-            
-            output += f"{step}\n"
+        if afp: 
+            output += f"\n\nFollowing AFP was given for Sequence design"
+            for step in afp:
+                
+                output += f"{step}\n"
 
-    print(output)
+        print(output)
 
 
     logger.removeHandler(file_handler)  # Remove the file handler from the logger

@@ -320,6 +320,7 @@ def rna_design(seq,path,parameters):
     
     # Folding path constraint
     for x in ext_path: 
+        print(f'{x = }')
         cons = []
         bps = rna.parse(x)
         cons = [rna.BPComp(i,j) for (i,j) in bps]
@@ -327,13 +328,8 @@ def rna_design(seq,path,parameters):
 
         model.add_constraints(cons)
 
-    #Identical domain constrain
-    unique_domains = set(split_seq)
-   
-
 
     
-
 
     def rstd_objective(sequence,score_list = False):
         
@@ -356,10 +352,7 @@ def rna_design(seq,path,parameters):
                 nt_path.append("".join(split_nt_sequence[:x+1]))
         nt_path.append(sequence)
         
-        """for x,y in zip(nt_path,ext_path):
-            print("NT:",x)
-            print("Ext:",y)
-        """
+       
         total = []
         # add score for first folding step
         fc = RNA.fold_compound(nt_path[0])
@@ -504,7 +497,9 @@ def main():
                         print("Error: Invalid character in the folding path. Only '.', '(', and ')' are allowed.")
                 else:
                     print("Structure is not balanced -> closing/opening brackets don't match")
-                
+    else:
+        raise SystemExit(f"System Exit: Sorry we are currently not accepting input files")
+              
 
 
 
@@ -514,7 +509,7 @@ def main():
 
     for domain in domain_seq.split():
         if domain[0] == "L":
-            d_length[domain] = 12
+            d_length[domain] = 6
         elif domain[0] == 'S':
             d_length[domain] = 3 #round(int(domain[1]) * 3)  
         else: 
@@ -530,9 +525,20 @@ def main():
     domain_fp = afp_to_domainfp(folding_path,domain_seq)
 
 
+    print("domain fp ")
+    for x in domain_fp:
+        print(x)
 
+
+    
 
     ext_folding_path = domain_path_to_nt_path(domain_fp,domain_seq,parameters)
+
+    
+    print("ext fp ")
+    for x in domain_fp:
+        print(x)
+
 
     print(f"Input AFP: {folding_path}\n\n")    
     nt_seq, score = rna_design(domain_seq,ext_folding_path,parameters)

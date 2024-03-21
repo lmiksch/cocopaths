@@ -73,6 +73,11 @@ $ cocosim
 Please enter a domain level sequence:
 ```
 
+## Cocosim 
+
+Cocosim can be used separately from cocopaths. It accepts input either through the terminal or in .pil format. An example of the correct .pil format can be found in the examples folder. 
+
+
 
 ### Current Bugs: 
  - CocoPaths
@@ -100,18 +105,4 @@ Please enter a domain level sequence:
 
 
 
-### CocoPathsToDO: 
-
-  - investigate floating point errors/ number error i think they are floating point errors 
-    - add rounding to 10-15 comma stellen
   
-    - enforce_cutoff_macrostate
-      - dont know if setting occupancy to 0 is enough or if should remove cut complex from macrostate
-      - current implemenation keeps the complex in the macrostates
-      
-  - write analysis script to make some statistics about whats possible to design and what not 
-
-  - begin with design of nucleotide sequences
-
-
-  - peppercornenumerator.enumerator.PolymerizationError: Too many reactions enumerated! (50049)

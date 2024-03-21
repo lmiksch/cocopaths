@@ -245,7 +245,7 @@ def get_data(n,current_folder):
                 d_length[domain] = 7
 
             elif domain[0] == 'S':
-                d_length[domain] = 1 #round(int(domain[1]) * 0.5)  
+                d_length[domain] = 3 #round(int(domain[1]) * 0.5)  
             else: 
                 d_length[domain] = 3
 
@@ -345,7 +345,7 @@ def fill_data(n,tsv_file):
                 d_length[domain] = 7
 
             elif domain[0] == 'S':
-                d_length[domain] = 1
+                d_length[domain] = 3
 
             else: 
                 d_length[domain] = 3
@@ -390,12 +390,14 @@ def main():
 
     current_folder = f'{next_folder_number}_{base_folder}'
     
+
+    #uncomment for creation 
     #os.makedirs(current_folder, exist_ok=True)
     #for i in range(3,7):
     #    get_data(i,current_folder)
 
 
-    folder_name = "S1_L7"
+    folder_name = "S3_L7"
     
     
     print(folder_name)
@@ -405,7 +407,7 @@ def main():
     #check if parameters match 
     fill_data(6,"10_run/6_steps_out.tsv")
     os.rename(current_folder,folder_name)
-
+    
     print("data is in ",current_folder)
 
     
@@ -420,7 +422,7 @@ if __name__ == "__main__":
 
 
 
-    analyze_folder = "results/S1_L7_run"
+    analyze_folder = "results/S3_L7_run"
     for filename in os.listdir(analyze_folder):
             print(filename)
             if filename.endswith(".tsv") and os.path.isfile(os.path.join(analyze_folder, filename)):
