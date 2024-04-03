@@ -1274,9 +1274,9 @@ def main():
         if file_extension == ".pil":
             afp = None
 
-            input = read_pil(args.input_file,True)
+            pil_input = read_pil(args.input_file,True)
             print(input)
-            if len(input[0]) == 1:
+            if len(pil_input[0]) == 1:
                 input_complex = next(iter(input[0].values()))
                 print("Value of the entry:", input_complex)
                 print(f"{input_complex._sequence = }  ")
