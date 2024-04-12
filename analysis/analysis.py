@@ -202,12 +202,12 @@ def get_data(n,current_folder):
     
     fp_locs = "./folding_paths" + "/" + str(n) + "_FPs.txt"
 
-    if os.path.exists(fp_locs):
+    """if os.path.exists(fp_locs):
         folding_paths = read_paths_from_file(fp_locs)
         print(len(folding_paths),"1")
         
-    else:    
-        folding_paths = generate_path(n)
+    else:"""    
+    folding_paths = generate_path(n)
     
     print(folding_paths)
     domain_sequences = []
@@ -223,9 +223,9 @@ def get_data(n,current_folder):
 
             domain_sequences.append(" ".join(afp_graph.get_domain_seq()))
             real_paths.append(path)
-            #print("Worked for : ",afp_graph.get_domain_seq())
-        except: 
-            
+            print("Worked for : ",afp_graph.get_domain_seq())
+        except:
+
             print("Didn't work for:",path)
     print("real paths",real_paths)
     if not os.path.exists(fp_locs):
@@ -250,7 +250,7 @@ def get_data(n,current_folder):
                 d_length[domain] = 3
 
 
-        parameters = {"k_slow": 0.001 , 'k_fast': 20, "cutoff": 0.05,"d_length":d_length,"d_seq":d_seq}
+        parameters = {"k_slow": 0.001 , 'k_fast': 20, "cutoff": 0.05,"d_length":d_length,"d_seq":d_seq,"logic": True}
 
     
         simulated_structures = run_sim(d_seq,parameters)
@@ -315,8 +315,8 @@ def fill_data(n,tsv_file):
             domain_sequences.append(" ".join(afp_graph.get_domain_seq()))
             real_paths.append(path)
             print("Worked for : ",afp_graph.get_domain_seq())
-        except: 
-            
+        except Exception as error: 
+            print("An error occured", error)
             print("Didn't work for:",path)
     print("Start line:",start_line)
     print(domain_sequences)
@@ -351,7 +351,7 @@ def fill_data(n,tsv_file):
                 d_length[domain] = 3
 
 
-        parameters = {"k_slow": 0.001 , 'k_fast': 20, "cutoff": 0.10,"d_length":d_length,"d_seq":d_seq}
+        parameters = {"k_slow": 0.001 , 'k_fast': 20, "cutoff": 0.10,"d_length":d_length,"d_seq":d_seq, "logic": True}
 
         simulated_structures = run_sim(d_seq,parameters)
         print(simulated_structures)
@@ -390,12 +390,10 @@ def main():
 
     current_folder = f'{next_folder_number}_{base_folder}'
     
-
     #uncomment for creation 
     #os.makedirs(current_folder, exist_ok=True)
-    #for i in range(3,7):
+    #for i in range(7,8):
     #    get_data(i,current_folder)
-
 
     folder_name = "S3_L7"
     
@@ -405,7 +403,7 @@ def main():
 
     #uncomment to fill up file if segfault happended 
     #check if parameters match 
-    fill_data(6,"10_run/6_steps_out.tsv")
+    fill_data(7,"3_run/7_steps_out.tsv")
     os.rename(current_folder,folder_name)
     
     print("data is in ",current_folder)
@@ -417,15 +415,15 @@ def main():
 if __name__ == "__main__":
     
     
-    #main()
+    main()
 
 
 
 
-    analyze_folder = "results/S3_L7_run"
-    for filename in os.listdir(analyze_folder):
-            print(filename)
-            if filename.endswith(".tsv") and os.path.isfile(os.path.join(analyze_folder, filename)):
-                tsv_filepath = os.path.join(analyze_folder, filename)
-                statistical_analysis(analyze_folder,tsv_filepath,filename)
+    #analyze_folder = "results/S3_L7_run"
+    #for filename in os.listdir(analyze_folder):
+    #        print(filename)
+    #        if filename.endswith(".tsv") and os.path.isfile(os.path.join(analyze_folder, filename)):
+    #            tsv_filepath = os.path.join(analyze_folder, filename)
+    #            statistical_analysis(analyze_folder,tsv_filepath,filename)
     
