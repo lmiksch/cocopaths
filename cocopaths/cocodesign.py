@@ -5,8 +5,11 @@ import random
 import math
 import argparse
 import logging
-from .utils import(is_balanced_structure)
+import os,sys
+from .utils import(is_balanced_structure,afp_terminal_input)
 from cocopaths import __version__
+from peppercornenumerator.input import read_pil
+
 
 #______define_logger_____#
 logger = logging.getLogger('cocopaths')
@@ -31,7 +34,7 @@ def couple(pair):
      
 
 
-def domain_path_to_nt_path(path,domain_seq,parameters):
+def domain_path_to_nt_path(path,d_seq,parameters):
     """ Domain_path_to_nt_path
 
     Takes the domain level path and extends the number of the base pairings corresponding to their length: ( with length 5 --> (((((
@@ -44,7 +47,7 @@ def domain_path_to_nt_path(path,domain_seq,parameters):
         ext_path (list): where each sublist corresponds to the extended domain path
     """
 
-    split_seq = domain_seq.split()
+    split_seq = d_seq.split()
     ext_path = []
     
 
@@ -68,27 +71,27 @@ def is_star_pair(a,b):
         
 
 
-def afp_to_domainfp(afp,domain_seq):
+def afp_to_domainfp(afp,d_seq):
     """Takes an abstract folding path and a domain level sequence and converts it into a domain level path 
         Example: 
-            afp: [["."],["()"],[".()"],["()()"]],domain_seq="b l b* a* l a b c d l d* c* b*"
+            afp: [["."],["()"],[".()"],["()()"]],d_seq="b l b* a* l a b c d l d* c* b*"
 
             returns [[".."],["(.).."],["..((.))..."],["(.)...(((.)))"]]
 
         Args: 
 
             afp(list): each sublist corresponds to one step example wrong not sublists
-            domain_seq(str): domain sequence
+            d_seq(str): domain sequence
     """
     domain_fp = []
-    domain_seq = domain_seq.split()
+    d_seq = d_seq.split()
 
     
     for x,cur_path in enumerate(afp):
         module_index = 0
         path = ""
         stack = []
-        for i,domain in enumerate(domain_seq):
+        for i,domain in enumerate(d_seq):
             if domain[0] == "S":    
                 module_index += 1
 
@@ -108,15 +111,15 @@ def afp_to_domainfp(afp,domain_seq):
                 j = i
                 k = module_index
                 added_notation = False
-                while k < len(cur_path) and j <= len(domain_seq) -1 :
+                while k < len(cur_path) and j <= len(d_seq) -1 :
                     if cur_path[k] == ")":
-                        if couple((domain,domain_seq[j])):
+                        if couple((domain,d_seq[j])):
                             path += "("
                             added_notation = True
                             stack.append(domain)
                             break
                     
-                    if domain_seq[j][0] == "S":
+                    if d_seq[j][0] == "S":
                         k += 1 
                     j += 1    
                 if added_notation != True:
@@ -212,13 +215,13 @@ def identical_domains_constraint(domain,split_seq,model,parameters):
                 j_pointer += 1
 
 
-def extend_domain_seq(domain_seq,parameters):
-    print(domain_seq)
+def extend_domain_seq(d_seq,parameters):
+    print(d_seq)
 
-    UL_domain_seq = convert_to_UL(domain_seq)
+    UL_domain_seq = convert_to_UL(d_seq)
 
 
-    split_domain_seq = domain_seq.split()
+    split_domain_seq = d_seq.split()
     UL_split_seq = UL_domain_seq.split()
     extended_domain_seq = ""
 
@@ -445,7 +448,8 @@ def main():
         description=f"""Cocodesign version {__version__}: generates a nucleotide level sequence based on a domain level sequence 
 )""")
 
-    parser.add_argument("-i","--input",help="Reads txt file as input if not specified user can input via console.")
+    parser.add_argument("-i","--input" , nargs='?', type=argparse.FileType('r'), default=sys.stdin,
+                        help="Reads file in the form of a pil  format as input if not specified user can input via console.")
     parser.add_argument("-v", "--verbose",action="count", default = 0,
         help = "Track process by writing verbose output to STDOUT during calculations.")
     
@@ -461,59 +465,63 @@ def main():
     #_________________Set_logger_verbosity________________#
 
     set_verbosity(logger,args.verbose)
+    d_length = {}
 
-
-    if args.input == None:
+    if args.input.isatty():
             
             print("\n")
             print("Please input a domain level sequence:")
-            domain_seq = input()
-            print("Please input the afp by which the domain level sequence was designed:")
-            folding_path = []
-            while True:
-                print("\n")
-                print(f"Current Input: {folding_path}")
-                print("Please input a folding path in dot-bracket annotation or use '$' to exit input and continue use 'r' to reset input:")
-                user_input = input()
-                # Check for exit conditions
-                if user_input == "$":
-                    print(f"\n\nFinal Input:\n{folding_path}\n\n")
-                    break
-                elif user_input == "r" or user_input == "R":
-                    folding_path = []
-                    print("Input cleared")
-                    continue
-                
-                if is_balanced_structure(user_input):
-
-                    # Check if the user input contains only ".", "(", and ")"
-                    
-                    if all(char == "." or char in ("(", ")") for char in user_input):
-                        if len(user_input) == len(folding_path) + 1:
-                            folding_path.append(user_input)
-                        else:
-                            print("Please add 1 character per step")
-                    else:
-                        print("Error: Invalid character in the folding path. Only '.', '(', and ')' are allowed.")
-                else:
-                    print("Structure is not balanced -> closing/opening brackets don't match")
+            d_seq = input()
+            #folding_path = afp_terminal_input()
     else:
-        raise SystemExit(f"System Exit: Sorry we are currently not accepting input files")
-              
 
+        file_extension = os.path.splitext(args.input.name)[1]  # Get the file extension
 
+        if file_extension == ".pil":
+            afp = None
+            pil_input = read_pil(args.input,True)
+            print(pil_input)
+            if len(pil_input[0]) == 1:
+                input_complex = next(iter(pil_input[0].values()))
+                print("Value of the entry:", input_complex)
+                print(f"{input_complex._sequence = }  ")
+                print(f"{input_complex.kernel_string = }  ")
+                
 
-    print(f"{domain_seq = }")
+                d_seq = input_complex.kernel_string
 
-    d_length = {}
+                if all(char.isalpha() or char == '*' for char in d_seq):
+                    raise SystemExit("SystemExit: Only a domain level sequence is accepted. (No structural information)")
 
-    for domain in domain_seq.split():
-        if domain[0] == "L":
-            d_length[domain] = 8
-        elif domain[0] == 'S':
-            d_length[domain] =  round(int(domain[1]) * 4)  
+                for domain in input_complex._sequence:
+                    length = domain._length
+                    name = domain._name
+                    if name not in d_length:
+                        d_length[name] = length
+
+                print(f"{d_length = }")
+
+                
+                        
+            else:
+                raise SystemExit("SystemExit:More than one kernel sequence in input. We can only simulate one kernel string at a time. ")              
+    
         else: 
-            d_length[domain] = 3 
+            raise SystemExit("Only data in the .pil format is currently accepted.")
+    print("Please input the afp by which the domain level sequence was designed:")
+    folding_path = afp_terminal_input()  
+
+
+    print(f"{d_seq = }")
+
+    if len(d_length) == 0:    
+        for domain in d_seq.split():
+            if domain[0] == "L":
+                d_length[domain] = 8
+            elif domain[0] == 'S':
+                d_length[domain] =  round(int(domain[1]) * 4)  
+            else: 
+                d_length[domain] = 3 
 
    
     parameters = {'d_length': d_length,'steps':args.steps}
@@ -522,7 +530,7 @@ def main():
 
     #How to get from AFP to domain fp 
 
-    domain_fp = afp_to_domainfp(folding_path,domain_seq)
+    domain_fp = afp_to_domainfp(folding_path,d_seq)
 
 
     print("domain fp ")
@@ -532,7 +540,7 @@ def main():
 
     
 
-    ext_folding_path = domain_path_to_nt_path(domain_fp,domain_seq,parameters)
+    ext_folding_path = domain_path_to_nt_path(domain_fp,d_seq,parameters)
 
     
     print("ext fp ")
@@ -541,9 +549,9 @@ def main():
 
 
     print(f"Input AFP: {folding_path}\n\n")    
-    nt_seq, score = rna_design(domain_seq,ext_folding_path,parameters)
+    nt_seq, score = rna_design(d_seq,ext_folding_path,parameters)
 
-    print(f"\n\nRNA design done\nSequence = {nt_seq} \n {score = }\n{extend_domain_seq(domain_seq,parameters)}")
+    print(f"\n\nRNA design done\nSequence = {nt_seq} \n {score = }\n{extend_domain_seq(d_seq,parameters)}")
 
 
     #print output and extended nucleotide sequence for easier analysis 

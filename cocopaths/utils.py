@@ -199,7 +199,39 @@ def only_logic_domain_struct(seq,path):
     logic_domain_struct = "".join(logic_domain_struct)
     return logic_domain_struct
 
+def afp_terminal_input():
 
+    '''Function to let user put in an abstract folding path in the terminal while checking if it's viable
+    '''
+    afp = []
+    while True:
+        print("\n")
+        print(f"Current Input: {afp}")
+        print("Please input a folding path in dot-bracket annotation or use '$' to exit input and continue use 'r' to reset input:")
+        user_input = input()
+        # Check for exit conditions
+        if user_input == "$":
+            print(f"\n\nFinal Input:\n{afp}\n\n")
+            break
+        elif user_input == "r" or user_input == "R":
+            afp = []
+            print("Input cleared")
+            continue
+        
+        if is_balanced_structure(user_input):
 
+            # Check if the user input contains only ".", "(", and ")"
+            
+            if all(char == "." or char in ("(", ")") for char in user_input):
+                if len(user_input) == len(afp) + 1:
+                    afp.append(user_input)
+                else:
+                    print("Please add 1 character per step")
+            else:
+                print("Error: Invalid character in the folding path. Only '.', '(', and ')' are allowed.")
+        else:
+            print("Structure is not balanced -> closing/opening brackets don't match")
+
+    return afp
 if __name__=="__main__":
     print(' ')

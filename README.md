@@ -34,6 +34,13 @@ After installation you can try if the script is installed by using:
 $ cocopaths --help
 ```
 
+The script is dependent on following libraries: 
+
+[Infrared Software](https://www.lix.polytechnique.fr/~will/Software/Infrared/Doc/index.html)
+
+[ViennaRNA](https://www.tbi.univie.ac.at/RNA/)
+
+
 The script gets called by using:
 ```bash
 $ cocopaths 
@@ -73,6 +80,8 @@ $ cocosim
 Please enter a domain level sequence:
 ```
 
+cocopath also checks stdin and accepts if each step is seperated by a ','. 
+
 ## Cocosim 
 
 Cocosim can be used separately from cocopaths. It accepts input either through the terminal or in .pil format. An example of the correct .pil format can be found in the examples folder. 
@@ -102,6 +111,8 @@ Cocosim can be used separately from cocopaths. It accepts input either through t
 1. Find objective function
 2. pil format acceptance
 3. DrTrafo parser use from CoFPT 
+4. Modify it to use cocosim output automatically
+
 
 ### Current Bugs: 
  - CocoPaths

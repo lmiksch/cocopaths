@@ -4,7 +4,7 @@ Simulates cotranscriptional folding of a domain level sequence.
 
 uses Function from Peppercornenumerator to find reaction types/ possible products of reactions
 """
-import sys
+import sys,argparse,logging,copy,os,random,inspect
 from peppercornenumerator import peppercorn 
 from dsdobjects.objectio import read_pil as dsd_read_pil
 from peppercornenumerator.input import read_pil
@@ -20,14 +20,9 @@ from crnsimulator.odelib_template import add_integrator_args
 import numpy as np
 from io import StringIO
 from natsort import natsorted
-from .utils import cv_db2kernel, kernel_to_dot_bracket, only_logic_domain_struct
-import argparse
-import logging 
+from .utils import cv_db2kernel, kernel_to_dot_bracket, only_logic_domain_struct, afp_terminal_input
 import numpy as np 
-import copy
-import os
-import random
-import inspect
+
 
 logger = logging.getLogger('cocosim')
 console_handler = logging.StreamHandler()
@@ -666,84 +661,7 @@ def enforce_via_transient(cut_macrostate,enum,all_complexes,cut_macrostates,para
 
     """Idea: By setting all outgoing reactions of the macrostate to > k_fast resting_complex -> transient complex. 
     """
-    """
-    rxncon = enum.condensation.reactions_consuming
-
-    scc = enum.condensation.scc_containing[cut_macrostate._complexes[0]]
-    scc_set = frozenset(scc)
-    out_rxns = [r for c in scc for r in rxncon[c] \
-                        if enum.condensation.is_fast(r) and is_outgoing(r, scc_set)]
     
-
-
-    cut_complexes = cut_macrostate._complexes
-
-    outgoing_reactions = []
-    new_fates = []
-    
-    for reaction in enum.condensation._condensed_reactions:
-        if reaction._reactants[0] == cut_macrostate:
-            outgoing_reactions.append(reaction)
-            new_fates.append(reaction._products[0])
-
-    
-    new_fates = frozenset({(item,) for item in new_fates})
-    new_fates = SetOfFates(new_fates)
-    
-    
-    if len(outgoing_reactions) == 0:
-
-        logger.info("\n\n\n______No outgoing reaction of cut macrostate --> can't enforce cutoff_________")
-        #exit()
-        return
-
-
-    mult_factor = 10e8
-
-    output = enum.to_pil(condensed=True,detailed = False) 
-
-    
-            
-    logger.info(f"\n\nCut Macrostate: {cut_macrostate} \nBefore pruning: \n {output} \n\n\n")
-
-    cut_occ = cut_macrostate.occupancy
-    
-    
-
-    modified_reactions = []
-    for reaction in enum._reactions:
-
-        # Maybe change to just outgoing reaction
-        if reaction._reactants[0] in cut_complexes: 
-            reaction._const = reaction._const * mult_factor
-            modified_reactions.append(reaction)
-            fin_complex = reaction._products[0]
-
-    tot_out = 0
-    for reaction in modified_reactions:
-        if reaction._reactants[0] == cut_macrostate:
-            tot_out += reaction._const   
-
-    
-    old_condensed_rxn = [reaction for reaction in enum.condensation._condensed_reactions]
-    
-    #change fate of complex which would've ended up in cut complex to neigbour complexes
-    for fate,x in enum.condensation._complex_fates.items(): 
-        if fate is not None and x.states is not None:
-            for element in x.states:    
-                if cut_macrostate in element:
-                    enum.condensation._complex_fates[fate] = new_fates
-                
-
-  
-    
-    enum._B = set(enum._resting_complexes)
-    enum._E = []
- 
-    """
-    
-
-
     #exiting the function if non cutable macrostates
     #no outgoing reaction
     out_rxns = []
@@ -1275,9 +1193,9 @@ def main():
             afp = None
 
             pil_input = read_pil(args.input_file,True)
-            print(input)
+            print(pil_input)
             if len(pil_input[0]) == 1:
-                input_complex = next(iter(input[0].values()))
+                input_complex = next(iter(pil_input[0].values()))
                 print("Value of the entry:", input_complex)
                 print(f"{input_complex._sequence = }  ")
                 print(f"{input_complex.kernel_string = }  ")
@@ -1302,16 +1220,17 @@ def main():
 
             else:
                 raise SystemExit("SystemExit:More than one kernel sequence in input. We can only simulate one kernel string at a time. ")
-            print(input[0])#.complex._sequence
 
             
             
         else:
-            input_lines = args.input_file.readlines()
-            d_seq = extract_domain_sequence(input_lines)
-            afp = extract_afp(input_lines)
-            args.input_file.close()
-
+            try:
+                input_lines = args.input_file.readlines()
+                d_seq = extract_domain_sequence(input_lines)
+                afp = extract_afp(input_lines)
+                args.input_file.close()
+            except: 
+                raise SystemExit('No valid input was given. Please make sure it is in a valid pil format.')
 
     # create dictionary for domain lengths 
     if not d_length:

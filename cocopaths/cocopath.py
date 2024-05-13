@@ -1,10 +1,10 @@
 from typing import Any
-import re,argparse, logging
+import re,argparse, logging, sys
 from cocopaths import __version__
 
 
 from collections import deque
-from .utils import (path_to_pairtablepath, find_connected_modules,is_balanced_structure)
+from .utils import (path_to_pairtablepath, find_connected_modules,is_balanced_structure,afp_terminal_input)
 import string
 
 
@@ -567,8 +567,14 @@ The AFP must have following propperties to be translated to a domain level seque
 
         #_________________Input_Parsing_________________#
         
-        
-        if args.input == None:
+        if args.input is None and not sys.stdin.isatty():
+            # Handle input from stdin (piped data)
+            afp = sys.stdin.read().strip().split(',')
+             
+        elif args.input == None:
+
+            afp = afp_terminal_input()
+            '''
             afp = []
             while True:
                 print("\n")
@@ -597,7 +603,7 @@ The AFP must have following propperties to be translated to a domain level seque
                         print("Error: Invalid character in the folding path. Only '.', '(', and ')' are allowed.")
                 else:
                     print("Structure is not balanced -> closing/opening brackets don't match")
-                
+                '''
         else:
             afp = input_parser(args.input)
             print(f"\n\nInput folding path:\n{afp}\n\n")
