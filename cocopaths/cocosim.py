@@ -1318,9 +1318,9 @@ def main():
 
         for domain in d_seq.split():
             if domain[0] == "L":
-                d_length[domain] = 12
+                d_length[domain] = 8
             elif domain[0] == 'S':
-                d_length[domain] = 3#round(int(domain[1]) * 0.5)  
+                d_length[domain] = round(int(domain[1]) * 4)  
             else: 
                 d_length[domain] = 3 
         

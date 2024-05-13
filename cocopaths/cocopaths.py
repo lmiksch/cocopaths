@@ -115,12 +115,12 @@ class graph():
                 continue  # Skip neighbors not in the specified connected components
 
             if neighbor not in visited_nodes:
-                node.connected = x
+                #node.connected = x
                 
                 if not self.is_bipartite_dfs(neighbor, visited_nodes, not complement, connected,x):
                     return False
             else:
-                node.connected = x
+                #node.connected = x
                 if neighbor.complement == node.complement:
                     return False
 
@@ -133,7 +133,7 @@ class graph():
         for x, connected in enumerate(connected_components):
             for node in self.graph: 
                 if node.name in connected and node not in visited_nodes:
-                    node.connected = x
+                    #node.connected = x
                     if not self.is_bipartite_dfs(node, visited_nodes, True, connected,x):
                         return False
 
@@ -146,67 +146,7 @@ class graph():
                 current_edges.append(edge)
         return current_edges
     
-    """ 
-    Creates Inequalities based on the abstract folding path and the graph
-    currently not used due to the get_weights function   
-    
-    def get_inequalities(self,afp):
-        
-        
-        
-        inequalities = []
-
-        for x,step in enumerate(afp): 
-            collected_edges = self.get_current_edges(x)
-            active_edges = []
-            inactive_edges = []
-            for edge in collected_edges:
-                if step[edge[0]] == edge[1] and step[int(edge[1])] == int(edge[0]):
-                    active_edges.append(edge)
-                else:
-                    inactive_edges.append(edge)
-
-            active_edges.sort(key= lambda x: (x[1]))
-            
-
-            #Remove inactive edges which were allready defined
-            if len(inequalities) > 0:    
-                for ineq in inequalities:
-                    result = [[act, inact] for inact in inactive_edges for act in active_edges if ineq[0] == act and ineq[1] == inact]
-                    if result:
-                        inactive_edges.remove(result[0][1])
-
-            while len(inactive_edges) != 0: 
-                
-                current_edge = active_edges.pop()
-                
-                l_node = current_edge[0]
-                r_node = current_edge[1]
-    
-                neighbor_edge = [edge for edge in inactive_edges if edge[0] == r_node or edge[1] == r_node]
-
-                for edge in neighbor_edge:
-                    inequalities.append([current_edge,edge])
-                    inactive_edges.remove(edge)
-
-                neighbor_edge = [edge for edge in inactive_edges if edge[0] == l_node or edge[1] == l_node]
-
-                
-                for edge in neighbor_edge:
-                    inequalities.append([current_edge,edge])
-                    inactive_edges.remove(edge)
-            
-        final_inequalities = []
-        
-        for ineq in inequalities:
-            left = ineq[0]
-            right = ineq[1]
-            
-
-            final_inequalities.append(f"{left} > {right}")
-
-        return(final_inequalities)
-        """ 
+ 
 #_________Weights______#
 
     def get_weights(self,afp):
@@ -250,25 +190,7 @@ class graph():
             active_edges.sort(key= lambda x: (x[1]))
             logger.debug(f"Active Edges: {active_edges}")
             logger.debug(f"Inactive Edges: {inactive_edges}")  
-            """
-            # Check for different substructures
-            for edge in active_edges:
-                if edge in assigned_edges:
-                    logger.debug(f"Edge: {edge}, Edge weight: {self.edges[edge]}")
-                    for inactive in inactive_edges:
-                        logger.debug(f"Inactive Edge: {inactive}, Edge weight: {self.edges[inactive]}")
-                        if self.edges[edge] < self.edges[inactive] and inactive_edge in assigned_edges:
-                            no_assigned_neighbor_flag = False
-                            for neighbor in self.edge_neighbors[inactive]:
-                                logger.debug(f"Neighbor: {neighbor} Edge weight: {self.edges[neighbor]}")
-                                if neighbor not in assigned_edges:
-                                    no_assigned_neighbor_flag = True
-                                    logger.debug(f"Neighbor: {neighbor}, assigned = {assigned_edges}")
-                                
 
-                            if not no_assigned_neighbor_flag:
-                                raise SystemExit(f"\nFolding Path invalid. Following step: {step} not possible")
-            """
             while len(inactive_edges) != 0: 
                 logger.debug(f"\nBegin weighting edges: {inactive_edges}")
                 current_edge = active_edges.pop()
@@ -479,7 +401,6 @@ class graph():
             
           
             
-        
             for x in range(1,len(pairtable)-1):
                 secured_domains = []
                 
@@ -496,7 +417,28 @@ class graph():
                             return True
                     
             return False
-      
+
+    def check_unpaired_complements(self,afp):
+        
+        """
+        Checks if there are two unpaired domains that are complementary in the given domain sequence.
+
+        Parameters:
+        - afp (list): Abstract folding path in the form of a pairtable.
+
+        Raises:
+        - SystemExit: If two unpaired complementary domains are found.
+        """
+
+
+        for step in afp: 
+            for x in range(1,step[0]):
+                if step[x] == 0: 
+                    for y in range(x + 1,step[0]):
+                        if self.get_node_by_name(x).connected == self.get_node_by_name(y).connected and step[y] == 0:
+                            raise SystemExit(f"Two unpaired complements in the folding path: {afp}. Please pair them.")
+
+
 def build_graph(afp):
 
     if afp[0][0] == ".":
@@ -527,19 +469,22 @@ def build_graph(afp):
 
     afp_graph.set_edge_neighbors()
 
-    
+    """
     #Check if there are cycles present in the graph
     if afp_graph.cycle_detection():
         raise SystemExit("Cycle in graph detected. Currently no viable solutions for this case. \n\n Goodbye")
-    
+    """
     logger.info(f"Edges: {afp_graph.edges}")
 
     connected_components = find_connected_modules(pairtable_afp)
     logger.debug(f"Connected c: {connected_components}")
     logger.info("\nFollowing Nodes are connected:")
-    for component in connected_components:
+    for x,component in enumerate(connected_components):
         nodes_in_component = set()
         logger.debug(component)
+        for node_name in component:
+            afp_graph.get_node_by_name(node_name).connected = x
+
         for node_index in component:
             nodes_in_component.add(nodes[node_index])
         
@@ -549,7 +494,9 @@ def build_graph(afp):
 
     if afp_graph.pseudoknot_attack_detection(pairtable_afp):
             raise SystemExit("SystemExit: Pseudoknot attack detected. Choose a path without Pseudoknot attacks")
-        
+    
+
+    afp_graph.check_unpaired_complements(pairtable_afp)
 
     graph.print_nodes
     afp_graph.get_weights(afp=pairtable_afp)
