@@ -79,16 +79,35 @@ Cocosim can be used separately from cocopaths. It accepts input either through t
 
 
 
+## ToDo: 
+
+
+### General
+1. Modify input to echo and pil format
+2. Cleanup code
+3. find ideal parameters for domain lengths or find a way to calc optimal lengths for each sequence and folding path 
+
+
+### CocoPath
+1. 
+
+### CocoSim 
+1. modify input read 
+2. Bug: Complementary domains must be separated by another domain 
+3. Bug: Spacer length 0 
+4. Difference between S = 0 and no spacers 
+
+### CocoDesign 
+
+1. Find objective function
+2. pil format acceptance
+3. DrTrafo parser use from CoFPT 
+
 ### Current Bugs: 
  - CocoPaths
-  - Following Path is not possible but still accepted: 
-    - Desired: ['.', '()', '().', '(..)', '(...)', '(.(.))']
-    - Simulat: ['.', '()', '.()', '(())', '(().)', '(()..)']
-    - see prob1.txt 
  
  
  - Cocosim:
-  - Complementary domains must be separated by another domain 
   - sometime segmentation fault(coredumped) during steps -> bug not reproducable
   - if spacer length = 0 following error: "a* L0* b* S0  L0  S1 c b L0 a d S2 e* d* a* L0* b* c* f* S3 g f c b L0 a d e h S4 h* e* d* a* L0* b* c* f* g* S5"
     
