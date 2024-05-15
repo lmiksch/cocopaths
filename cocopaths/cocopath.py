@@ -574,36 +574,7 @@ The AFP must have following propperties to be translated to a domain level seque
         elif args.input == None:
 
             afp = afp_terminal_input()
-            '''
-            afp = []
-            while True:
-                print("\n")
-                print(f"Current Input: {afp}")
-                print("Please input a folding path in dot-bracket annotation or use '$' to exit input and continue use 'r' to reset input:")
-                user_input = input()
-                # Check for exit conditions
-                if user_input == "$":
-                    print(f"\n\nFinal Input:\n{afp}\n\n")
-                    break
-                elif user_input == "r" or user_input == "R":
-                    afp = []
-                    print("Input cleared")
-                    continue
-                
-                if is_balanced_structure(user_input):
-
-                    # Check if the user input contains only ".", "(", and ")"
-                    
-                    if all(char == "." or char in ("(", ")") for char in user_input):
-                        if len(user_input) == len(afp) + 1:
-                            afp.append(user_input)
-                        else:
-                            print("Please add 1 character per step")
-                    else:
-                        print("Error: Invalid character in the folding path. Only '.', '(', and ')' are allowed.")
-                else:
-                    print("Structure is not balanced -> closing/opening brackets don't match")
-                '''
+        
         else:
             afp = input_parser(args.input)
             print(f"\n\nInput folding path:\n{afp}\n\n")

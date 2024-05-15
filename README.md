@@ -31,7 +31,7 @@ $ pytest
 
 After installation you can try if the script is installed by using:
 ```bash
-$ cocopaths --help
+$ cocopath --help
 ```
 
 The script is dependent on following libraries: 
@@ -43,7 +43,7 @@ The script is dependent on following libraries:
 
 The script gets called by using:
 ```bash
-$ cocopaths 
+$ cocopath
 ```
 
 the abstract folding path(AFP) can be either put in as a .txt file or directly in the terminal
@@ -58,7 +58,7 @@ The AFP must have following propperties to be translated to a domain level seque
 Cocopaths and cocosim can be used in a pipeline to simulate the resulting domain level sequence
 
 ```bash
-$ cocopaths -i test.txt | cocosim 
+$ cocopath -i test.txt | cocosim 
 ```
 
 In the examples directory, you can find sample inputs for both cocopaths and cocosim.
@@ -66,7 +66,7 @@ In the examples directory, you can find sample inputs for both cocopaths and coc
 A typical command might look like this:
 
 ```bash
-$ cocopaths -i fp_1.txt | cocosim 
+$ cocopath -i fp_1.txt | cocosim 
 ```
 
 Using only the command without input will prompt you to enter the domain-level sequence in the terminal.
@@ -92,26 +92,23 @@ Cocosim can be used separately from cocopaths. It accepts input either through t
 
 
 ### General
-1. Modify input to echo and pil format
-2. Cleanup code
-3. find ideal parameters for domain lengths or find a way to calc optimal lengths for each sequence and folding path 
+1. Cleanup code
+2. find ideal parameters for domain lengths or find a way to calc optimal lengths for each sequence and folding path 
 
 
 ### CocoPath
 1. 
 
 ### CocoSim 
-1. modify input read 
-2. Bug: Complementary domains must be separated by another domain 
-3. Bug: Spacer length 0 
-4. Difference between S = 0 and no spacers 
+1. Bug: Complementary domains must be separated by another domain 
+2. Bug: Spacer length 0 
+3. Difference between S = 0 and no spacers 
 
 ### CocoDesign 
 
 1. Find objective function
-2. pil format acceptance
-3. DrTrafo parser use from CoFPT 
-4. Modify it to use cocosim output automatically
+2. DrTrafo parser use from CoFPT 
+3. Modify it to use cocosim output automatically
 
 
 ### Current Bugs: 

@@ -20,7 +20,7 @@ from crnsimulator.odelib_template import add_integrator_args
 import numpy as np
 from io import StringIO
 from natsort import natsorted
-from .utils import cv_db2kernel, kernel_to_dot_bracket, only_logic_domain_struct, afp_terminal_input
+from .utils import cv_db2kernel, kernel_to_dot_bracket, only_logic_domain_struct, afp_terminal_input, afp_to_domainfp, domainfp_to_afp
 import numpy as np 
 
 
@@ -1156,6 +1156,82 @@ def valid_cutoff(value):
     else:
         raise argparse.ArgumentTypeError(f"Cutoff must be between 0 and 1, but got {value}")
 
+def verify_domain_foldingpath(afp,domain_seq,parameters,simulated_structures = None):
+
+    """Function to verfiy that a domain level sequence folds according to the afp, by which it was generated. 
+
+    Args: 
+        afp(list): Each entry corresponds to a step in the folding path. 
+        domain_seq(string): domain level sequence
+
+    Returns: 
+        if correct folding path:
+            domain_path(list): domain level folding path 
+
+        False folding path: 
+            False 
+    """
+
+    #Minimum occupancy of desired structure for succesfull sim
+    threshold = 0.5
+
+    #converting afp to domain level afp for easier comparison
+
+    domain_afp = afp_to_domainfp(afp,domain_seq)
+
+    if simulated_structures == None:
+        simulated_structures = run_sim(domain_seq,parameters)
+
+
+    sim_domain_fp = [[] for _ in simulated_structures]
+
+    for i,step in enumerate(simulated_structures):
+        for complex in step: 
+            sim_domain_fp[i].append(''.join(complex._structure))
+    
+    spacer_indices = [index - 1 for index, entry in enumerate(domain_seq.split()) if entry.startswith('S')]
+    sim_unit_path = [simulated_structures[i] for i in spacer_indices]
+
+
+
+    dominant_structures_fp = []
+
+    logic_indices = [index for index,entry in enumerate(domain_seq.split()) if entry.startswith("L") ]
+    for x in range(len(sim_unit_path)):
+        target_occ = 0
+        max_occ = 0
+
+        for struct in sim_unit_path[x]: 
+            
+            #convert struct here to only logic domains and compare to afp
+
+            logic_struct = ''.join([struct._structure[i] for i in logic_indices[0:x]])
+
+
+            
+            if "".join(struct._structure) == domain_afp[x]: 
+                target_occ  += struct.occupancy
+                if struct.occupancy >= max_occ:
+                    max_occ = struct.occupancy
+                    max_occ_struct = "".join(struct._structure)
+        
+        if target_occ >= threshold:
+            dominant_structures_fp.append(max_occ_struct)
+            
+            
+        else:
+            return False
+
+
+    assert len(dominant_structures_fp) == len(afp),f"Some structures are missing {dominant_structures_fp = }"
+
+
+    return dominant_structures_fp
+                
+
+
+
+
 
 def main():
     parser = argparse.ArgumentParser(description="cocosim is a cotranscriptional folding path simulator using peppercornenumerate to simulate a domain level sequence during transcription.")
@@ -1255,11 +1331,13 @@ def main():
     print("Given Domain Sequence:", d_seq)
 
    
-
+    if afp == None:
+        afp = afp_terminal_input()  
 
 
     #______Running_Simulation___________# 
     simulated_structures = run_sim(d_seq, parameters)
+
     
     last_step = simulated_structures[-1]
     if args.logic: 
@@ -1302,7 +1380,15 @@ def main():
 
         print(output)
 
+    #______Verify_Simulation
+    print("---------------")
+    dominant_path = verify_domain_foldingpath(afp,d_seq,parameters,simulated_structures)
 
+    if dominant_path:
+        print("\n\nSimulation verified that the domain sequences folds according to the input abstract folding path.")
+
+    else: 
+        print("\n\nSimulated path differs from the abstract folding path. Please adjust domain lengths.\n\n")    
     logger.removeHandler(file_handler)  # Remove the file handler from the logger
     file_handler.close()  # Close the file handler to release the file
     os.remove("cocosim.log")

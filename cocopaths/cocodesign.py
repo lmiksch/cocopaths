@@ -6,7 +6,7 @@ import math
 import argparse
 import logging
 import os,sys
-from .utils import(is_balanced_structure,afp_terminal_input)
+from .utils import(is_balanced_structure,afp_terminal_input,afp_to_domainfp)
 from cocopaths import __version__
 from peppercornenumerator.input import read_pil
 
@@ -71,76 +71,7 @@ def is_star_pair(a,b):
         
 
 
-def afp_to_domainfp(afp,d_seq):
-    """Takes an abstract folding path and a domain level sequence and converts it into a domain level path 
-        Example: 
-            afp: [["."],["()"],[".()"],["()()"]],d_seq="b l b* a* l a b c d l d* c* b*"
 
-            returns [[".."],["(.).."],["..((.))..."],["(.)...(((.)))"]]
-
-        Args: 
-
-            afp(list): each sublist corresponds to one step example wrong not sublists
-            d_seq(str): domain sequence
-    """
-    domain_fp = []
-    d_seq = d_seq.split()
-
-    
-    for x,cur_path in enumerate(afp):
-        module_index = 0
-        path = ""
-        stack = []
-        for i,domain in enumerate(d_seq):
-            if domain[0] == "S":    
-                module_index += 1
-
-                if module_index == x + 1:
-                    path += '.'
-                    domain_fp.append(path)
-                    break 
-
-                else:
-                    path += "."
-                    
-
-            elif cur_path[module_index] == ".":
-                path += "."
-                
-            elif cur_path[module_index] == "(" and domain[0] != "S": 
-                j = i
-                k = module_index
-                added_notation = False
-                while k < len(cur_path) and j <= len(d_seq) -1 :
-                    if cur_path[k] == ")":
-                        if couple((domain,d_seq[j])):
-                            path += "("
-                            added_notation = True
-                            stack.append(domain)
-                            break
-                    
-                    if d_seq[j][0] == "S":
-                        k += 1 
-                    j += 1    
-                if added_notation != True:
-                    path += "."
-                    
-
-            elif cur_path[module_index] == ")" and domain[0] != "S":
-                j = i 
-                k = module_index
-                added_notation = False 
-                if stack:
-                    if couple((stack[-1],domain)):
-                            path += ")"
-                            stack.pop()
-                    else:
-                        path += "."
-
-                else:
-                        path += "."
-
-    return domain_fp
 
 
 def convert_to_UL(string):
@@ -472,7 +403,6 @@ def main():
             print("\n")
             print("Please input a domain level sequence:")
             d_seq = input()
-            #folding_path = afp_terminal_input()
     else:
 
         file_extension = os.path.splitext(args.input.name)[1]  # Get the file extension
@@ -501,13 +431,15 @@ def main():
 
                 print(f"{d_length = }")
 
-                
+                print(f'\nInput domain level sequence: {d_seq}\n')
                         
             else:
                 raise SystemExit("SystemExit:More than one kernel sequence in input. We can only simulate one kernel string at a time. ")              
     
         else: 
+            #Handle input from cocosim here
             raise SystemExit("Only data in the .pil format is currently accepted.")
+
     print("Please input the afp by which the domain level sequence was designed:")
     folding_path = afp_terminal_input()  
 
