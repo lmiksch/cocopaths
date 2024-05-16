@@ -1,23 +1,25 @@
 import infrared as ir 
 from infrared import rna
-import RNA 
-import random
-import math
-import argparse
-import logging
-import os,sys
+import RNA, random, math, argparse, logging, os,sys
 from .utils import(is_balanced_structure,afp_terminal_input,afp_to_domainfp)
 from cocopaths import __version__
+from cocopaths.cocosim import verify_domain_foldingpath
 from peppercornenumerator.input import read_pil
 
 
 #______define_logger_____#
-logger = logging.getLogger('cocopaths')
+cocodesign_logger = logging.getLogger('cocodesign')
 console_handler = logging.StreamHandler()
 formatter = logging.Formatter('# %(levelname)s - %(message)s')
 console_handler.setFormatter(formatter)
-logger.addHandler(console_handler)
+cocodesign_logger.addHandler(console_handler)
 
+def valid_cutoff(value):
+    value = float(value)
+    if 0 <= value < 1:
+        return value
+    else:
+        raise argparse.ArgumentTypeError(f"Cutoff must be between 0 and 1, but got {value}")
 
 def objective_function(fe,efe,mse,barrier):
     """
@@ -147,7 +149,6 @@ def identical_domains_constraint(domain,split_seq,model,parameters):
 
 
 def extend_domain_seq(d_seq,parameters):
-    print(d_seq)
 
     UL_domain_seq = convert_to_UL(d_seq)
 
@@ -254,7 +255,6 @@ def rna_design(seq,path,parameters):
     
     # Folding path constraint
     for x in ext_path: 
-        print(f'{x = }')
         cons = []
         bps = rna.parse(x)
         cons = [rna.BPComp(i,j) for (i,j) in bps]
@@ -358,17 +358,22 @@ def rna_design(seq,path,parameters):
     return rna.ass_to_seq(best), -best_val
 
 
-def set_verbosity(console_handler,verbosity):
+def set_verbosity(cocodesign_logger, console_handler, verbosity):
     if verbosity == 0:
         console_handler.setLevel(logging.CRITICAL)
+        cocodesign_logger.setLevel(logging.CRITICAL)
     elif verbosity == 1:
-        console_handler.setLevel(logging.ERROR)
+        console_handler.setLevel(logging.WARNING)
+        cocodesign_logger.setLevel(logging.WARNING)
     elif verbosity == 2:
         console_handler.setLevel(logging.INFO)
+        cocodesign_logger.setLevel(logging.INFO)
     elif verbosity >= 3:
         console_handler.setLevel(logging.DEBUG)
-
-
+        cocodesign_logger.setLevel(logging.DEBUG)
+    else:
+        console_handler.setLevel(logging.CRITICAL)
+        cocodesign_logger.setLevel(logging.CRITICAL)
 
 def main():
     
@@ -383,10 +388,12 @@ def main():
                         help="Reads file in the form of a pil  format as input if not specified user can input via console.")
     parser.add_argument("-v", "--verbose",action="count", default = 0,
         help = "Track process by writing verbose output to STDOUT during calculations.")
-    
-
     parser.add_argument("-s","--steps",help="Number of steps in the optimization",default=2000,type=int)
-
+    parser.add_argument("--k-slow", type=float, help="Specify k-slow. Determines the cutoffpoint for slow reactions.", default=0.00001)
+    parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
+    parser.add_argument("-l", "--logic", action="store_true", default=False,help="Visualizes Logic domain pairings. Best used when analyzing cocopaths generated sequences. (default = False)")
+    parser.add_argument("-cutoff", "--cutoff", action="store", type=valid_cutoff, default=float('-inf'),help="Cutoff value at which structures won't get accepted (default: -inf, valid range: 0 to 1)")
+    
 
 
 
@@ -395,7 +402,7 @@ def main():
 
     #_________________Set_logger_verbosity________________#
 
-    set_verbosity(logger,args.verbose)
+    set_verbosity(cocodesign_logger, console_handler, args.verbose)
     d_length = {}
 
     if args.input.isatty():
@@ -441,7 +448,7 @@ def main():
             raise SystemExit("Only data in the .pil format is currently accepted.")
 
     print("Please input the afp by which the domain level sequence was designed:")
-    folding_path = afp_terminal_input()  
+    afp = afp_terminal_input()  
 
 
     print(f"{d_seq = }")
@@ -456,32 +463,33 @@ def main():
                 d_length[domain] = 3 
 
    
-    parameters = {'d_length': d_length,'steps':args.steps}
+    parameters = {"k_slow": args.k_slow,'k_fast': args.k_fast, "cutoff": args.cutoff,"d_length":d_length,"d_seq":d_seq,"logic":args.logic,'steps':args.steps}
+
 
     # add check to see if number of folding steps = number of spacer domains
 
+    #___simulate_domain-level-foldingpath______# 
+
+
+    dominant_fp = verify_domain_foldingpath(afp,d_seq,parameters)
+
+    if not dominant_fp:
+        print(f"Simulated folding path does not match afp")
+        exit()
+
+
     #How to get from AFP to domain fp 
 
-    domain_fp = afp_to_domainfp(folding_path,d_seq)
-
-
-    print("domain fp ")
-    for x in domain_fp:
-        print(x)
-
-
-    
+    domain_fp = afp_to_domainfp(afp,d_seq)
 
     ext_folding_path = domain_path_to_nt_path(domain_fp,d_seq,parameters)
 
-    
-    print("ext fp ")
-    for x in domain_fp:
-        print(x)
 
-
-    print(f"Input AFP: {folding_path}\n\n")    
+    print(f"Input AFP: {afp}\n\n")
+    print(f"Input Domain level sequence: {d_seq}\n\n")    
     nt_seq, score = rna_design(d_seq,ext_folding_path,parameters)
+
+
 
     print(f"\n\nRNA design done\nSequence = {nt_seq} \n {score = }\n{extend_domain_seq(d_seq,parameters)}")
 

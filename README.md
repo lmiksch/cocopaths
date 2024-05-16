@@ -86,7 +86,9 @@ cocopath also checks stdin and accepts if each step is seperated by a ','.
 
 Cocosim can be used separately from cocopaths. It accepts input either through the terminal or in .pil format. An example of the correct .pil format can be found in the examples folder. 
 
+## CocoDesign
 
+Currently under construction
 
 ## ToDo: 
 
@@ -103,12 +105,14 @@ Cocosim can be used separately from cocopaths. It accepts input either through t
 1. Bug: Complementary domains must be separated by another domain 
 2. Bug: Spacer length 0 
 3. Difference between S = 0 and no spacers 
+4. Write tests for verification
 
 ### CocoDesign 
 
 1. Find objective function
 2. DrTrafo parser use from CoFPT 
 3. Modify it to use cocosim output automatically
+4. Write tests for whole package
 
 
 ### Current Bugs: 
