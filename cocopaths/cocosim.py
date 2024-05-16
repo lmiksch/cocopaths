@@ -1236,6 +1236,7 @@ def verify_domain_foldingpath(afp,domain_seq,parameters,simulated_structures = N
             
             
         else:
+            print("Simulated path does not match the input abstract folding path.")
             return False
 
     
@@ -1336,7 +1337,7 @@ def main():
             elif domain[0] == 'S':
                 d_length[domain] = round(int(domain[1]) * 4)  
             else: 
-                d_length[domain] = 3 
+                d_length[domain] = 4 
         
 
     parameters = {"k_slow": args.k_slow,'k_fast': args.k_fast, "cutoff": args.cutoff,"d_length":d_length,"d_seq":d_seq,"logic":args.logic}
@@ -1403,11 +1404,7 @@ def main():
     
     dominant_path = verify_domain_foldingpath(afp,d_seq,parameters,simulated_structures)
 
-    if dominant_path:
-        print("\n\nSimulation verified that the domain sequences folds according to the input abstract folding path.")
-
-    else: 
-        print("\n\nSimulated path differs from the abstract folding path. Please adjust domain lengths.\n\n")    
+     
     cocosim_logger.removeHandler(file_handler)  # Remove the file handler from the cocosim_logger
     file_handler.close()  # Close the file handler to release the file
     os.remove("cocosim.log")

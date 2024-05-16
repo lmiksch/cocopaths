@@ -392,6 +392,7 @@ def main():
     parser.add_argument("--k-slow", type=float, help="Specify k-slow. Determines the cutoffpoint for slow reactions.", default=0.00001)
     parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
     parser.add_argument("-l", "--logic", action="store_true", default=False,help="Visualizes Logic domain pairings. Best used when analyzing cocopaths generated sequences. (default = False)")
+    parser.add_argument("-f", "--force", action="store_true", default=False,help="Forces the design disregarding the outcome of the simulation (default = False)")
     parser.add_argument("-cutoff", "--cutoff", action="store", type=valid_cutoff, default=float('-inf'),help="Cutoff value at which structures won't get accepted (default: -inf, valid range: 0 to 1)")
     
 
@@ -470,12 +471,12 @@ def main():
 
     #___simulate_domain-level-foldingpath______# 
 
+    if not args.force:
+        dominant_fp = verify_domain_foldingpath(afp,d_seq,parameters)
 
-    dominant_fp = verify_domain_foldingpath(afp,d_seq,parameters)
-
-    if not dominant_fp:
-        print(f"Simulated folding path does not match afp")
-        exit()
+        if not dominant_fp:
+            print(f"Simulated folding path does not match afp")
+            exit()
 
 
     #How to get from AFP to domain fp 
