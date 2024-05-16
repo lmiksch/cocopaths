@@ -1095,23 +1095,21 @@ def input_parsing(d_seq, complexes,parameters):
     cocosim_logger.info(f"Input Parsing: Structure input \n {complexes}")
     unique_domains = set([domain for domain in d_seq])
 
-
     system_input = f""
     for unique_domain in unique_domains:
         system_input += f"length {unique_domain} = {parameters['d_length'][unique_domain]} \n"
       
-    
     system_input += "\n"
     for name, lst in complexes.items():
             if lst[1] > 0:
                 system_input += f"{name} = {lst[0]}\n"
         
-
     complexes, reactions = read_pil(system_input)
-    
+
     for key,complex in complexes.items():
         complex.occupancy = np.float128(None)
         complex.id = None
+
 
     return complexes, reactions
 
@@ -1335,7 +1333,7 @@ def main():
             if domain[0] == "L":
                 d_length[domain] = 8
             elif domain[0] == 'S':
-                d_length[domain] = round(int(domain[1]) * 4)  
+                d_length[domain] = 0 # round(int(domain[1]) * 4)  
             else: 
                 d_length[domain] = 4 
         
@@ -1401,8 +1399,8 @@ def main():
         print(output)
 
     #______Verify_Simulation
-    
-    dominant_path = verify_domain_foldingpath(afp,d_seq,parameters,simulated_structures)
+    if len(afp) > 1:
+        dominant_path = verify_domain_foldingpath(afp,d_seq,parameters,simulated_structures)
 
      
     cocosim_logger.removeHandler(file_handler)  # Remove the file handler from the cocosim_logger

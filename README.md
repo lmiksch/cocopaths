@@ -1,4 +1,4 @@
-# Cocopaths - A Compiler for contranscriptional folding pathways
+# Cocopaths - A Compiler for cotranscriptional folding pathways
 
 [![codecov](https://codecov.io/gh/lmiksch/cocopaths/graph/badge.svg?token=6PVQSOEK8R)](https://codecov.io/gh/lmiksch/cocopaths)
 ## Getting Started
@@ -103,10 +103,9 @@ CocoDesign initiates by validating the cotranscriptional folding path at the dom
 1. 
 
 ### CocoSim 
-1. Bug: Complementary domains must be separated by another domain 
-2. Bug: Spacer length 0 
-3. Difference between S = 0 and no spacers 
-4. Write tests for verification
+
+1. Write tests for verification
+2. Bug: Complementary domains must be separated by another domain --> Bug on Peppercornenumerator side
 
 ### CocoDesign 
 
@@ -119,20 +118,8 @@ CocoDesign initiates by validating the cotranscriptional folding path at the dom
 ### Current Bugs: 
  - CocoPaths
  
- 
  - Cocosim:
-  - sometime segmentation fault(coredumped) during steps -> bug not reproducable
-  - if spacer length = 0 following error: "a* L0* b* S0  L0  S1 c b L0 a d S2 e* d* a* L0* b* c* f* S3 g f c b L0 a d e h S4 h* e* d* a* L0* b* c* f* g* S5"
-    
-  peppercornenumerator/peppercornenumerator/condense.py", line 200, in condense
-    const = (self.get_condensed_rate(prxn), '/M' * (len(reactants)-1) + '/s')
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  peppercornenumerator/peppercornenumerator/condense.py", line 234, in get_condensed_rate
-    assert 0 <= reactant_probabilities < 1.000001
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  AssertionError
-  
-  - potential bug: really small difference about 10e-4 between S = 0 and no spacers in the sequence need to look into it 
+  - sometime segmentation fault(coredumped) during steps -> bug not reproducable if it occurs just redo the call
  
 
 
