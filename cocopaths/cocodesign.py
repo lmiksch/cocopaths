@@ -26,7 +26,7 @@ def objective_function(fe,efe,mse,barrier):
     Function exists to only change one thing when changing the obj function
     """
     
-    obj_fun = "abs(fe - efe) + barrier*0.1"
+    obj_fun = "abs(fe - efe) + barrier"
     score = eval(obj_fun.format(fe=fe,efe=efe,barrier=barrier))
     return score,obj_fun
 

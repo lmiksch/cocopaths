@@ -38,7 +38,7 @@ def analyze_cocosim_output(simulated_structures,afp,d_seq):
             if complex.kernel_string.split()[-1][0] == "S":
                 if max(occupancies) == complex.occupancy and dominant_path[-1] != db_struct:
                     dominant_path.append(db_struct)
-                    if  not is_balanced_structure(db_struct):
+                    if not is_balanced_structure(db_struct):
                         print("huh:",db_struct)
                         exit()
                 try:
