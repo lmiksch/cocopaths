@@ -7,7 +7,7 @@ name = "cocopaths"
 description = "A compiler for cotranscriptional folding paths"
 authors = [{name = "Laurenz Miksch", email = "mikschlaurenz@gmail.com"}]
 readme = "README.md"
-keywords = ["cotranscriptional folding", "RNA", "secondary structure",]
+keywords = ["cotranscriptional folding", "RNA", "secondary structure","Rna design"]
 license = {file = "LICENSE"}
 classifiers = [
     "Intended Audience :: Science/Research",
@@ -16,16 +16,23 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "License :: OSI Approved :: MIT License",
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 4 - Beta",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 requires-python = ">=3.8"
 #dependencies = []
 dynamic = ["version"]
 
+dependencies = [
+    "ViennaRNA>=2.5.0",  # Adjust the version as necessary
+]
+
+
+
 [project.scripts]
-cocopaths = "cocopaths.cocopaths:main"
+cocopath = "cocopaths.cocopath:main"
 cocosim = "cocopaths.cocosim:main"
+cocodesign = "cocopaths.cocodesign:main"
 
 [project.optional-dependencies]
 dev = [

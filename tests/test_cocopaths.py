@@ -1,7 +1,7 @@
 import pytest
 import logging, os, re
 from unittest.mock import patch
-from cocopaths.cocopaths import (graph,
+from cocopaths.cocopath import (graph,
                                      node,
                                      build_graph,
                                      input_parser,

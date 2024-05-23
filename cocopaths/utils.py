@@ -181,7 +181,7 @@ def is_star_pair(a,b):
             return True
         
 def only_logic_domain_struct(seq,path):
-    """Takes a seq and the extended folding path only returns the folding path of only the b domains
+    """Takes a seq and the extended folding path only returns the folding path of only the logic domains
 
     Args: 
         seq(list): sequence in form of a list where each entry in the list corresponds to one module
@@ -199,7 +199,150 @@ def only_logic_domain_struct(seq,path):
     logic_domain_struct = "".join(logic_domain_struct)
     return logic_domain_struct
 
+def afp_terminal_input():
 
+    '''Function to let user put in an abstract folding path in the terminal while checking if it's viable
+    '''
+    afp = []
+    while True:
+        print("\n")
+        print(f"Current Input: {afp}")
+        print("Please input a folding path in dot-bracket annotation or use '$' to exit input and continue use 'r' to reset input:")
+        user_input = input()
+        # Check for exit conditions
+        if user_input == "$":
+            print(f"\n\nFinal Input:\n{afp}\n\n")
+            break
+        elif user_input == "r" or user_input == "R":
+            afp = []
+            print("Input cleared")
+            continue
+        
+        if is_balanced_structure(user_input):
+
+            # Check if the user input contains only ".", "(", and ")"
+            
+            if all(char == "." or char in ("(", ")") for char in user_input):
+                if len(user_input) == len(afp) + 1:
+                    afp.append(user_input)
+                else:
+                    print("Please add 1 character per step")
+            else:
+                print("Error: Invalid character in the folding path. Only '.', '(', and ')' are allowed.")
+        else:
+            print("Structure is not balanced -> closing/opening brackets don't match")
+
+    return afp
+
+def couple(pair):
+	if pair[0][0].upper() == pair[1][0].upper() and pair[0] != pair[1]:
+		return True
+    
+def afp_to_domainfp(afp,d_seq):
+    """Takes an abstract folding path and a domain level sequence and converts it into a domain level path 
+        Example: 
+            afp: [["."],["()"],[".()"],["()()"]],d_seq="b l b* a* l a b c d l d* c* b*"
+
+            returns [[".."],["(.).."],["..((.))..."],["(.)...(((.)))"]]
+
+        Args: 
+
+            afp(list): each sublist corresponds to one step example wrong not sublists
+            d_seq(str): domain sequence
+    """
+
+
+    domain_fp = []
+    d_seq = d_seq.split()
+
+    
+    for x,cur_path in enumerate(afp):
+        module_index = 0
+        path = ""
+        stack = []
+        for i,domain in enumerate(d_seq):
+            if domain[0] == "S":    
+                module_index += 1
+
+                if module_index == x + 1:
+                    path += '.'
+                    domain_fp.append(path)
+                    break 
+
+                else:
+                    path += "."
+                    
+
+            elif cur_path[module_index] == ".":
+                path += "."
+                
+            elif cur_path[module_index] == "(" and domain[0] != "S": 
+                j = i
+                k = module_index
+                added_notation = False
+                while k < len(cur_path) and j <= len(d_seq) -1 :
+                    if cur_path[k] == ")":
+                        if couple((domain,d_seq[j])):
+                            path += "("
+                            added_notation = True
+                            stack.append(domain)
+                            break
+                    
+                    if d_seq[j][0] == "S":
+                        k += 1 
+                    j += 1    
+                if added_notation != True:
+                    path += "."
+                    
+
+            elif cur_path[module_index] == ")" and domain[0] != "S":
+                j = i 
+                k = module_index
+                added_notation = False 
+                if stack:
+                    if couple((stack[-1],domain)):
+                            path += ")"
+                            stack.pop()
+                    else:
+                        path += "."
+
+                else:
+                        path += "."
+
+    return domain_fp
+
+def domainfp_to_afp(domain_fp, d_seq):
+    """Takes a domain level path and a domain level sequence and converts it into an abstract folding path.
+        Example: 
+            domain_fp: [[".."], ["(.).."], ["..((.))..."], ["(.)...(((.)))"]]
+            d_seq: "b l b* a* l a b c d l d* c* b*"
+
+            returns: [["."], ["()"], [".()"], ["()()"]]
+
+        Args: 
+            domain_fp(list): each sublist corresponds to one step
+            d_seq(str): domain sequence
+    """
+    
+    #print(f"{domain_fp = }")
+    #print(f"{d_seq = }")
+
+    afp = []
+    d_seq = d_seq.split()
+
+    logic_indices = [index for index,entry in enumerate(d_seq) if entry.startswith("L") ]
+
+    for i,step in enumerate(domain_fp):
+        cur_path = []
+        for struct in step:
+            cur_struct = [struct[x] for x in logic_indices[0:i+1]]
+            cur_struct = "".join(cur_struct)
+            cur_path.append(cur_struct)
+        
+        cur_path = list(set(cur_path))
+        afp.append(cur_path)
+    
+    return afp
 
 if __name__=="__main__":
     print(' ')

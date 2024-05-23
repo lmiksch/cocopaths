@@ -596,6 +596,7 @@ def test_enforce_v_transient_from_dseq(input_path,configure_logger):
     parser.add_argument("--k-slow", type=float, help="Specify k-slow. Determines the cutoffpoint for slow reactions.", default=0.0001)
     parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
     parser.add_argument("-v","--verbosity",action="count")
+    parser.add_argument("-l", "--logic", action="store_true", default=False,help="Visualizes Logic domain pairings. Best used when analyzing cocopaths generated sequences. (default = False)")
 
     args  = parser.parse_args()
     args.cutoff = float(args.cutoff)
@@ -614,7 +615,7 @@ def test_enforce_v_transient_from_dseq(input_path,configure_logger):
             d_length[domain] = 3
 
 
-    parameters = {"k_slow": 0.001,'k_fast': 20, "cutoff": 0.05,"d_length":d_length}
+    parameters = {"k_slow": 0.001,'k_fast': 20, "cutoff": 0.05,"d_length":d_length,"logic":True}
 
     
     simulated_structures = run_sim(d_seq, parameters)
@@ -642,7 +643,7 @@ def test_wierd_outcome(input_path):
         except:
             pass
 
-    parameters = {"k_slow": None,'k_fast': None, "cutoff": 0.22,"d_length":None,}
+    parameters = {"k_slow": None,'k_fast': None, "cutoff": 0.22,"d_length":None,"logic":True}
 
     map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,parameters)
     macrostates = enum._resting_macrostates
@@ -699,6 +700,7 @@ def test_run_sim():
     parser.add_argument("--k-slow", type=float, help="Specify k-slow. Determines the cutoffpoint for slow reactions.", default=0.0001)
     parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
     parser.add_argument("-v","--verbosity",action="count")
+    parser.add_argument("-l", "--logic", action="store_true", default=False,help="Visualizes Logic domain pairings. Best used when analyzing cocopaths generated sequences. (default = False)")
 
     args = args = parser.parse_args()
     args.cutoff = float(args.cutoff)
@@ -713,7 +715,7 @@ def test_run_sim():
         else: 
             d_length[domain] = 3 
 
-    parameters = {"k_slow": args.k_slow, 'k_fast': args.k_fast,"condensed":args.condensed, "cutoff": args.cutoff,'complexes': {},"d_length":d_length}
+    parameters = {"k_slow": args.k_slow, 'k_fast': args.k_fast,"condensed":args.condensed, "cutoff": args.cutoff,'complexes': {},"d_length":d_length,"logic":True}
 
     simulated_structures = run_sim('a b a*',parameters)
     

@@ -1,4 +1,4 @@
-# Cocopaths - A Compiler for contranscriptional folding pathways
+# Cocopaths - A Compiler for cotranscriptional folding pathways
 
 [![codecov](https://codecov.io/gh/lmiksch/cocopaths/graph/badge.svg?token=6PVQSOEK8R)](https://codecov.io/gh/lmiksch/cocopaths)
 ## Getting Started
@@ -31,12 +31,19 @@ $ pytest
 
 After installation you can try if the script is installed by using:
 ```bash
-$ cocopaths --help
+$ cocopath --help
 ```
+
+The script is dependent on following libraries: 
+
+[Infrared Software](https://www.lix.polytechnique.fr/~will/Software/Infrared/Doc/index.html)
+
+[ViennaRNA](https://www.tbi.univie.ac.at/RNA/)
+
 
 The script gets called by using:
 ```bash
-$ cocopaths 
+$ cocopath
 ```
 
 the abstract folding path(AFP) can be either put in as a .txt file or directly in the terminal
@@ -51,7 +58,7 @@ The AFP must have following propperties to be translated to a domain level seque
 Cocopaths and cocosim can be used in a pipeline to simulate the resulting domain level sequence
 
 ```bash
-$ cocopaths -i test.txt | cocosim 
+$ cocopath -i test.txt | cocosim 
 ```
 
 In the examples directory, you can find sample inputs for both cocopaths and cocosim.
@@ -59,7 +66,7 @@ In the examples directory, you can find sample inputs for both cocopaths and coc
 A typical command might look like this:
 
 ```bash
-$ cocopaths -i fp_1.txt | cocosim 
+$ cocopath -i fp_1.txt | cocosim 
 ```
 
 Using only the command without input will prompt you to enter the domain-level sequence in the terminal.
@@ -73,42 +80,48 @@ $ cocosim
 Please enter a domain level sequence:
 ```
 
+cocopath also checks stdin and accepts if each step is seperated by a ','. 
+
+## Cocosim 
+
+Cocosim can be used separately from cocopaths. It accepts input either through the terminal or in .pil format. An example of the correct .pil format can be found in the examples folder. 
+
+## CocoDesign
+
+CocoDesign is currently designed to operate independently. It accepts either a .pil format file as input, where the user can specify the domain lengths, or an input via the terminal, with the default parameters for domain lengths.
+CocoDesign initiates by validating the cotranscriptional folding path at the domain level. If the simulated path does not align with the abstract folding path, it will not continue unless the -force flag is activated. 
+
+## ToDo: 
+
+
+### General
+1. Cleanup code
+2. find ideal parameters for domain lengths or find a way to calc optimal lengths for each sequence and folding path 
+
+
+### CocoPath
+1. 
+
+### CocoSim 
+
+1. Write tests for verification
+2. Bug: Complementary domains must be separated by another domain --> Bug on Peppercornenumerator side
+
+### CocoDesign 
+
+1. Find objective function
+2. DrTrafo parser use from CoFPT 
+3. Modify it to use cocosim output automatically
+4. Write tests for whole package
+
 
 ### Current Bugs: 
  - CocoPaths
-  - Following Path is not possible but still accepted: 
-    - Desired: ['.', '()', '().', '(..)', '(...)', '(.(.))']
-    - Simulat: ['.', '()', '.()', '(())', '(().)', '(()..)']
-    - see prob1.txt 
- 
  
  - Cocosim:
-  - Complementary domains must be separated by another domain 
-  - sometime segmentation fault(coredumped) during steps -> bug not reproducable
-  - if spacer length = 0 following error: 
-    
-  peppercornenumerator/peppercornenumerator/condense.py", line 200, in condense
-    const = (self.get_condensed_rate(prxn), '/M' * (len(reactants)-1) + '/s')
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  peppercornenumerator/peppercornenumerator/condense.py", line 234, in get_condensed_rate
-    assert 0 <= reactant_probabilities < 1.000001
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  AssertionError
+  - sometime segmentation fault(coredumped) during steps -> bug not reproducable if it occurs just redo the call
+ 
 
 
 
-### CocoPathsToDO: 
-
-  - investigate floating point errors/ number error i think they are floating point errors 
-    - add rounding to 10-15 comma stellen
   
-    - enforce_cutoff_macrostate
-      - dont know if setting occupancy to 0 is enough or if should remove cut complex from macrostate
-      - current implemenation keeps the complex in the macrostates
-      
-  - write analysis script to make some statistics about whats possible to design and what not 
-
-  - begin with design of nucleotide sequences
-
-
-  - peppercornenumerator.enumerator.PolymerizationError: Too many reactions enumerated! (50049)

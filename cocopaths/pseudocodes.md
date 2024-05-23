@@ -60,15 +60,15 @@
           - 33 Set inactive_edge.weight = 1
    - 34 Sort active_edges based on occurrence in ascending order
 
-35. While inactive_edges are not empty:
-   - 36 Pop an edge from active_edges (current_edge)
-   - 37 For each edge in inactive_edges:
-     - 38 If the edge neighbors the current_edge and the current_edge is not in assigned_edges:
-       - 39 Get the weights of nodes from the current_edge
-       - 40 Set the weight of the current_edge to the maximum weight of the nodes + 1
-       - 41 Update the node weights to the maximum weight
-       - 42 Add the current_edge and edge to assigned_edges
-       - 43 Remove inactive_edge from inactive_edges if it neighbors the current_edge
+  - 35 While inactive_edges are not empty:
+    - 36 Pop an edge from active_edges (current_edge)
+    - 37 For each edge in inactive_edges:
+      - 38 If the edge neighbors the current_edge and the current_edge is not in assigned_edges:
+        - 39 Get the weights of nodes from the current_edge
+        - 40 Set the weight of the current_edge to the maximum weight of the nodes + 1
+        - 41 Update the node weights to the maximum weight
+        - 42 Add the current_edge and edge to assigned_edges
+        - 43 Remove inactive_edge from inactive_edges if it neighbors the current_edge
 
 ### Verify edge weights
 
@@ -84,7 +84,7 @@
 50. Remove entries in domains that contain 'l' or 'm'
 51. Create a list called visited_nodes
 52. For each node in the graph G:
-   - 53 Append the node to visited_nodes
+   - 53 Append node to visited_nodes
    - 54 Set node.middle to 'm' + the index of connected_components
    - 55 If the weight of the node is greater than 1 and the length of node.prefix is less than node.weight - 1:
      - 56 Update node.prefix by adding domains[node.weight - 1 - len(node.prefix)] to the beginning

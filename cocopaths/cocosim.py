@@ -4,7 +4,7 @@ Simulates cotranscriptional folding of a domain level sequence.
 
 uses Function from Peppercornenumerator to find reaction types/ possible products of reactions
 """
-import sys
+import sys,argparse,logging,copy,os,random,inspect
 from peppercornenumerator import peppercorn 
 from dsdobjects.objectio import read_pil as dsd_read_pil
 from peppercornenumerator.input import read_pil
@@ -20,25 +20,29 @@ from crnsimulator.odelib_template import add_integrator_args
 import numpy as np
 from io import StringIO
 from natsort import natsorted
-from .utils import cv_db2kernel, kernel_to_dot_bracket, only_logic_domain_struct
-import argparse
-import logging 
+from .utils import cv_db2kernel, kernel_to_dot_bracket, only_logic_domain_struct, afp_terminal_input, afp_to_domainfp, domainfp_to_afp
 import numpy as np 
-import copy
-import os
-import random
-import inspect
 
-logger = logging.getLogger('cocosim')
+
+
+
+cocosim_logger = logging.getLogger('cocosim')
 console_handler = logging.StreamHandler()
-formatter = logging.Formatter('# %(levelname)s \n - %(message)s')
+formatter = logging.Formatter('# %(levelname)s - %(message)s')
 console_handler.setFormatter(formatter)
-logger.addHandler(console_handler)
+cocosim_logger.addHandler(console_handler)
 
 file_handler = logging.FileHandler('cocosim.log')
 file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 file_handler.setFormatter(file_formatter)
-logger.addHandler(file_handler)
+cocosim_logger.addHandler(file_handler)
+
+
+#set level to lowest if importing functions 
+console_handler.setLevel(logging.CRITICAL)
+file_handler.setLevel(logging.CRITICAL)
+cocosim_logger.setLevel(logging.CRITICAL)
+
 
 def run_sim(d_seq, parameters):
     """
@@ -56,6 +60,7 @@ def run_sim(d_seq, parameters):
     d_seq_split = d_seq.split()
     
     print(f'\n\n\nCocosim\nDomain Level seq: {d_seq}\n\n')
+    
 
 
     # before input parsing define name of complexes 
@@ -84,20 +89,34 @@ def run_sim(d_seq, parameters):
 
     folding_step_complexes.append(resulting_complexes)	
    
-    
+
+
+
     #Print continous output
-    for x, complex in complexes.items():
-        kernel_string = kernel_to_dot_bracket(complex.kernel_string)
-        db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
-        #occupancy = np.float128(complex.occupancy)
-        if round(complex.occupancy,4) > 1e-4:
-            print(f"{2:3}\t|\t{complex.occupancy:8.4f}\t|\t{db_struct:8}|\t{complex.kernel_string}")
-    print()    
-    
+    if parameters["logic"]:
+        for x, complex in complexes.items():
+            print(f'Transcription Step | Occupancy  |  Logic domain pairing | Structure	 \n')
+            kernel_string = kernel_to_dot_bracket(complex.kernel_string)
+            db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
+            #occupancy = np.float128(complex.occupancy)
+            if round(complex.occupancy,4) > 1e-4:
+                print(f"{2:3}\t|\t{complex.occupancy:^8.4f}\t|\t{db_struct:16}|\t{complex.kernel_string}")
+        print()    
+
+    else:
+        for x, complex in complexes.items():
+            print(f'Transcription Step | Occupancy  | Structure	 \n')
+            kernel_string = kernel_to_dot_bracket(complex.kernel_string)
+            db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
+            #occupancy = np.float128(complex.occupancy)
+            if round(complex.occupancy,4) > 1e-4:
+                print(f"{2:3}\t|\t{complex.occupancy:^8.4f}\t|\t{complex.kernel_string}")
+        print()  
+        
 
     for step in range(2, len(d_seq_split)):
-        logger.info("\n\n\n______________________________________________")
-        logger.info(f"Step: {step} Current Complexes: {parameters}")
+        cocosim_logger.info("\n\n\n______________________________________________")
+        cocosim_logger.info(f"Step: {step} Current Complexes: {parameters}")
 
         next_complexes = []
         
@@ -171,23 +190,34 @@ def run_sim(d_seq, parameters):
         total_occupancy = 0
 
         #Print continous output
-        for x, complex in complexes.items():
-            try:
-                occupancy = np.float128(complex.occupancy)
-                total_occupancy += occupancy
-                kernel_string = kernel_to_dot_bracket(complex.kernel_string)
-                db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
-                if occupancy != 0:
-                    print(f"{step + 1:3}\t|\t{occupancy:8.4f}\t|\t{db_struct:8}|\t{complex.kernel_string}\t")
-            except: 
-                pass
-                #print(f"{step + 1:3}   |	{0:8.4f}      | {complex.kernel_string} \n")
-        print()
-        #print(f"Number of complexes: {len(complexes.items())} Total occupancy: {total_occupancy}\n")
+        if parameters["logic"]:
+            for x, complex in complexes.items():
+                try:
+                    occupancy = np.float128(complex.occupancy)
+                    total_occupancy += occupancy
+                    kernel_string = kernel_to_dot_bracket(complex.kernel_string)
+                    db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
+                    if occupancy != 0:
+                        print(f"{step + 1:3}\t|\t{occupancy:^8.4f}\t|\t{db_struct:16}|\t{complex.kernel_string}\t")
+                except: 
+                    pass
+                    #print(f"{step + 1:3}   |	{0:8.4f}      | {complex.kernel_string} \n")
+            print()
+        else:
+            for x, complex in complexes.items():
+                try:
+                    occupancy = np.float128(complex.occupancy)
+                    total_occupancy += occupancy
+                    kernel_string = kernel_to_dot_bracket(complex.kernel_string)
+                    if occupancy != 0:
+                        print(f"{step + 1:3}\t|\t{occupancy:^8.4f}\t|\t{complex.kernel_string}\t")
+                except: 
+                    pass
+        
 
 
-        logger.debug(f"Step:{step} Total Occupancy:{total_occupancy:20.20f}\n")
-        assert abs(total_occupancy - 1) < 1e-10,f"Occupancy is not equal 1 difference is {abs(total_occupancy - 1)}"         
+        cocosim_logger.debug(f"Step:{step} Total Occupancy:{total_occupancy:20.20f}\n")
+        assert abs(total_occupancy - 1) < 1e-8,f"Occupancy is not equal 1 difference is {abs(total_occupancy - 1)}"         
         resting_complexes,transient_complexes,enum = enumerate_step(complexes=complexes, reactions=reactions, parameter=parameters,all_complexes=all_complexes)
         
         
@@ -228,8 +258,8 @@ def run_sim(d_seq, parameters):
         for macro in enum._resting_macrostates:
             macro_sum += macro.occupancy
 
-        logger.info(f"Sum of macrostate occupancies before cutoff: {macro_sum:.20f}")
-        logger.info(f"Sum of occupancy before cutoff: {oc_sum:.20f}")
+        cocosim_logger.info(f"Sum of macrostate occupancies before cutoff: {macro_sum:.20f}")
+        cocosim_logger.info(f"Sum of occupancy before cutoff: {oc_sum:.20f}")
         oc_sum = round(oc_sum,10)
         if abs(oc_sum - 1) <= 1e-10:	
             for complex in resting_complexes:
@@ -267,7 +297,7 @@ def simulate_system(enum,parameters,resting_complexes,all_complexes,new_domain_l
     
     
     condensed_reactions = enum.condensation._condensed_reactions
-    logger.info("\n\n\nBegin with simulating system")
+    cocosim_logger.info("\n\n\nBegin with simulating system")
     reactions = []
 
     oc_vector = []
@@ -283,7 +313,7 @@ def simulate_system(enum,parameters,resting_complexes,all_complexes,new_domain_l
 
                 occupancy1,occupancy2 = np.float128(0),np.float128(0) 
 
-                logger.info("\n\n calc macro occupancies\n")
+                cocosim_logger.info("\n\n calc macro occupancies\n")
                 for r_complex in reaction._reactants[0]._complexes: 
                         
                     #set conc to 0 for undefined complexes 
@@ -312,13 +342,13 @@ def simulate_system(enum,parameters,resting_complexes,all_complexes,new_domain_l
 
 
         resulting_occupancies =	sim_condensed_rates(reactions,oc_vector,parameters,new_domain_length)
-        logger.debug(f"resulting occupancies: {resulting_occupancies}")
+        cocosim_logger.debug(f"resulting occupancies: {resulting_occupancies}")
         #Update occupancies
 
 
 
         resting_complexes = update_macrostates(resulting_occupancies,all_complexes = all_complexes,enum= enum,resting_complexes=resting_complexes,parameters=parameters)
-        logger.debug(f"Numger of Resulting resting complexes {len(resting_complexes)}")
+        cocosim_logger.debug(f"Numger of Resulting resting complexes {len(resting_complexes)}")
         
     return resting_complexes
 
@@ -332,7 +362,7 @@ def update_macrostates(result_occ,all_complexes,enum,resting_complexes,parameter
         resting_complexes(list)
     """
 
-    logger.info("\n\nUpdating Macrostates\n\n")
+    cocosim_logger.info("\n\nUpdating Macrostates\n\n")
     macro_seen = set()
     macro_sum = 0
     for reaction in result_occ.values():
@@ -352,7 +382,7 @@ def update_macrostates(result_occ,all_complexes,enum,resting_complexes,parameter
     calc_macro_pop(enum,all_complexes,resting_complexes,parameters)
 
     
-    logger.info(f"Summe over resting complexes:{sum([complex.occupancy for complex in resting_complexes])}")
+    cocosim_logger.info(f"Summe over resting complexes:{sum([complex.occupancy for complex in resting_complexes])}")
     return resting_complexes
 
 def is_complex_in_all_complexes(complex,all_complexes):
@@ -376,13 +406,14 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
     parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
     parser.add_argument("-v", "--verbose", action="count", default=0, help="Increase verbosity level. -v only shows peppercorn output")
     parser.add_argument("-cutoff", "--cutoff", action="store", type=valid_cutoff, default=float('-inf'),help="Cutoff value at which structures won't get accepted (default: -inf, valid range: 0 to 1)")
-    
+    parser.add_argument("-l", "--logic", action="store_true", default=False,help="Visualizes Logic domain pairings. Best used when analyzing cocopaths generated sequences. (default = False)")
+
 
     s_args = parser.parse_args()
     s_args.cutoff = float(parameters["cutoff"])
 
     #need to hardcode all args:
-    logger.info("\n\n\nBegin simulation setup\n\n")
+    cocosim_logger.info("\n\n\nBegin simulation setup\n\n")
 
     
 
@@ -392,7 +423,7 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
 
     s_args.nxy = False
 
-    s_args.t8 = 0.02 * d_length
+    s_args.t8 = 10 * d_length
 
 
 
@@ -469,8 +500,8 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
     #    os.remove(filename)
     
     
-    logger.debug(f"{s_args.p0 = }")
-    logger.debug(f"{Vars = },{C = }")
+    cocosim_logger.debug(f"{s_args.p0 = }")
+    cocosim_logger.debug(f"{Vars = },{C = }")
 
     filename, odename = RG.write_ODE_lib(sorted_vars = Vars, concvect = C,
                                               jacobian= True,
@@ -489,7 +520,7 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
 
     #sys redirection necessary to redirect output of integrate
     sys.stderr = open(os.devnull, 'w')
-    logger.info("\n\n\nBegin simulation\n\n")
+    cocosim_logger.info("\n\n\nBegin simulation\n\n")
     try:
         time,occupancies = integrate(s_args) 
     finally:
@@ -521,7 +552,7 @@ def calc_macro_pop(enum,all_complexes,resulting_complexes,parameters):
     """
 
 
-    logger.info("\n______________\nCalc Macropop\n\n")
+    cocosim_logger.info("\n______________\nCalc Macropop\n\n")
     resting_macrostates = enum._resting_macrostates
 
     stat_dist = enum.condensation.stationary_dist
@@ -558,14 +589,17 @@ def calc_macro_pop(enum,all_complexes,resulting_complexes,parameters):
                 if stat_complex == r_complex: 
                     r_complex.occupancy = np.float128(new_dist)
 
+    if len(resulting_complexes) == 1:
+        resulting_complexes[0].occupancy = 1
   
     for r_complex in resulting_complexes:
 
             summe += np.float128(r_complex.occupancy)
+    
 
-    logger.debug(f"Sum over all Macrostates after cal macropop {summe:.20f} {type(summe)}")
+    cocosim_logger.debug(f"Sum over all Macrostates after cal macropop {summe:.20f} {type(summe)}")
     for complex in resulting_complexes:
-        logger.info(f"{complex},{complex.occupancy}")
+        cocosim_logger.info(f"{complex},{complex.occupancy}")
     
     assert round(summe,10) == 1, f'Occupancies sum up to {summe} and not 1' 
 
@@ -582,7 +616,7 @@ def apply_cutoff(enum,parameters,all_complexes):
     If only a complex in a macrostate is under the threshold, the complex gets removed and the whole macrostate gets readjusted. 
     
     """
-    logger.info("\n\nEnforcing Cutoffs\n\n")
+    cocosim_logger.info("\n\nEnforcing Cutoffs\n\n")
     
     stat_dist = enum.condensation.stationary_dist
 
@@ -636,84 +670,7 @@ def enforce_via_transient(cut_macrostate,enum,all_complexes,cut_macrostates,para
 
     """Idea: By setting all outgoing reactions of the macrostate to > k_fast resting_complex -> transient complex. 
     """
-    """
-    rxncon = enum.condensation.reactions_consuming
-
-    scc = enum.condensation.scc_containing[cut_macrostate._complexes[0]]
-    scc_set = frozenset(scc)
-    out_rxns = [r for c in scc for r in rxncon[c] \
-                        if enum.condensation.is_fast(r) and is_outgoing(r, scc_set)]
     
-
-
-    cut_complexes = cut_macrostate._complexes
-
-    outgoing_reactions = []
-    new_fates = []
-    
-    for reaction in enum.condensation._condensed_reactions:
-        if reaction._reactants[0] == cut_macrostate:
-            outgoing_reactions.append(reaction)
-            new_fates.append(reaction._products[0])
-
-    
-    new_fates = frozenset({(item,) for item in new_fates})
-    new_fates = SetOfFates(new_fates)
-    
-    
-    if len(outgoing_reactions) == 0:
-
-        logger.info("\n\n\n______No outgoing reaction of cut macrostate --> can't enforce cutoff_________")
-        #exit()
-        return
-
-
-    mult_factor = 10e8
-
-    output = enum.to_pil(condensed=True,detailed = False) 
-
-    
-            
-    logger.info(f"\n\nCut Macrostate: {cut_macrostate} \nBefore pruning: \n {output} \n\n\n")
-
-    cut_occ = cut_macrostate.occupancy
-    
-    
-
-    modified_reactions = []
-    for reaction in enum._reactions:
-
-        # Maybe change to just outgoing reaction
-        if reaction._reactants[0] in cut_complexes: 
-            reaction._const = reaction._const * mult_factor
-            modified_reactions.append(reaction)
-            fin_complex = reaction._products[0]
-
-    tot_out = 0
-    for reaction in modified_reactions:
-        if reaction._reactants[0] == cut_macrostate:
-            tot_out += reaction._const   
-
-    
-    old_condensed_rxn = [reaction for reaction in enum.condensation._condensed_reactions]
-    
-    #change fate of complex which would've ended up in cut complex to neigbour complexes
-    for fate,x in enum.condensation._complex_fates.items(): 
-        if fate is not None and x.states is not None:
-            for element in x.states:    
-                if cut_macrostate in element:
-                    enum.condensation._complex_fates[fate] = new_fates
-                
-
-  
-    
-    enum._B = set(enum._resting_complexes)
-    enum._E = []
- 
-    """
-    
-
-
     #exiting the function if non cutable macrostates
     #no outgoing reaction
     out_rxns = []
@@ -726,7 +683,7 @@ def enforce_via_transient(cut_macrostate,enum,all_complexes,cut_macrostates,para
     if len(out_rxns) == 0:
         
         
-        logger.info(f"\n\n\n______No outgoing reaction of cut macrostate --> can't enforce cutoff for {cut_macrostate} _________")
+        cocosim_logger.info(f"\n\n\n______No outgoing reaction of cut macrostate --> can't enforce cutoff for {cut_macrostate} _________")
         
         return enum
 
@@ -735,7 +692,7 @@ def enforce_via_transient(cut_macrostate,enum,all_complexes,cut_macrostates,para
     output = enum.to_pil(condensed=True,detailed = False) 
 
             
-    logger.debug(f"\n\nCut Macrostate: {cut_macrostate} {cut_macrostate.occupancy}  \n{cut_macrostates}\nBefore pruning: \n {output} \n\n\n")
+    cocosim_logger.debug(f"\n\nCut Macrostate: {cut_macrostate} {cut_macrostate.occupancy}  \n{cut_macrostates}\nBefore pruning: \n {output} \n\n\n")
 
     
     mult_factor = 10e6
@@ -770,12 +727,12 @@ def enforce_via_transient(cut_macrostate,enum,all_complexes,cut_macrostates,para
     
     output = enum.to_pil(condensed=True,detailed = False) 
 
-    logger.info(f"\n\n\nAfter Pruning: \n {output} \n\n\n")
+    cocosim_logger.info(f"\n\n\nAfter Pruning: \n {output} \n\n\n")
 
     #readjust occupancies 
     cut_occ = cut_macrostate.occupancy
     
-    logger.debug(f"Cutocc:{cut_occ}")
+    cocosim_logger.debug(f"Cutocc:{cut_occ}")
     tot_out = 0
     for reaction in old_condensed_rxn:
         if reaction._reactants[0].name == cut_macrostate.name:
@@ -794,7 +751,7 @@ def enforce_via_transient(cut_macrostate,enum,all_complexes,cut_macrostates,para
         sum += complex.occupancy
 
 
-    logger.debug(f"Sum: {sum}")
+    cocosim_logger.debug(f"Sum: {sum}")
 
     stat_dist = enum.condensation.stationary_dist
 
@@ -805,7 +762,7 @@ def enforce_via_transient(cut_macrostate,enum,all_complexes,cut_macrostates,para
     for macro in enum.condensation.stationary_dist.keys(): 
         stat_dist = enum.condensation.stationary_dist
         if macro not in cut_macrostates:
-            logger.debug(f"Macro:{macro}")
+            cocosim_logger.debug(f"Macro:{macro}")
             macro_dist = dict(stat_dist[macro])
 
             for complex,value in macro_dist.items(): 
@@ -824,7 +781,7 @@ def enforce_via_transient(cut_macrostate,enum,all_complexes,cut_macrostates,para
 
     #update all_complexes
     for complex in enum._resting_complexes: 
-        logger.debug(f"{complex},{complex.occupancy}")
+        cocosim_logger.debug(f"{complex},{complex.occupancy}")
         update_complex_in_all_complexes(complex,all_complexes)
 
     
@@ -846,7 +803,7 @@ def flatten(lst):
 
 def enforce_cutoff_macrostate(macrostate,enum,all_complexes,cut_macrostates):
         
-    logger.info(f'\n\n\nEnforcing Macrostate Cutoff for {macrostate} with occupancy {macrostate.occupancy}\n\n')
+    cocosim_logger.info(f'\n\n\nEnforcing Macrostate Cutoff for {macrostate} with occupancy {macrostate.occupancy}\n\n')
 
     cut_complexes = macrostate._complexes
     cut_occ = sum([complex.occupancy for complex in cut_complexes])
@@ -920,7 +877,7 @@ def enforce_cutoff_macrostate(macrostate,enum,all_complexes,cut_macrostates):
 
 def enforce_cutoff_complex(enum,macrostate,cut_complex,parameters,all_complexes,cut_complexes):
 
-    logger.info(f'\n\n\nEnforcing Complex Cutoff for {cut_complex} with occupancy {cut_complex.occupancy}\n\n')
+    cocosim_logger.info(f'\n\n\nEnforcing Complex Cutoff for {cut_complex} with occupancy {cut_complex.occupancy}\n\n')
     
     #check if total macrostate gets cut
     macro_occ = np.float128(0)
@@ -938,7 +895,7 @@ def enforce_cutoff_complex(enum,macrostate,cut_complex,parameters,all_complexes,
 
     sum_remaining_occs = macro_occ - free_occ
 
-    logger.debug(f"Sum remaining occs: {sum_remaining_occs}") 
+    cocosim_logger.debug(f"Sum remaining occs: {sum_remaining_occs}") 
     check_num = 0 
     for complex in macrostate._complexes:
             if complex != cut_complex and complex not in cut_complexes:
@@ -982,7 +939,7 @@ def enumerate_step(complexes, reactions, parameter, all_complexes):
     if bind21 in BI_REACTIONS:
         BI_REACTIONS.remove(bind21)
 
-    logger.info(f"\n\n\nBeginning of Enumerate step:\nNumber of Complexes to be enumerated:{len(complexes)}\nReactions:{reactions}\nParameters:{parameter}\n\n")
+    cocosim_logger.info(f"\n\n\nBeginning of Enumerate step:\nNumber of Complexes to be enumerated:{len(complexes)}\nReactions:{reactions}\nParameters:{parameter}\n\n")
     init_cplxs = [x for x in complexes.values() if x.concentration is None or x.concentration[1] != 0 and x.occupancy != 0]
     name_cplxs = list(complexes.values())
     enum = Enumerator(init_cplxs, reactions, named_complexes=name_cplxs)
@@ -1004,7 +961,7 @@ def enumerate_step(complexes, reactions, parameter, all_complexes):
  
     enum.condense()
 
-    logger.info("\n\nDone Enumerating\n\n")
+    cocosim_logger.info("\n\nDone Enumerating\n\n")
     resulting_complexes = [cplx for cplx in natsorted(enum.resting_complexes)] 
     
     transient_complexes = [cplx for cplx in natsorted(enum.transient_complexes)]
@@ -1013,7 +970,7 @@ def enumerate_step(complexes, reactions, parameter, all_complexes):
     output = enum.to_pil(condensed=True,detailed = True) 
 
         
-    logger.info(f"\n\n\n\nOutput: \n {output} \n\n\n")
+    cocosim_logger.warning(f"\n\n\n\nOutput: \n {output} \n\n\n")
     return resulting_complexes, transient_complexes, enum
 
     
@@ -1023,7 +980,7 @@ def enumerate_step(complexes, reactions, parameter, all_complexes):
 def map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,parameters):
 
     
-    logger.info(f"\n\nMap Transient states\n\n")
+    cocosim_logger.info(f"\n\nMap Transient states\n\n")
     
     
     new_complexes = {}
@@ -1058,7 +1015,7 @@ def map_transient_states(resting_complexes,transient_complexes,all_complexes,enu
                             elif is_complex_in_all_complexes(stat_complex,all_complexes):
                                 update_complex_in_all_complexes(stat_complex,new_complexes)	
 
-    logger.info("\n\nEnd Mapping transient states")
+    cocosim_logger.info("\n\nEnd Mapping transient states")
     
     
 
@@ -1084,7 +1041,7 @@ def write_output(final_structures,d_seq,parameters = None):
         if x and x[0].kernel_string[-2] == "S": 
             for complex in x:
                 if complex.occupancy >= 0.001:
-                    data_output += f"{spacer_indices[ts]+ 1:3}  |	{complex.occupancy:7.5f}	|	{complex.kernel_string} \n"
+                    data_output += f"{spacer_indices[ts]+ 1:3}  |	{complex.occupancy:^7.5f}	|	{complex.kernel_string} \n"
             ts += 1 
 
             data_output += "\n"
@@ -1105,7 +1062,7 @@ def write_output(final_structures,d_seq,parameters = None):
                 if complex.occupancy >= 0.0001:
                     kernel_string = kernel_to_dot_bracket(complex.kernel_string)
                     db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
-                    data_output += f"{spacer_indices[ts]+ 1:3}  |	{np.float128(complex.occupancy):8.5f}   |   {db_struct} 	\n"
+                    data_output += f"{spacer_indices[ts]+ 1:3}  |	{np.float128(complex.occupancy):^8.5f}   |   {db_struct} 	\n"
                     if db_struct in struct_dict: 
                         struct_dict[db_struct] += complex.occupancy
                     else: 	
@@ -1135,26 +1092,24 @@ def input_parsing(d_seq, complexes,parameters):
         complexes(dict)	: dict of the complexes in the form of {Name:[kernel structure,population]}
     """
     
-    logger.info(f"Input Parsing: Structure input \n {complexes}")
+    cocosim_logger.info(f"Input Parsing: Structure input \n {complexes}")
     unique_domains = set([domain for domain in d_seq])
-
 
     system_input = f""
     for unique_domain in unique_domains:
         system_input += f"length {unique_domain} = {parameters['d_length'][unique_domain]} \n"
       
-    
     system_input += "\n"
     for name, lst in complexes.items():
             if lst[1] > 0:
                 system_input += f"{name} = {lst[0]}\n"
         
-
     complexes, reactions = read_pil(system_input)
-    
+
     for key,complex in complexes.items():
         complex.occupancy = np.float128(None)
         complex.id = None
+
 
     return complexes, reactions
 
@@ -1183,23 +1138,30 @@ def extract_afp(input_lines):
         return None 
 
 
-def set_verbosity(console_handler, verbosity):
+def set_verbosity(cocosim_logger, console_handler, verbosity):
     if verbosity == 0:
         console_handler.setLevel(logging.CRITICAL)
         file_handler.setLevel(logging.CRITICAL)
+        cocosim_logger.setLevel(logging.CRITICAL)
 
     elif verbosity == 1:
         console_handler.setLevel(logging.WARNING)
         file_handler.setLevel(logging.WARNING)
+        cocosim_logger.setLevel(logging.WARNING)
 
     elif verbosity == 2:
         console_handler.setLevel(logging.INFO)
         file_handler.setLevel(logging.INFO)
+        cocosim_logger.setLevel(logging.INFO)
 
     elif verbosity >= 3:
         console_handler.setLevel(logging.DEBUG)
         file_handler.setLevel(logging.DEBUG)
-
+        cocosim_logger.setLevel(logging.DEBUG)
+    else:
+        console_handler.setLevel(logging.CRITICAL)
+        file_handler.setLevel(logging.CRITICAL)
+        cocosim_logger.setLevel(logging.CRITICAL)
 
 def valid_cutoff(value):
     value = float(value)
@@ -1208,22 +1170,109 @@ def valid_cutoff(value):
     else:
         raise argparse.ArgumentTypeError(f"Cutoff must be between 0 and 1, but got {value}")
 
+def verify_domain_foldingpath(afp,domain_seq,parameters,simulated_structures = None):
+
+    """Function to verfiy that a domain level sequence folds according to the afp, by which it was generated. 
+
+    Args: 
+        afp(list): Each entry corresponds to a step in the folding path. 
+        domain_seq(string): domain level sequence
+
+    Returns: 
+        if correct folding path:
+            domain_path(list): domain level folding path 
+
+        False folding path: 
+            False 
+    """
+
+    #Minimum occupancy of desired structure for succesfull sim
+    threshold = 0.5
+
+    #converting afp to domain level afp for easier comparison
+
+    domain_afp = afp_to_domainfp(afp,domain_seq)
+
+    if simulated_structures == None:
+        simulated_structures = run_sim(domain_seq,parameters)
+
+
+    sim_domain_fp = [[] for _ in simulated_structures]
+
+    for i,step in enumerate(simulated_structures):
+        for complex in step: 
+            sim_domain_fp[i].append(''.join(complex._structure))
+    
+    spacer_indices = [index - 1 for index, entry in enumerate(domain_seq.split()) if entry.startswith('S')]
+    sim_unit_path = [simulated_structures[i] for i in spacer_indices]
+
+
+
+    dominant_structures_fp = []
+
+    logic_indices = [index for index,entry in enumerate(domain_seq.split()) if entry.startswith("L") ]
+    for x in range(len(sim_unit_path)):
+        target_occ = 0
+        max_occ = 0
+
+        for struct in sim_unit_path[x]: 
+            
+            #convert struct here to only logic domains and compare to afp
+
+            logic_struct = ''.join([struct._structure[i] for i in logic_indices[0:x]])
+
+
+            
+            if "".join(struct._structure) == domain_afp[x]: 
+                target_occ  += struct.occupancy
+                if struct.occupancy >= max_occ:
+                    max_occ = struct.occupancy
+                    max_occ_struct = "".join(struct._structure)
+        
+        if target_occ >= threshold:
+            dominant_structures_fp.append(max_occ_struct)
+            
+            
+        else:
+            print("Simulated path does not match the input abstract folding path.")
+            return False
+
+    
+
+
+    assert len(dominant_structures_fp) == len(afp),f"Some structures are missing {dominant_structures_fp = }"
+
+    print(f"\n\nSimulated folding path matches the abstract folding path.\n\n")
+
+    return dominant_structures_fp
+                
+
+
+
+
 
 def main():
     parser = argparse.ArgumentParser(description="cocosim is a cotranscriptional folding path simulator using peppercornenumerate to simulate a domain level sequence during transcription.")
     
     parser.add_argument("-i", "--input_file", nargs='?', type=argparse.FileType('r'), default=sys.stdin,
                         help="Input file. If not provided, reads from stdin.")
-    parser.add_argument("--k-slow", type=float, help="Specify k-slow. Determines the cutoffpoint for slow reactions.", default=0.001)
+    parser.add_argument("--k-slow", type=float, help="Specify k-slow. Determines the cutoffpoint for slow reactions.", default=0.00001)
     parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
     parser.add_argument("-v", "--verbose", action="count", default=0, help="Increase verbosity level. -v only shows peppercorn output")
+    parser.add_argument("-l", "--logic", action="store_true", default=False,help="Visualizes Logic domain pairings. Best used when analyzing cocopaths generated sequences. (default = False)")
     parser.add_argument("-cutoff", "--cutoff", action="store", type=valid_cutoff, default=float('-inf'),help="Cutoff value at which structures won't get accepted (default: -inf, valid range: 0 to 1)")
     
-
+    
 
     args = parser.parse_args()
     args.cutoff = float(args.cutoff)
-    set_verbosity(logger,args.verbose)
+    set_verbosity(cocosim_logger,console_handler,args.verbose)
+    console_handler.setLevel(logging.DEBUG)
+    
+    
+
+    # Read input     
+    d_length = {} #dict where domain lengths get saved
 
     if args.input_file.isatty():
         print("Please enter a domain level sequence:")
@@ -1232,82 +1281,129 @@ def main():
             raise SystemExit("No Input given")
         afp = None
     else:
-        input_lines = args.input_file.readlines()
-        d_seq = extract_domain_sequence(input_lines)
-        afp = extract_afp(input_lines)
-        args.input_file.close()
-        
-        print("Following AFP was given for Sequence design:")
-        for step in afp:
-            print(step)
-        print("\n")
+        file_extension = os.path.splitext(args.input_file.name)[1]  # Get the file extension
 
+        if file_extension == ".pil":
+            afp = None
+
+            pil_input = read_pil(args.input_file,True)
+            print(pil_input)
+            if len(pil_input[0]) == 1:
+                input_complex = next(iter(pil_input[0].values()))
+                print("Value of the entry:", input_complex)
+                print(f"{input_complex._sequence = }  ")
+                print(f"{input_complex.kernel_string = }  ")
+                
+
+                d_seq = input_complex.kernel_string
+
+                if all(char.isalpha() or char == '*' for char in d_seq):
+                    raise SystemExit("SystemExit: Only a domain level sequence is accepted. (No structural information)")
+
+                for domain in input_complex._sequence:
+                    length = domain._length
+                    name = domain._name
+                    if name not in d_length:
+                        d_length[name] = length
+
+                print(f"{d_length = }")
+
+                
+
+
+
+            else:
+                raise SystemExit("SystemExit:More than one kernel sequence in input. We can only simulate one kernel string at a time. ")
+
+            
+            
+        else:
+            try:
+                input_lines = args.input_file.readlines()
+                d_seq = extract_domain_sequence(input_lines)
+                afp = extract_afp(input_lines)
+                args.input_file.close()
+            except: 
+                raise SystemExit('No valid input was given. Please make sure it is in a valid pil format.')
 
     # create dictionary for domain lengths 
-    d_length = {}
+    if not d_length:
 
-    for domain in d_seq.split():
-        if domain[0] == "L":
-            d_length[domain] = 12
-        elif domain[0] == 'S':
-            d_length[domain] = 8 #round(int(domain[1]) * 3)  
-        else: 
-            d_length[domain] = 3 
-        d_length['S0'] = 18
+        for domain in d_seq.split():
+            if domain[0] == "L":
+                d_length[domain] = 8
+            elif domain[0] == 'S':
+                d_length[domain] = 0 # round(int(domain[1]) * 4)  
+            else: 
+                d_length[domain] = 4 
+        
 
-    parameters = {"k_slow": args.k_slow,'k_fast': args.k_fast, "cutoff": args.cutoff,"d_length":d_length,"d_seq":d_seq}
+    parameters = {"k_slow": args.k_slow,'k_fast': args.k_fast, "cutoff": args.cutoff,"d_length":d_length,"d_seq":d_seq,"logic":args.logic}
 
 
     print(parameters)
     
-    logger.warning(parameters)
+    cocosim_logger.warning(parameters)
 
 
     print("Given Domain Sequence:", d_seq)
 
    
-
-
-
+    if afp == None:
+        afp = afp_terminal_input()  
 
 
     #______Running_Simulation___________# 
     simulated_structures = run_sim(d_seq, parameters)
+
     
     last_step = simulated_structures[-1]
+    if args.logic: 
+        #Print continous output
+        for complex in last_step:
+            kernel_string = kernel_to_dot_bracket(complex.kernel_string)
+            db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
+            #occupancy = np.float128(complex.occupancy)
+            if round(complex.occupancy,4) > 1e-4:
+                print(f"END\t|\t{complex.occupancy:^8.4f}\t|\t{db_struct:16}|\t{complex.kernel_string}")
+        print()    
+    else: 
+        #Print continous output
+        for complex in last_step:
+            kernel_string = kernel_to_dot_bracket(complex.kernel_string)
+            #occupancy = np.float128(complex.occupancy)
+            if round(complex.occupancy,4) > 1e-4:
+                print(f"END\t|\t{complex.occupancy:^8.4f}\t|\t{complex.kernel_string}")
+        print()  
 
-    #Print continous output
-    for complex in last_step:
-        kernel_string = kernel_to_dot_bracket(complex.kernel_string)
-        db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
-        #occupancy = np.float128(complex.occupancy)
-        if round(complex.occupancy,4) > 1e-4:
-            print(f"END\t|\t{complex.occupancy:8.4f}\t|\t{db_struct:8}|\t{complex.kernel_string}")
-    print()    
-
-
+    
     #_____Writing_and_printing_output___# 
-    output = ""
+    if args.logic:
+        output = ""
 
-    d_seq
-    ts = 2
+        d_seq
+        ts = 2
 
-    
-    if 'S' in d_seq:
-        output += write_output(simulated_structures,d_seq)
-    
-    output += f"\n\nFollowing sequence was simulated:\n{d_seq}"
+        
+        if 'S' in d_seq:
+            output += write_output(simulated_structures,d_seq)
+        
+        output += f"\n\nFollowing sequence was simulated:\n{d_seq}"
 
-    if afp: 
-        output += f"\n\nFollowing AFP was given for Sequence design"
-        for step in afp:
-            
-            output += f"{step}\n"
+        if afp: 
+            output += f"\n\nFollowing AFP was given for Sequence design"
+            for step in afp:
+                
+                output += f"{step}\n"
 
-    print(output)
+        print(output)
 
+    #______Verify_Simulation
+    if len(afp) > 1:
+        dominant_path = verify_domain_foldingpath(afp,d_seq,parameters,simulated_structures)
 
-    logger.removeHandler(file_handler)  # Remove the file handler from the logger
+     
+    cocosim_logger.removeHandler(file_handler)  # Remove the file handler from the cocosim_logger
     file_handler.close()  # Close the file handler to release the file
     os.remove("cocosim.log")
 
