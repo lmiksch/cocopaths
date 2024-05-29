@@ -22,6 +22,7 @@ jobs:
         pip install peppercornenumerator
         pip install crnsimulator
         pip install coverage
+        pip install viennarna
       working-directory: .  
 
     - name: Run pytest
