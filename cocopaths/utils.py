@@ -2,6 +2,7 @@
 """
 This module contains all the different util functions. 
 """
+import RNA
 
 def is_balanced_structure(s):
     stack = []
@@ -250,12 +251,14 @@ def afp_to_domainfp(afp,d_seq):
             afp(list): each sublist corresponds to one step example wrong not sublists
             d_seq(str): domain sequence
     """
-
-
     domain_fp = []
     d_seq = d_seq.split()
 
-    
+
+    print(f'{afp =}')
+    print(f'{d_seq = }')
+
+
     for x,cur_path in enumerate(afp):
         module_index = 0
         path = ""
@@ -344,5 +347,43 @@ def domainfp_to_afp(domain_fp, d_seq):
     
     return afp
 
+def call_findpath(seq, ss1, ss2, md, fpw, mxb = float('inf')):
+    """ Call ViennaRNA findpath. Modified from DrTransformerd_length
+    """
+    fc = RNA.fold_compound(seq)
+    
+    if mxb == float('inf'):
+        path = fc.path_findpath(ss1, ss2, width = fpw)
+        
+    else:
+        e1 = round(fc.eval_structure(ss1), 4)
+        dcal_bound = int(round((mxb + e1)))
+        path = fc.path_findpath(ss1, ss2, maxE = dcal_bound, width = fpw)
+        
+    del fc
+
+    if len(path):
+        mypath = []
+        barrier = None
+        for step in path:
+            struct = step.s
+            energy = float(round(step.en,4))
+            mypath.append((struct, energy))
+            if barrier is None or barrier < energy:
+                barrier = energy
+        barrier -= float(round(path[0].en,4))
+        del step, path # potentially a good idea.
+        return mypath, barrier
+    return None, None
+
+
 if __name__=="__main__":
     print(' ')
+
+    seq = "CCCUAGAGAUGAACACGUAUCUUUAACCCACUCCAGUUCGUUUUUGGGGCCUGGAUAAAG"
+    ss1 = "...((((((((......))))))))..................................."
+    ss2 = "((((((((((((((.....................))))))))))))))..........."
+    mypath,barrier = call_findpath(seq,ss1,ss2,md=20,fpw = 20)
+    for path in mypath:
+        print(path)
+    print(barrier)

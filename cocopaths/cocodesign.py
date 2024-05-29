@@ -21,13 +21,13 @@ def valid_cutoff(value):
     else:
         raise argparse.ArgumentTypeError(f"Cutoff must be between 0 and 1, but got {value}")
 
-def objective_function(fe,efe,mse,barrier):
+def objective_function(fe,efe,mse,barrier,ensemble_defect):
     """
     Function exists to only change one thing when changing the obj function
     """
     
-    obj_fun = "abs(fe - efe) + barrier"
-    score = eval(obj_fun.format(fe=fe,efe=efe,barrier=barrier))
+    obj_fun =  "0.02*ensemble_defect + (fe - efe)**2 + barrier"
+    score = eval(obj_fun.format(fe=fe,efe=efe,barrier=barrier,ensemble_defect=ensemble_defect))
     return score,obj_fun
 
 def couple(pair):
@@ -231,7 +231,10 @@ def mc_optimize(model, objective, steps, temp, start=None):
 
 def rna_design(seq,path,parameters):
 
-
+    print(f"{seq =}")
+    for x in path:
+        print(x)    
+    
     split_seq = seq.split()
 
     d_seq_len = sum([int(parameters["d_length"][x]) for x in split_seq])
@@ -252,10 +255,11 @@ def rna_design(seq,path,parameters):
 
     ext_path = path
     
-    
+    print(f"Before folding path constraint")
     # Folding path constraint
     for x in ext_path: 
         cons = []
+        print(x)
         bps = rna.parse(x)
         cons = [rna.BPComp(i,j) for (i,j) in bps]
         
@@ -291,11 +295,13 @@ def rna_design(seq,path,parameters):
         # add score for first folding step
         fc = RNA.fold_compound(nt_path[0])
         fe = fc.eval_structure(ext_path[0].replace(".","x"))
-        efe = constrained_efe(nt_path[0],ext_path[0])
+        efe = fc.pf()[1]
         mse = 0
         barrier = 0
-        obj_score = objective_function(fe,efe,mse,barrier)[0]
+        ensemble_defect = fc.ensemble_defect(ext_path[0])
+        obj_score = objective_function(fe,efe,mse,barrier,ensemble_defect)[0]
         total.append(obj_score)
+        
 
         for x in range(1,len(ext_path)):
             #prepare input for finpath 
@@ -303,9 +309,8 @@ def rna_design(seq,path,parameters):
 
             ss1 = ext_path[x-1] + ("." * (len(nt_path[x])-len(nt_path[x-1])))
          
-            efe = constrained_efe(nt_path[x],ext_path[x])
             fc = RNA.fold_compound(nt_path[x])
-            
+            efe = fc.pf()[1]
             fe = fc.eval_structure(ext_path[x].replace(".","x"))
             mypath, barrier = call_findpath(nt_path[x],ss1,ext_path[x],0,30)
 
@@ -328,24 +333,13 @@ def rna_design(seq,path,parameters):
             
             #print("efe",efe)
             #print("barrierIdenticalDomains(i_pointer,j_pointer)",barrier)
-            obj_score = objective_function(fe,efe,mse,barrier)[0]
+            ensemble_defect = fc.ensemble_defect(ext_path[x])
+            obj_score = objective_function(fe,efe,mse,barrier,ensemble_defect)[0]
             
             total.append(obj_score) 
 
-        #calculate MSE of scores to keep all scores equal 
-
-
-        total_mean = sum(total)/ len(total)
-
-        squared_error = [(x - total_mean) ** 2 for x in total]
-        #print("total after", total)   
-        for i,score in enumerate(total):
-            total[i] = score + squared_error[i]
-
-        if score_list:
-            return total
-        #print("total after", total)    
-        return sum(total)
+        #Return maximum score   
+        return max(total)
 
     objective = lambda x: -rstd_objective(rna.ass_to_seq(x))
 
