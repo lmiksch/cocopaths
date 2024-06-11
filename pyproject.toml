@@ -24,7 +24,8 @@ requires-python = ">=3.8"
 dynamic = ["version"]
 
 dependencies = [
-    "ViennaRNA>=2.6.4",  
+    "Infrared",
+    "peppercornenumerator"  
 ]
 
 

@@ -255,8 +255,8 @@ def afp_to_domainfp(afp,d_seq):
     d_seq = d_seq.split()
 
 
-    print(f'{afp =}')
-    print(f'{d_seq = }')
+    #print(f'{d_seq = }')
+    #print(f'{afp =}')
 
 
     for x,cur_path in enumerate(afp):
@@ -380,9 +380,10 @@ def call_findpath(seq, ss1, ss2, md, fpw, mxb = float('inf')):
 if __name__=="__main__":
     print(' ')
 
-    seq = "CCCUAGAGAUGAACACGUAUCUUUAACCCACUCCAGUUCGUUUUUGGGGCCUGGAUAAAG"
-    ss1 = "...((((((((......))))))))..................................."
-    ss2 = "((((((((((((((.....................))))))))))))))..........."
+    seq = "CGGUUAUGGAACACUAAUUUCGUAAAUAUCAAGAUGUGUUCUAUGACCGACGUCGCUAUUCGUUGGUCGUAGGACGCGUUGCAAACUAAAAC"
+    ss1 = "((((((((((((((.....................)))))))))))))).((((.((((.(....)..))))))))................"
+    ss2 = "...((((((((......)))))))).......((((((((((((((((((((........))))))))))))))))))))............"
+
     mypath,barrier = call_findpath(seq,ss1,ss2,md=20,fpw = 20)
     for path in mypath:
         print(path)

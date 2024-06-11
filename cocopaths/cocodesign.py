@@ -5,7 +5,7 @@ from .utils import(is_balanced_structure,afp_terminal_input,afp_to_domainfp)
 from cocopaths import __version__
 from cocopaths.cocosim import verify_domain_foldingpath
 from peppercornenumerator.input import read_pil
-
+import numpy as np
 
 #______define_logger_____#
 cocodesign_logger = logging.getLogger('cocodesign')
@@ -21,13 +21,13 @@ def valid_cutoff(value):
     else:
         raise argparse.ArgumentTypeError(f"Cutoff must be between 0 and 1, but got {value}")
 
-def objective_function(fe,efe,mse,barrier,ensemble_defect):
+def objective_function(cefe,fe,efe,mse,barrier,ensemble_defect):
     """
     Function exists to only change one thing when changing the obj function
     """
     
-    obj_fun =  "0.02*ensemble_defect + (fe - efe)**2 + barrier"
-    score = eval(obj_fun.format(fe=fe,efe=efe,barrier=barrier,ensemble_defect=ensemble_defect))
+    obj_fun =  " (cefe - fe)**2 + barrier*0.5 + ensemble_defect"
+    score = eval(obj_fun.format(cefe=cefe,fe=fe,barrier=barrier,ensemble_defect=ensemble_defect))
     return score,obj_fun
 
 def couple(pair):
@@ -229,6 +229,156 @@ def mc_optimize(model, objective, steps, temp, start=None):
         
         return (best, bestval)
 
+
+def score_sequence(seq,d_seq,parameters,afp):
+    '''Scores the sequence with the current objective function from cocodesign
+    
+    Args: 
+        seq(str): nucleotide sequence 
+        parameters(dict): dict of parameters important is that d_length dict exists
+        afp(list): each entry corresponds to a step in the abstract folding path
+
+    Returns: 
+        output(str): Formatted output for writing in file or displaying in terminal
+        score(float): max score of the sequence
+
+    '''
+    split_seq = d_seq.split()
+
+    split_nt_sequence = []
+        #creates a list of list where each sublist i corresponds to the sequence at transcription step i 
+    l_pointer = 0
+    for z in split_seq:
+        
+        r_pointer = l_pointer + parameters["d_length"][z]
+        
+        split_nt_sequence.append(seq[l_pointer:r_pointer])
+        l_pointer = r_pointer
+    
+    
+    nt_path = []
+    for x in range(len(split_seq)):
+        if split_seq[x][0][0] == "S":
+        
+            
+            nt_path.append("".join(split_nt_sequence[:x+1]))
+    nt_path.append(seq)
+    
+    domain_fp = afp_to_domainfp(afp,d_seq)
+
+    ext_path = domain_path_to_nt_path(domain_fp,d_seq,parameters)
+    total = []
+    output_matrix = []
+    """
+    
+    # add score for first folding step
+    fc = RNA.fold_compound(nt_path[0])
+    efe = fc.pf()[1]
+    #fe = fc.eval_structure(ext_path[0]) #ext_path[0].replace(".","x")
+    fc.hc_add_from_db(ext_path[0])
+    fe = fc.pf()[1]
+    mse = 0
+    barrier = 0
+    ensemble_defect = fc.ensemble_defect(ext_path[0])
+    obj_score,obj_func = objective_function(fe,efe,mse,barrier,ensemble_defect)
+    total.append(obj_score)
+
+    prob = fc.pr_structure(ext_path[0])
+    output = f"{obj_func =}\n"
+    output += f"{seq = }\n"
+    
+    output_matrix.append([obj_score,prob,(efe - fe) ** 2,barrier,0,ensemble_defect])
+    #output += f"{obj_score:<12.6g}\t{prob:<8.6g}\t{(efe - fe) ** 2:<11.6g}\t{barrier:<8g}\t{0:<9}\t{ensemble_defect}\n"
+
+    """
+    for x in range(0,len(ext_path)):
+        #prepare input for finpath 
+        mse = 0
+        if x == 0: 
+            ss1 = ext_path[x] 
+        else:
+            ss1 = ext_path[x-1] + ("." * (len(nt_path[x])-len(nt_path[x-1])))
+         
+        fc = RNA.fold_compound(nt_path[x])
+        
+        efe = fc.pf()[1]
+        fe = fc.eval_structure(ext_path[x])
+
+        fc.hc_add_from_db(ext_path[x])
+        
+        tfe = fc.eval_structure(ext_path[x])
+        
+        cefe = fc.pf()[1]
+        
+        #print(f'{fe = }, {efe = }, {cefe = }, {tfe = }')
+        mypath, barrier = call_findpath(nt_path[x],ss1,ext_path[x],0,30)
+        if mypath != None:
+            deltaE = abs(mypath[-1][1]) - abs(mypath[0][1])
+        else: 
+            deltaE = 99
+            barrier = 99
+        global factor
+
+        ensemble_defect = fc.ensemble_defect(ext_path[x])
+        obj_score,obj_function = objective_function(cefe,fe,efe,mse,barrier,ensemble_defect)
+        total.append(obj_score) 
+        prob = fc.pr_structure(ext_path[x].replace(".","x"))
+        output_matrix.append([obj_score,prob,(cefe - fe) ** 2,barrier,len(mypath),ensemble_defect])
+
+        #output += f"{obj_score:<12.6g}\t{prob:<8.6g}\t{(efe - fe) ** 2:<11.6g}\t{barrier:<8.6g}\t{len(mypath):<9}\t{ensemble_defect:<9}\n"
+
+    mean_efe_fe_squared = sum(row[2] for row in output_matrix) / len(output_matrix)
+    mean_ensemble_defect = sum(row[5] for row in output_matrix) / len(output_matrix)
+
+    #Option to include MSE 
+
+    for i, row in enumerate(output_matrix):
+        efe_fe_squared_error = abs(row[2] - mean_efe_fe_squared) 
+        ensemble_defect_error = abs(row[5] - mean_ensemble_defect) 
+        
+        squared_error = efe_fe_squared_error + ensemble_defect_error
+        total[i] += squared_error *0.01
+        
+        output_matrix[i].append(efe_fe_squared_error)
+        output_matrix[i].append(ensemble_defect_error)
+        output_matrix[i].append(squared_error)
+        output_matrix[i].append(total[i])
+        mean = sum(total)/len(total)
+
+     
+    #format output 
+    output = f"{obj_function = }\nObj Score\tProb    \tEfe-Fe^2   \tBarrier \tPath Length\tEnsemble Defect\tEfe-Fe^2 Error\tEnsemble Defect Error\tSquared Error\tTotal Score\n"
+    output += "\n".join(
+        f"{row[0]:<12.6g}\t{row[1]:<8.6g}\t{row[2]:<11.6g}\t{row[3]:<8.6g}\t{row[4]:<9}\t{row[5]:<9.5}\t{row[6]:<15.6g}\t{row[7]:<21.6g}\t{row[8]:<13.6g}\t{row[9]:<11.6g}" 
+        for row in output_matrix)
+
+    #Return maximum score   
+
+    return max(total),output
+
+def nt_path_to_afp(nt_path,domain_seq,parameters):
+    afp = []
+    for i,step in enumerate(nt_path):
+        cur_struct = []
+        seen_l = 0            
+        index = 0
+        for domain in domain_seq.split():
+            if domain.endswith(str(i)):
+                break
+            elif not domain.startswith('L') and not domain.startswith('S'):
+                index += parameters['d_length'][domain[0]]
+            elif domain.startswith('S'):
+                index += parameters['d_length'][domain]
+            elif domain.startswith('L'):
+                cur_struct.append(step[index + 1])
+                index += parameters['d_length'][domain]
+
+        afp.append(''.join(cur_struct))
+
+
+    return afp 
+
+
 def rna_design(seq,path,parameters):
 
     print(f"{seq =}")
@@ -262,86 +412,14 @@ def rna_design(seq,path,parameters):
         print(x)
         bps = rna.parse(x)
         cons = [rna.BPComp(i,j) for (i,j) in bps]
-        
-
         model.add_constraints(cons)
 
 
     
 
-    def rstd_objective(sequence,score_list = False):
-        
-        split_nt_sequence = []
-        #creates a list of list where each sublist i corresponds to the sequence at transcription step i 
-        l_pointer = 0
-        for z in split_seq:
-            
-            r_pointer = l_pointer + parameters["d_length"][z]
-            
-            split_nt_sequence.append(sequence[l_pointer:r_pointer])
-            l_pointer = r_pointer
-        
-        
-        nt_path = []
-        for x in range(len(split_seq)):
-            if split_seq[x][0][0] == "S":
-            
-                
-                nt_path.append("".join(split_nt_sequence[:x+1]))
-        nt_path.append(sequence)
-        
-       
-        total = []
-        # add score for first folding step
-        fc = RNA.fold_compound(nt_path[0])
-        fe = fc.eval_structure(ext_path[0].replace(".","x"))
-        efe = fc.pf()[1]
-        mse = 0
-        barrier = 0
-        ensemble_defect = fc.ensemble_defect(ext_path[0])
-        obj_score = objective_function(fe,efe,mse,barrier,ensemble_defect)[0]
-        total.append(obj_score)
-        
-
-        for x in range(1,len(ext_path)):
-            #prepare input for finpath 
     
-
-            ss1 = ext_path[x-1] + ("." * (len(nt_path[x])-len(nt_path[x-1])))
-         
-            fc = RNA.fold_compound(nt_path[x])
-            efe = fc.pf()[1]
-            fe = fc.eval_structure(ext_path[x].replace(".","x"))
-            mypath, barrier = call_findpath(nt_path[x],ss1,ext_path[x],0,30)
-
-           
-            if mypath != None:
-                deltaE = abs(mypath[-1][1]) - abs(mypath[0][1])
-                
-            else: 
-                deltaE = 99
-                barrier = 99
-
-
-            mse = 0
-            global factor
-
-
-            #print("fe", fe)
-
-
-            
-            #print("efe",efe)
-            #print("barrierIdenticalDomains(i_pointer,j_pointer)",barrier)
-            ensemble_defect = fc.ensemble_defect(ext_path[x])
-            obj_score = objective_function(fe,efe,mse,barrier,ensemble_defect)[0]
-            
-            total.append(obj_score) 
-
-        #Return maximum score   
-        return max(total)
-
-    objective = lambda x: -rstd_objective(rna.ass_to_seq(x))
+    afp = nt_path_to_afp(path,seq,parameters)
+    objective = lambda x: -score_sequence(rna.ass_to_seq(x),seq,parameters,afp)[0]
 
     best, best_val = mc_optimize(model, objective,steps = parameters['steps'], temp = 0.04)
 
