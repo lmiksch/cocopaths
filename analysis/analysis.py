@@ -246,7 +246,7 @@ def get_data(n,current_folder):
                 d_length[domain] = 3
 
 
-        parameters = {"k_slow": 0.001 , 'k_fast': 20, "cutoff": 0.05,"d_length":d_length,"d_seq":d_seq}
+        parameters = {"k_slow": 0.001 , 'k_fast': 20, "cutoff": 0.05,"d_length":d_length,"d_seq":d_seq,"logic":True}
 
     
         simulated_structures = run_sim(d_seq,parameters)
@@ -338,16 +338,16 @@ def fill_data(n,tsv_file):
 
         for domain in d_seq.split():
             if domain[0] == "L":
-                d_length[domain] = 12
+                d_length[domain] = 8
 
             elif domain[0] == 'S':
-                d_length[domain] = 0
+                d_length[domain] =  1 + round(int(domain[1]) * 3) 
 
             else: 
                 d_length[domain] = 3
 
 
-        parameters = {"k_slow": 0.001 , 'k_fast': 20, "cutoff": 0.05,"d_length":d_length,"d_seq":d_seq}
+        parameters = {"k_slow": 0.001 , 'k_fast': 20, "cutoff": 0.05,"d_length":d_length,"d_seq":d_seq,"logic":True}
 
         simulated_structures = run_sim(d_seq,parameters)
         print(simulated_structures)
@@ -387,15 +387,15 @@ def main():
     current_folder = f'{next_folder_number}_{base_folder}'
     
     os.makedirs(current_folder, exist_ok=True)
-    for i in range(2,7):
-        get_data(i,current_folder)
+    #for i in range(2,7):
+    #    get_data(i,current_folder)
         
-    print("S_10")
+    print("S_new")
 
 
     #uncomment to fill up file if segfault happended 
     #check if parameters match 
-    #fill_data(6,"10_run/6_steps_out.tsv")
+    fill_data(6,"6_run/6_steps_out.tsv")
 
     print("data is in ",current_folder)
 

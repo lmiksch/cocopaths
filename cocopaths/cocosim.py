@@ -407,6 +407,7 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
     parser.add_argument("-v", "--verbose", action="count", default=0, help="Increase verbosity level. -v only shows peppercorn output")
     parser.add_argument("-cutoff", "--cutoff", action="store", type=valid_cutoff, default=float('-inf'),help="Cutoff value at which structures won't get accepted (default: -inf, valid range: 0 to 1)")
     parser.add_argument("-l", "--logic", action="store_true", default=False,help="Visualizes Logic domain pairings. Best used when analyzing cocopaths generated sequences. (default = False)")
+    parser.add_argument("-s","--steps",help="Number of steps in the optimization",default=2000,type=int)
 
 
     s_args = parser.parse_args()
@@ -1261,7 +1262,7 @@ def main():
     parser.add_argument("-v", "--verbose", action="count", default=0, help="Increase verbosity level. -v only shows peppercorn output")
     parser.add_argument("-l", "--logic", action="store_true", default=False,help="Visualizes Logic domain pairings. Best used when analyzing cocopaths generated sequences. (default = False)")
     parser.add_argument("-cutoff", "--cutoff", action="store", type=valid_cutoff, default=float('-inf'),help="Cutoff value at which structures won't get accepted (default: -inf, valid range: 0 to 1)")
-    
+
     
 
     args = parser.parse_args()
@@ -1333,9 +1334,9 @@ def main():
             if domain[0] == "L":
                 d_length[domain] = 8
             elif domain[0] == 'S':
-                d_length[domain] = 0 # round(int(domain[1]) * 4)  
+                d_length[domain] =  round(int(domain[1]) * 4)  
             else: 
-                d_length[domain] = 4 
+                d_length[domain] = 3 
         
 
     parameters = {"k_slow": args.k_slow,'k_fast': args.k_fast, "cutoff": args.cutoff,"d_length":d_length,"d_seq":d_seq,"logic":args.logic}

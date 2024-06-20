@@ -26,7 +26,7 @@ def objective_function(cefe,fe,efe,mse,barrier,ensemble_defect):
     Function exists to only change one thing when changing the obj function
     """
     
-    obj_fun =  " (cefe - fe)**2 + barrier*0.5 + ensemble_defect"
+    obj_fun =  "(cefe - fe)**2 + 0.1*barrier + ensemble_defect" 
     score = eval(obj_fun.format(cefe=cefe,fe=fe,barrier=barrier,ensemble_defect=ensemble_defect))
     return score,obj_fun
 
@@ -269,28 +269,7 @@ def score_sequence(seq,d_seq,parameters,afp):
     ext_path = domain_path_to_nt_path(domain_fp,d_seq,parameters)
     total = []
     output_matrix = []
-    """
-    
-    # add score for first folding step
-    fc = RNA.fold_compound(nt_path[0])
-    efe = fc.pf()[1]
-    #fe = fc.eval_structure(ext_path[0]) #ext_path[0].replace(".","x")
-    fc.hc_add_from_db(ext_path[0])
-    fe = fc.pf()[1]
-    mse = 0
-    barrier = 0
-    ensemble_defect = fc.ensemble_defect(ext_path[0])
-    obj_score,obj_func = objective_function(fe,efe,mse,barrier,ensemble_defect)
-    total.append(obj_score)
 
-    prob = fc.pr_structure(ext_path[0])
-    output = f"{obj_func =}\n"
-    output += f"{seq = }\n"
-    
-    output_matrix.append([obj_score,prob,(efe - fe) ** 2,barrier,0,ensemble_defect])
-    #output += f"{obj_score:<12.6g}\t{prob:<8.6g}\t{(efe - fe) ** 2:<11.6g}\t{barrier:<8g}\t{0:<9}\t{ensemble_defect}\n"
-
-    """
     for x in range(0,len(ext_path)):
         #prepare input for finpath 
         mse = 0
@@ -337,7 +316,7 @@ def score_sequence(seq,d_seq,parameters,afp):
         ensemble_defect_error = abs(row[5] - mean_ensemble_defect) 
         
         squared_error = efe_fe_squared_error + ensemble_defect_error
-        total[i] += squared_error *0.01
+        #total[i] += squared_error
         
         output_matrix[i].append(efe_fe_squared_error)
         output_matrix[i].append(ensemble_defect_error)
