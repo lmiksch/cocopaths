@@ -1,19 +1,18 @@
 import argparse
 from cocopaths.cocopath import build_graph
-from cocopaths.cocodesign import rna_design,domain_path_to_nt_path,afp_to_domainfp,constrained_efe,objective_function,call_findpath,extend_domain_seq,score_sequence
+from cocopaths.cocodesign import rna_design,domain_path_to_nt_path,afp_to_domainfp,constrained_efe,objective_function,call_findpath,extend_domain_seq,score_sequence,toehold_structures
 from cocopaths.utils import only_logic_domain_struct
 import RNA
 import numpy as np 
 import subprocess,os,re
 import matplotlib.pyplot as plt 
-import seaborn as sns
+#import seaborn as sns
 import pandas as pd
 from scipy.stats import pearsonr, spearmanr
 from statistics import mean
 import pandas as pd
 import ast
 from filelock import FileLock
-
 
 def coco_suite(folding_path,output,steps,parameters):
     """
@@ -32,7 +31,7 @@ def coco_suite(folding_path,output,steps,parameters):
 
     domain_seq = ' '.join(afp_graph.get_domain_seq())
 
-    print(f"Resulting Domain Level sequence: {domain_seq}")
+    #print(f"Resulting Domain Level sequence: {domain_seq}")
 
 
     #creation of parameters using the default parameters 
@@ -44,14 +43,17 @@ def coco_suite(folding_path,output,steps,parameters):
 
     domain_fp = afp_to_domainfp(folding_path,domain_seq)
 
-    print(f"\n\nBegin RNA design\n")
+    #print(f"\n\nBegin RNA design\n")
 
     ext_fp = domain_path_to_nt_path(domain_fp,domain_seq,parameters)
 
-    nt_sequence,score = rna_design(domain_seq,ext_fp,parameters)
+    
+    toehold_domain_fp = toehold_structures(domain_fp,domain_seq,folding_path)
+
+    nt_sequence,score = rna_design(domain_seq,ext_fp,parameters,folding_path,toehold_domain_fp)
 
 
-    detailed_scores = score_sequence(nt_sequence,domain_seq,parameters,folding_path)[1]
+    detailed_scores = score_sequence(nt_sequence,domain_seq,parameters,folding_path,domain_fp)[1]
 
 
     print(detailed_scores)
@@ -354,7 +356,9 @@ def analyze_all_fps(file_path,start_index):
         total_score += score_list
         total_pop += occ_list         
         sp_corr, p_value = correlation_analysis(total_pop,total_score,obj_fun,False)
-        
+        if not result_pop: 
+            result_pop.append(-1)
+
         with FileLock(output_file + ".lock"):
             with open(output_file,'a') as output_f:
                 output_f.write(f'{index}\t{curr_path}\t{max(result_pop):.6f}\t{tries}\t{mean(result_pop):.6f}\t{row["dominating_struct"]}\t{sp_corr:.6f}\t{p_value:.6f}\n')

@@ -439,6 +439,18 @@ class graph():
                             raise SystemExit(f"Two unpaired complements in the folding path: {afp}. Please pair them.")
 
 
+    def consistency_check(self,afp):
+        """Applies the consistency check on the input afp. If it doesn't pass it raises a SystemExit. 
+
+        Args:
+            afp(list): abstract folding path in the form of a list
+        """
+
+        for i in range(1,len(afp)):
+            if afp[i][-1] == "." and afp[i][0:i] != afp[i-1]:
+                raise SystemExit(f"CFolding path is not consitent in following step: {afp[i]}-{afp[i-1]}")
+
+
 def build_graph(afp):
 
     if afp[0][0] == ".":
@@ -497,6 +509,8 @@ def build_graph(afp):
     
 
     afp_graph.check_unpaired_complements(pairtable_afp)
+
+    afp_graph.consistency_check(afp)
 
     graph.print_nodes
     afp_graph.get_weights(afp=pairtable_afp)

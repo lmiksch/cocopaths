@@ -16,6 +16,21 @@ def is_balanced_structure(s):
     
     return len(stack) == 0
 
+
+def split_into_modules(input_string):
+    import re
+    # Use regular expression to split the string by the spacers
+    pattern = re.compile(r'\s*S\d+\s*')
+    modules = pattern.split(input_string)
+    
+    # Remove any leading/trailing whitespace from each module
+    modules = [module.strip() for module in modules if module.strip()]
+    
+    return modules
+
+
+
+
 def path_to_pairtablepath(path):
     """ Function which turns a structural path in dot bracket annotation into a pairtable path
 
@@ -238,7 +253,24 @@ def afp_terminal_input():
 def couple(pair):
 	if pair[0][0].upper() == pair[1][0].upper() and pair[0] != pair[1]:
 		return True
+
+
+def get_base_pairings_dict(dot_bracket):
+    stack = []
+    pairings_dict = {}
+
+    for i, char in enumerate(dot_bracket):
+        if char == '(':
+            stack.append(i)
+        elif char == ')':
+            if stack:
+                opening_index = stack.pop()
+                pairings_dict[opening_index] = i
+                pairings_dict[i] = opening_index
     
+    return pairings_dict
+
+
 def afp_to_domainfp(afp,d_seq):
     """Takes an abstract folding path and a domain level sequence and converts it into a domain level path 
         Example: 
@@ -261,9 +293,17 @@ def afp_to_domainfp(afp,d_seq):
 
     for x,cur_path in enumerate(afp):
         module_index = 0
+
+        base_pair_dict = get_base_pairings_dict(cur_path)
         path = ""
         stack = []
+        #print(f'{cur_path = }')
+        #print(' '.join(d_seq))
+        struc_stack = []
+
+
         for i,domain in enumerate(d_seq):
+            #print(f'{path = }, {domain = }, {cur_path[module_index]}')
             if domain[0] == "S":    
                 module_index += 1
 
@@ -282,18 +322,30 @@ def afp_to_domainfp(afp,d_seq):
             elif cur_path[module_index] == "(" and domain[0] != "S": 
                 j = i
                 k = module_index
+                #print(f'{k = },{domain = }')
                 added_notation = False
                 while k < len(cur_path) and j <= len(d_seq) -1 :
-                    if cur_path[k] == ")":
+                    if cur_path[k] == ")" and k == base_pair_dict[module_index]:
                         if couple((domain,d_seq[j])):
                             path += "("
+                            struc_stack.append('(')
                             added_notation = True
                             stack.append(domain)
                             break
-                    
+
+                    if cur_path[k] == "(" and k == base_pair_dict[module_index]:
+                        if struc_stack:
+                            if struc_stack[-1] == ")":
+                                path += "."
+                                added_notation = True
+
+                            break
+
                     if d_seq[j][0] == "S":
                         k += 1 
-                    j += 1    
+                    j += 1
+
+        
                 if added_notation != True:
                     path += "."
                     
@@ -302,15 +354,20 @@ def afp_to_domainfp(afp,d_seq):
                 j = i 
                 k = module_index
                 added_notation = False 
+                #print(f'{stack = }')
                 if stack:
-                    if couple((stack[-1],domain)):
+                    if couple((stack[-1],domain)) and struc_stack[-1] == "(":
                             path += ")"
                             stack.pop()
+                            struc_stack.pop()
                     else:
                         path += "."
 
                 else:
                         path += "."
+
+
+
 
     return domain_fp
 
@@ -378,13 +435,16 @@ def call_findpath(seq, ss1, ss2, md, fpw, mxb = float('inf')):
 
 
 if __name__=="__main__":
-    print(' ')
+    d_seq = 'a* b* c* L0* d* e* f* S0 d L0 c S1  L0*  S2 e d L0 c b S3 g f e d L0 c b a h S4 h* a* b* c* L0* d* e* f* g* S5'
 
-    seq = "CGGUUAUGGAACACUAAUUUCGUAAAUAUCAAGAUGUGUUCUAUGACCGACGUCGCUAUUCGUUGGUCGUAGGACGCGUUGCAAACUAAAAC"
-    ss1 = "((((((((((((((.....................)))))))))))))).((((.((((.(....)..))))))))................"
-    ss2 = "...((((((((......)))))))).......((((((((((((((((((((........))))))))))))))))))))............"
+    afp = ['.','()','().','()()','(().)','()()()']
+    afp_to_domainfp(afp,d_seq)
 
+    """ print(' ')
+    seq = "CGGUUAUGGAACACUAAUUUCGUAAAUAUCAAGAUGUGUUCUAUGACCGACGUCGCUAUUCGUUGGUCGUAGGACGCGUUGCAAACUAAAAC 
+    ss1 = "((((((((((((((.....................)))))))))))))).((((.((((.(....)..))))))))................ 
+    ss2 = "...((((((((......)))))))).......((((((((((((((((((((........))))))))))))))))))))............"        
     mypath,barrier = call_findpath(seq,ss1,ss2,md=20,fpw = 20)
     for path in mypath:
         print(path)
-    print(barrier)
+    print(barrier)"""
