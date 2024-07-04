@@ -6,6 +6,7 @@ import random
 import math
 
 from cocopaths.utils import path_to_pairtablepath
+from cocopaths.cocopath import build_graph
 import os
 def generate_structures_with_unpaired(n):
     structures = [ ]
@@ -98,11 +99,55 @@ def generate_path(n):
     return final_paths[-1]  
     
     
+def coco_legal(path):
+    """Checks if cocopaths throws an error while generating a sequence. """
+    try:
+        build_graph(path)
+        return True
+    except:
+        return False
 
 
+def generate_coco_legal_paths(n):
+    possible_structs = [generate_structures_with_unpaired(x + 2) for x in range(n-1)]
+    #print("Possible Sturcts", possible_structs)
+
+
+    final_paths = [["."]]
+    for _ in range(n-1):
+        final_paths.append([])
+
+    for x in range(1, n):
+        #print("P_structs", possible_structs[x - 1])
+        new_paths = []
+        for curr_path in final_paths[x - 1]:
+            #print("\n\nCurrent Path: ", curr_path, "X = ",x)
+            for pos_struc in possible_structs[x - 1]:
+                #print('\npossible struct', pos_struc)
+                #if is_legal_fp(pos_struc, curr_path):
+                new_path = list(curr_path).copy()
+                new_path.append(pos_struc)
+                final_paths[x].append(new_path)
+            #print(f"New paths{new_paths}")
+        final_paths.extend(new_paths)
+                        
+    print("\n\nDone\n\n")
+    for step in final_paths:
+        for path in step:
+            print(path)     
+
+
+    with open("6_steps_legal.txt","a") as f:
+        for path in final_paths[-1]:
+            if coco_legal(path):
+                f.write(f"{str(path)}\n")
+
+    legal_paths = [path for path in final_paths[-1] if coco_legal(path)]
+
+   
 
 
 if __name__ == "__main__":
     # Example: generate structures for length 4
-    generate_path(4)
+    generate_coco_legal_paths(6)
 

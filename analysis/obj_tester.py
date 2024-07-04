@@ -182,7 +182,7 @@ def score_sim_nt_seq(nt_seq,afp,parameters):
     evaluate_nt_fp(nt_seq,domain_fp,d_seq,parameters)
 
 def get_default_parameters():
-    domain_seq_fp2 = 'a* L0* L1 L2 L3 L4 L1* L2* b* S0 g h i j k l m n o p q r s t u v w c L0 d S1 e b L0 a f S2 f* a* L0* b* e* S3 g* d* L0* c* h* S4 h c L0 d g S5'
+    domain_seq_fp2 = 'a* L0* L1 L2 L3 L4 L5 L5 L6 L7 L8 L9 L10 L1* L2* L3* L4* L5* L6* L7* L8* L9* L11 b* S0 g h i j k l m n o p q r s t u v w c L0 d S1 e b L0 a f S2 f* a* L0* b* e* S3 g* d* L0* c* h* S4 h c L0 d g S5'
 
     domain_seq = domain_seq_fp2
     d_length = {}
@@ -283,8 +283,11 @@ def analyze_all_fps(file_path,start_index):
 
     parameters = get_default_parameters()
     obj_fun = objective_function(0,0,0,0,0,0)[1]
+    
 
-    output_file = '200_all_analysis_out.tsv'
+    out_folder = '/home/mescalin/miksch/Documents/cocopaths/analysis/obj_test/test/'
+
+    output_file = '/home/mescalin/miksch/Documents/cocopaths/analysis/obj_test/test/all_analysis_test_out.tsv'
 
     if not os.path.exists(output_file):
         with open(output_file,'a') as out_file:
@@ -299,7 +302,7 @@ def analyze_all_fps(file_path,start_index):
         result_pop = 0
 
         #create folder for each run 
-        afp_folder = str(index) + '_afp'
+        afp_folder = out_folder + str(index) + '_afp'
         os.makedirs(afp_folder)
 
         total_score = []
@@ -316,30 +319,36 @@ def analyze_all_fps(file_path,start_index):
 
         
         mean_pop = 0
+        result_pop = []
 
         for tries in range(0,num_tries):   
                 output = afp_folder + '/' + str(index)
-                try:
-                    nt_sequence,domain_sequence,domain_fp,parameters,score = coco_suite(curr_path,output,3000,parameters) 
-                    populations = evaluate_nt_fp(nt_sequence,domain_fp,domain_sequence,parameters,output)
-                    result_pop = min(populations)
+                #try:
+                nt_sequence,domain_sequence,domain_fp,parameters,score = coco_suite(curr_path,output,3000,parameters) 
+                populations = evaluate_nt_fp(nt_sequence,domain_fp,domain_sequence,parameters,output)
+                cur_result_pop = min(populations)
+                result_pop.append(min(populations))
+
+                score_list.append(score)
+                occ_list.append(result_pop)
 
 
-                    score_list.append(score)
-                    occ_list.append(result_pop)
 
-
-
-                    if result_pop > 0.5:#checks if nt-design was sucessfull
-                        mean_pop = mean(occ_list)
-                        break
+                if cur_result_pop > 0.5:#checks if nt-design was sucessfull
+                    mean_pop = mean(occ_list)
+                    break
+                
+                
+                except KeyboardInterrupt:
+                    print("KeyboardInterrupt caught. Exiting gracefully.")
+                    result_pop.append(-1)
 
                 except:
                     total_score += score_list
                     total_pop += occ_list
                     with open(output_file,'a') as output_f:
                         output_f.write(f'-')
-                    mean_pop = -1
+                    result_pop.append(-1)
 
                     break
         total_score += score_list
@@ -348,7 +357,7 @@ def analyze_all_fps(file_path,start_index):
         
         with open(output_file,'a') as output_f:
 
-            output_f.write(f'{index}\t{curr_path}\t{result_pop:.6f}\t{tries}\t{mean_pop:.6f}\t{row["dominating_struct"]}\t{sp_corr:.6f}\t{p_value:.6f}\n')
+            output_f.write(f'{index}\t{curr_path}\t{max(result_pop):.6f}\t{tries}\t{mean(result_pop):.6f}\t{row["dominating_struct"]}\t{sp_corr:.6f}\t{p_value:.6f}\n')
 
     #correlation analysis for whole data set
 
@@ -430,42 +439,4 @@ def main(folding_path):
   
 if __name__ == "__main__":
     
-    folding_path_1 = [".","()",".()","()()",".()()","()()()"]
-
-    folding_path_2 = ['.', '()', '(.)', '()()', '.(())', '()()()']
-
-    folding_path_3 = ['.', '()', '.()', '()()', '()().', '()(..)']
-
-    folding_path_4 = ['.', '()', '(.)', '()()', '()().', '(.)(.)']
-
-    folding_path_5 = ['.', '..', '(.)', '(())', '(()).', '(()..)']
-
-    folding_path_6 = ['.', '()', '().', '()()', '()(.)', '()()()']
-
-    test_path = [".","()",".()"]
-    #main(folding_path_6)
-
-
-
-
-    #Extends the domain seq to nt length to check in DrForna
-    #domain_seq_fp2 = 'a* L0* b* S0 c L0 d S1 e b L0 a f S2 f* a* L0* b* e* S3 g* d* L0* c* h* S4 h c L0 d g S5'
-
-
-
-    domain_seq_fp3 = 'L0*  S0 a L0 b S1 c* d* b* L0* a* e* f* S2 e a L0 b d S3  L1*  S4 f e a L0 b d c S5'
-    extended_path_3 = "LLLLLLLLaaallllllllbbbSSSSCCCDDDBBBLLLLLLLLAAAEEEFFFSSSSSSSSeeeaaallllllllbbbdddSSSSSSSSSSSSLLLLLLLLSSSSSSSSSSSSSSSSfffeeeaaallllllllbbbdddcccSSSSSSSSSSSSSSSSSSSS"
-    
-    domain_seq_fp4 = "a* L0* b* S0  L0  S1 c b L0 a d S2 e* d* a* L0* b* c* f* S3  L1*  S4 f c b L0 a d e S5"
-    extended_path_4 = "AAAALLLLLLLLBBBBllllllllSSSSccccbbbbllllllllaaaaddddSSSSSSSSEEEEDDDDAAAALLLLLLLLBBBBCCCCFFFFSSSSSSSSSSSSLLLLLLLLSSSSSSSSSSSSSSSSffffccccbbbbllllllllaaaaddddeeeeSSSSSSSSSSSSSSSSSSSS"
-    parameters = get_default_parameters()
-
-    nt_seq = 'ACUCGAGUGGUUAGUCAAUCACUUCUCCUAAAGAUUGAUUACUUGGGUAUCCCUCCUACCUACUGGGUACCCGAGUGGUUGAUUUUUGUAUCGCCUCUUCUAACCACAUUUCCCACAUUCCAUAUCUAGGUACAAAAGUUGACCGCUCGGGUGCUCGGUAAUAUACCACCCCCAUUUAUU'
-    
-    #score_sim_nt_seq(nt_seq,folding_path_4,parameters)
-
-
-    #print(extend_domain_seq(domain_seq_fp4,parameters))
-
-
-    analyze_all_fps('/home/mescalin/miksch/Documents/cocopaths/analysis/6_run/6_steps_out.tsv',200)
+    analyze_all_fps('/home/mescalin/miksch/Documents/cocopaths/analysis/1_run/6_steps_out.tsv',81)
