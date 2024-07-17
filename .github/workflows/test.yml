@@ -13,7 +13,7 @@ jobs:
       - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          python-version: 3.9
+          python-version: 3.9  # Ensure this matches the environment.yml
           auto-update-conda: true
           environment-file: environment.yml
           activate-environment: cocopaths-env
@@ -25,6 +25,11 @@ jobs:
           pip install crnsimulator
           pip install coverage
           pip install viennarna
+        working-directory: .
+
+      - name: Verify installation of infrared
+        run: |
+          conda list infrared
         working-directory: .
 
       - name: Run pytest
