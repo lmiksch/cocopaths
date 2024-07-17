@@ -20,6 +20,7 @@ jobs:
 
       - name: Install additional Python dependencies
         run: |
+          conda install conda-forge::infrared
           pip install pytest-cov  
           pip install peppercornenumerator
           pip install crnsimulator
