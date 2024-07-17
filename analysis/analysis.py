@@ -238,12 +238,12 @@ def get_data(n,current_folder):
 
         for domain in d_seq.split():
             if domain[0] == "L":
-                d_length[domain] = 12
+                d_length[domain] = 8
 
             elif domain[0] == 'S':
-                d_length[domain] = 10
+                d_length[domain] = 3 + round(int(domain[1]) * 3)  
             else: 
-                d_length[domain] = 3
+                d_length[domain] = 4
 
 
         parameters = {"k_slow": 0.001 , 'k_fast': 20, "cutoff": 0.05,"d_length":d_length,"d_seq":d_seq,"logic":True}
@@ -387,15 +387,15 @@ def main():
     current_folder = f'{next_folder_number}_{base_folder}'
     
     os.makedirs(current_folder, exist_ok=True)
-    #for i in range(2,7):
-    #    get_data(i,current_folder)
+    for i in range(3,4):
+        get_data(i,current_folder)
         
     print("S_new")
 
 
     #uncomment to fill up file if segfault happended 
     #check if parameters match 
-    fill_data(6,"6_run/6_steps_out.tsv")
+    #fill_data(6,"1_run/6_steps_out.tsv")
 
     print("data is in ",current_folder)
 
@@ -406,12 +406,12 @@ def main():
 if __name__ == "__main__":
     
     
-    main()
+    #main()
 
-    #analyze_folder = "results/L8_S8_r3_run"
-    #for filename in os.listdir(analyze_folder):
-    #        print(filename)
-    #        if filename.endswith(".tsv") and os.path.isfile(os.path.join(analyze_folder, filename)):
-    #            tsv_filepath = os.path.join(analyze_folder, filename)
-    #            statistical_analysis(analyze_folder,tsv_filepath,filename)
+    analyze_folder = "results/big_ana"
+    for filename in os.listdir(analyze_folder):
+            print(filename)
+            if filename.endswith(".tsv") and os.path.isfile(os.path.join(analyze_folder, filename)):
+                tsv_filepath = os.path.join(analyze_folder, filename)
+                statistical_analysis(analyze_folder,tsv_filepath,filename)
     #statistical_analysis(folder_path,"7_steps_out.tsv")

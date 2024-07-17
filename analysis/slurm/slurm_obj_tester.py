@@ -43,14 +43,14 @@ def coco_suite(folding_path,output,steps,parameters):
 
     domain_fp = afp_to_domainfp(folding_path,domain_seq)
 
-    #print(f"\n\nBegin RNA design\n")
+    print(f"\n\nBegin RNA design\n")
 
     ext_fp = domain_path_to_nt_path(domain_fp,domain_seq,parameters)
 
     
-    toehold_domain_fp = toehold_structures(domain_fp,domain_seq,folding_path)
+    #toehold_domain_fp = toehold_structures(domain_fp,domain_seq,folding_path)
 
-    nt_sequence,score = rna_design(domain_seq,ext_fp,parameters,folding_path,toehold_domain_fp)
+    nt_sequence,score = rna_design(domain_seq,ext_fp,parameters,folding_path,domain_fp)
 
 
     detailed_scores = score_sequence(nt_sequence,domain_seq,parameters,folding_path,domain_fp)[1]
@@ -509,6 +509,11 @@ def main(folding_path):
 
 
 if __name__ == "__main__":
+
+
+    #analyze_single_fp("/home/mescalin/miksch/Documents/cocopaths/analysis/folding_paths/4_FPs.txt",8,'example','test/')
+    
+    
     import argparse
 
     parser = argparse.ArgumentParser(description='Analyze a single folding path.')

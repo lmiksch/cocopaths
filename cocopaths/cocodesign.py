@@ -93,8 +93,8 @@ def find_toeholdstruct(domain_seq,domain_fp,step_index,pair_index):
 
 
 
-    attack_module = module_list[step_index]
-    pair_module = module_list[pair_index]
+    attack_module = module_list[pair_index]
+    pair_module = module_list[step_index]
 
     #print(f'\n{attack_module = }')
     #print(f'\n{pair_module = }')
@@ -191,7 +191,6 @@ def toehold_structures(domain_fp,domain_seq,afp):
     Returns:
     """
 
-   
     split_d_seq = domain_seq.split()
 
     pt_path = path_to_pairtablepath(domain_fp)
@@ -260,7 +259,7 @@ def identical_domains_constraint(domain,split_seq,model,parameters):
 
     Args:
         domain: domain name
-        UL_seq: upper lower case domain sequence
+        split_seq: upper lower case domain sequence
         model: model created in the infrared sampler
     """ 
     for x in range(len(split_seq)):
@@ -403,7 +402,6 @@ def score_sequence(seq,d_seq,parameters,afp,domain_fp):
         l_pointer = r_pointer
     
     ext_path = domain_path_to_nt_path(domain_fp,d_seq,parameters)
-    
     nt_path = []
     
     for x in ext_path:    
@@ -536,14 +534,13 @@ def nt_path_to_afp(nt_path,domain_seq,parameters):
 
         afp.append(''.join(cur_struct))
 
-
     return afp 
 
 
 def rna_design(seq,path,parameters,afp,domain_fp):
 
     print(f"{seq =}")
-      
+    print("hello there")
     split_seq = seq.split()
 
     d_seq_len = sum([int(parameters["d_length"][x]) for x in split_seq])
@@ -560,6 +557,10 @@ def rna_design(seq,path,parameters,afp,domain_fp):
 
     model = ir.Model(d_seq_len,4)
 
+
+    for domain in set(parameters["d_length"]):
+        if domain != "l":
+            identical_domains_constraint(domain,split_seq,model,parameters)
     
 
     ext_path = path
@@ -571,11 +572,8 @@ def rna_design(seq,path,parameters,afp,domain_fp):
         cons = [rna.BPComp(i,j) for (i,j) in bps]
         model.add_constraints(cons)
 
-
-    
-
-    
     objective = lambda x: -score_sequence(rna.ass_to_seq(x),seq,parameters,afp,domain_fp)[0]
+
 
     best, best_val = mc_optimize(model, objective,steps = parameters['steps'], temp = 0.04)
 
@@ -622,7 +620,8 @@ def main():
     parser.add_argument("-l", "--logic", action="store_true", default=False,help="Visualizes Logic domain pairings. Best used when analyzing cocopaths generated sequences. (default = False)")
     parser.add_argument("-f", "--force", action="store_true", default=False,help="Forces the design disregarding the outcome of the simulation (default = False)")
     parser.add_argument("-cutoff", "--cutoff", action="store", type=valid_cutoff, default=float('-inf'),help="Cutoff value at which structures won't get accepted (default: -inf, valid range: 0 to 1)")
-    
+    parser.add_argument("-aCFP", "--aCFP", action="store", type=str, default=None,help="aCFP where each step is seperated by a comma. If not specified the user needs to use the Terminal as input.")
+
 
 
 
@@ -677,7 +676,10 @@ def main():
             raise SystemExit("Only data in the .pil format is currently accepted.")
 
     print("Please input the afp by which the domain level sequence was designed:")
-    afp = afp_terminal_input()  
+    if not args.aCFP:
+        afp = afp_terminal_input()
+    else:
+        afp = args.aCFP.split(',')
 
 
     print(f"{d_seq = }")
@@ -711,7 +713,7 @@ def main():
 
     domain_fp = afp_to_domainfp(afp,d_seq)
 
-    domain_fp = toehold_structures(domain_fp,d_seq,afp)
+    #domain_fp = toehold_structures(domain_fp,d_seq,afp)
 
     for step in domain_fp:
         print(step)
@@ -721,30 +723,28 @@ def main():
     for path in ext_folding_path:
         print(path)
 
-    print(f"Input AFP: {afp}\n\n")
-    print(f"Input Domain level sequence: {d_seq}\n\n")    
+    print(f"Input AFP: {afp}\n")
+    print(f"Input Domain level sequence: {d_seq}\n")    
     nt_seq, score = rna_design(d_seq,ext_folding_path,parameters,afp,domain_fp)
-
-
 
     print(f"\n\nRNA design done\nSequence = {nt_seq} \n {score = }\n{extend_domain_seq(d_seq,parameters)}")
 
 
     #print output and extended nucleotide sequence for easier analysis 
-
+    return nt_seq
 
 
 if __name__ == "__main__":
     
-    #main()
+    main()
 
     
-    afp = ['.','()','.()']
-    domain_seq = ' L0*  S0 a L0 b S1 b* L0* a* S2'
+    afp = ['.','()','.()','()()']
+    domain_seq = ' L0*  S0 a L0 b S1 c* b* L0* a* d* S2 d a L0 b c S3'
 
     domain_fp =  afp_to_domainfp(afp,domain_seq)
 
-    toehold_structures(domain_fp,domain_seq,afp)
+    #print((domain_fp,domain_seq,afp))
 
     '''
 
