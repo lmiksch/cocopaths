@@ -30,16 +30,13 @@ jobs:
           pytest
         shell: bash
 
-      - name: Verify installation of infrared
-        run: |
-          source ~/.bashrc
-          conda activate cocopaths-env
-          conda list infrared
-        shell: bash
 
-      - name: Test with pytest
+      - name: Run coverage
         run: |
-          pytest --cov=cocopaths tests/ --cov-report xml
+          coverage run -m pytest
+        working-directory: .
+
+
 
       - name: Upload coverage
         uses: codecov/codecov-action@v3
