@@ -96,7 +96,6 @@ CocoDesign initiates by validating the cotranscriptional folding path at the dom
 
 ### General
 1. Cleanup code
-2. find ideal parameters for domain lengths or find a way to calc optimal lengths for each sequence and folding path 
 
 
 ### CocoPath
@@ -109,10 +108,8 @@ CocoDesign initiates by validating the cotranscriptional folding path at the dom
 
 ### CocoDesign 
 
-1. Find objective function
-2. DrTrafo parser use from CoFPT 
-3. Modify it to use cocosim output automatically
-4. Write tests for whole package
+1. Modify it to use cocosim output automatically
+
 
 
 ### Current Bugs: 
