@@ -18,6 +18,12 @@ jobs:
           environment-file: environment.yml
           activate-environment: cocopaths-env
 
+      - name: Run pytest
+        run: |
+          conda activate cocopaths-env
+          pytest
+        working-directory: .
+
       - name: install Infrared
         run: |
            conda install conda-forge::infrared 
@@ -28,11 +34,6 @@ jobs:
           conda list infrared
         working-directory: .
 
-      - name: Run pytest
-        run: |
-          conda activate cocopaths-env
-          pytest
-        working-directory: .
 
       - name: Run coverage
         run: |
