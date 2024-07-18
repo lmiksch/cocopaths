@@ -17,9 +17,9 @@ jobs:
           auto-update-conda: true
           environment-file: environment.yml
           activate-environment: cocopaths-env
-          
+
       - name: install Infrared
-        rune: |
+        run: |
            conda install conda-forge::infrared 
         working-directory: . 
 
