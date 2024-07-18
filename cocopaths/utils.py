@@ -68,18 +68,18 @@ def path_to_pairtablepath(path):
     return pairtable_path
 
 
-def find_connected_modules(afp):
+def find_connected_modules(acfp):
     """ Identifies connected Modules and returns the indices of the connected modules in a list. Each sublist corresponds to connected modules. 
 
 
     Args: 
-        afp(list): abstract folding path in the form of a pairtable
+        acfp(list): abstract folding path in the form of a pairtable
     
     Returns: 
         connected_modules(list): sublist corresponds to connected modules with indices 
     """
 
-    all_module = list(range(1,len(afp)+1))
+    all_module = list(range(1,len(acfp)+1))
     connected_modules = []
     curr_module = 1
     i,j = 0,0 
@@ -88,13 +88,13 @@ def find_connected_modules(afp):
         connected_modules.append(all_list)
         all_module.remove(all_module[0])
         
-        while curr_module <= len(afp):
-            for step in range(1,len(afp)): 
+        while curr_module <= len(acfp):
+            for step in range(1,len(acfp)): 
                 
                 try:
-                    if afp[step][curr_module] != 0 and afp[step][curr_module] in all_module:
-                        connected_modules[i].append(afp[step][curr_module])
-                        all_module.remove(afp[step][curr_module])
+                    if acfp[step][curr_module] != 0 and acfp[step][curr_module] in all_module:
+                        connected_modules[i].append(acfp[step][curr_module])
+                        all_module.remove(acfp[step][curr_module])
                 except:
                     continue
             
@@ -215,22 +215,22 @@ def only_logic_domain_struct(seq,path):
     logic_domain_struct = "".join(logic_domain_struct)
     return logic_domain_struct
 
-def afp_terminal_input():
+def acfp_terminal_input():
 
     '''Function to let user put in an abstract folding path in the terminal while checking if it's viable
     '''
-    afp = []
+    acfp = []
     while True:
         print("\n")
-        print(f"Current Input: {afp}")
+        print(f"Current Input: {acfp}")
         print("Please input a folding path in dot-bracket annotation or use '$' to exit input and continue use 'r' to reset input:")
         user_input = input()
         # Check for exit conditions
         if user_input == "$":
-            print(f"\n\nFinal Input:\n{afp}\n\n")
+            print(f"\n\nFinal Input:\n{acfp}\n\n")
             break
         elif user_input == "r" or user_input == "R":
-            afp = []
+            acfp = []
             print("Input cleared")
             continue
         
@@ -239,8 +239,8 @@ def afp_terminal_input():
             # Check if the user input contains only ".", "(", and ")"
             
             if all(char == "." or char in ("(", ")") for char in user_input):
-                if len(user_input) == len(afp) + 1:
-                    afp.append(user_input)
+                if len(user_input) == len(acfp) + 1:
+                    acfp.append(user_input)
                 else:
                     print("Please add 1 character per step")
             else:
@@ -248,7 +248,7 @@ def afp_terminal_input():
         else:
             print("Structure is not balanced -> closing/opening brackets don't match")
 
-    return afp
+    return acfp
 
 def couple(pair):
 	if pair[0][0].upper() == pair[1][0].upper() and pair[0] != pair[1]:
@@ -271,16 +271,16 @@ def get_base_pairings_dict(dot_bracket):
     return pairings_dict
 
 
-def afp_to_domainfp(afp,d_seq):
+def acfp_to_domainfp(acfp,d_seq):
     """Takes an abstract folding path and a domain level sequence and converts it into a domain level path 
         Example: 
-            afp: [["."],["()"],[".()"],["()()"]],d_seq="b l b* a* l a b c d l d* c* b*"
+            acfp: [["."],["()"],[".()"],["()()"]],d_seq="b l b* a* l a b c d l d* c* b*"
 
             returns [[".."],["(.).."],["..((.))..."],["(.)...(((.)))"]]
 
         Args: 
 
-            afp(list): each sublist corresponds to one step example wrong not sublists
+            acfp(list): each sublist corresponds to one step example wrong not sublists
             d_seq(str): domain sequence
     """
     domain_fp = []
@@ -288,10 +288,10 @@ def afp_to_domainfp(afp,d_seq):
 
 
     #print(f'{d_seq = }')
-    #print(f'{afp =}')
+    #print(f'{acfp =}')
 
 
-    for x,cur_path in enumerate(afp):
+    for x,cur_path in enumerate(acfp):
         module_index = 0
 
         base_pair_dict = get_base_pairings_dict(cur_path)
@@ -371,7 +371,7 @@ def afp_to_domainfp(afp,d_seq):
 
     return domain_fp
 
-def domainfp_to_afp(domain_fp, d_seq):
+def domainfp_to_acfp(domain_fp, d_seq):
     """Takes a domain level path and a domain level sequence and converts it into an abstract folding path.
         Example: 
             domain_fp: [[".."], ["(.).."], ["..((.))..."], ["(.)...(((.)))"]]
@@ -387,7 +387,7 @@ def domainfp_to_afp(domain_fp, d_seq):
     #print(f"{domain_fp = }")
     #print(f"{d_seq = }")
 
-    afp = []
+    acfp = []
     d_seq = d_seq.split()
 
     logic_indices = [index for index,entry in enumerate(d_seq) if entry.startswith("L") ]
@@ -400,9 +400,9 @@ def domainfp_to_afp(domain_fp, d_seq):
             cur_path.append(cur_struct)
         
         cur_path = list(set(cur_path))
-        afp.append(cur_path)
+        acfp.append(cur_path)
     
-    return afp
+    return acfp
 
 def call_findpath(seq, ss1, ss2, md, fpw, mxb = float('inf')):
     """ Call ViennaRNA findpath. Modified from DrTransformerd_length
@@ -437,8 +437,8 @@ def call_findpath(seq, ss1, ss2, md, fpw, mxb = float('inf')):
 if __name__=="__main__":
     d_seq = 'a* b* c* L0* d* e* f* S0 d L0 c S1  L0*  S2 e d L0 c b S3 g f e d L0 c b a h S4 h* a* b* c* L0* d* e* f* g* S5'
 
-    afp = ['.','()','().','()()','(().)','()()()']
-    afp_to_domainfp(afp,d_seq)
+    acfp = ['.','()','().','()()','(().)','()()()']
+    acfp_to_domainfp(acfp,d_seq)
 
     """ print(' ')
     seq = "CGGUUAUGGAACACUAAUUUCGUAAAUAUCAAGAUGUGUUCUAUGACCGACGUCGCUAUUCGUUGGUCGUAGGACGCGUUGCAAACUAAAAC 
