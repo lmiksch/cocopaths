@@ -539,8 +539,6 @@ def nt_path_to_afp(nt_path,domain_seq,parameters):
 
 def rna_design(seq,path,parameters,afp,domain_fp):
 
-    print(f"{seq =}")
-    print("hello there")
     split_seq = seq.split()
 
     d_seq_len = sum([int(parameters["d_length"][x]) for x in split_seq])
@@ -574,6 +572,7 @@ def rna_design(seq,path,parameters,afp,domain_fp):
 
     objective = lambda x: -score_sequence(rna.ass_to_seq(x),seq,parameters,afp,domain_fp)[0]
 
+    print("Hello there. Please wait a moment, we will be right back with your sequence.")
 
     best, best_val = mc_optimize(model, objective,steps = parameters['steps'], temp = 0.04)
 
@@ -681,9 +680,6 @@ def main():
     else:
         afp = args.aCFP.split(',')
 
-
-    print(f"{d_seq = }")
-
     if len(d_length) == 0:    
         for domain in d_seq.split():
             if domain[0] == "L":
@@ -713,21 +709,13 @@ def main():
 
     domain_fp = afp_to_domainfp(afp,d_seq)
 
-    #domain_fp = toehold_structures(domain_fp,d_seq,afp)
-
-    for step in domain_fp:
-        print(step)
-
     ext_folding_path = domain_path_to_nt_path(domain_fp,d_seq,parameters)
-
-    for path in ext_folding_path:
-        print(path)
 
     print(f"Input AFP: {afp}\n")
     print(f"Input Domain level sequence: {d_seq}\n")    
     nt_seq, score = rna_design(d_seq,ext_folding_path,parameters,afp,domain_fp)
 
-    print(f"\n\nRNA design done\nSequence = {nt_seq} \n {score = }\n{extend_domain_seq(d_seq,parameters)}")
+    print(f"\n\nRNA design done\nSequence = {nt_seq}\n{score = }\n{extend_domain_seq(d_seq,parameters)}")
 
 
     #print output and extended nucleotide sequence for easier analysis 
