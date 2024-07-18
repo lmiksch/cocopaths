@@ -278,7 +278,7 @@ def test_enforce_cutoff_transient_1(input_path):
     parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
     parser.add_argument("-v","--verbosity",action="count")
 
-    args  = parser.parse_args()
+    args, unknown = parser.parse_known_args()    
     args.cutoff = float(args.cutoff)
     args.condensed = True
 
@@ -343,7 +343,7 @@ def test_enforce_cutoff_transient_2(input_path):
     parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
     parser.add_argument("-v","--verbosity",action="count")
 
-    args  = parser.parse_args()
+    args, unknown = parser.parse_known_args()
     args.cutoff = float(args.cutoff)
     args.condensed = True
     d_seq = "a* b* L0* c* d* S0 c L0 b S1 L0* S2 e d c L0 b a"
@@ -420,7 +420,7 @@ def test_enforce_cutoff_transient_3(input_path):
     parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
     parser.add_argument("-v","--verbosity",action="count")
 
-    args  = parser.parse_args()
+    args, unknown = parser.parse_known_args()
     args.cutoff = float(args.cutoff)
     args.condensed = True
     d_seq = "a* b* L0* c* d* S0 c L0 b S1 L0* S2 e d c L0 b a"
@@ -517,7 +517,7 @@ def test_enforce_cutoff_transient_4(input_path):
     parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
     parser.add_argument("-v","--verbosity",action="count")
 
-    args  = parser.parse_args()
+    args, unknown = parser.parse_known_args()
     args.cutoff = float(args.cutoff)
     args.condensed = True
 
@@ -598,7 +598,7 @@ def test_enforce_v_transient_from_dseq(input_path,configure_logger):
     parser.add_argument("-v","--verbosity",action="count")
     parser.add_argument("-l", "--logic", action="store_true", default=False,help="Visualizes Logic domain pairings. Best used when analyzing cocopaths generated sequences. (default = False)")
 
-    args  = parser.parse_args()
+    args, unknown = parser.parse_known_args()
     args.cutoff = float(args.cutoff)
     args.condensed = True
     d_seq = "L0*  S0 a b L0 c d S1 c* L0* b* S2  L0  S3 d* c* L0* b* a* S4  L0  S5"
@@ -628,7 +628,7 @@ def test_wierd_outcome(input_path):
     parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
     parser.add_argument("-v","--verbosity",action="count")
 
-    args  = parser.parse_args()
+    args, unknown = parser.parse_known_args()
     args.cutoff = float(args.cutoff)
     args.condensed = True
 
@@ -702,7 +702,7 @@ def test_run_sim():
     parser.add_argument("-v","--verbosity",action="count")
     parser.add_argument("-l", "--logic", action="store_true", default=False,help="Visualizes Logic domain pairings. Best used when analyzing cocopaths generated sequences. (default = False)")
 
-    args = args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
     args.cutoff = float(args.cutoff)
     args.condensed = True
 
