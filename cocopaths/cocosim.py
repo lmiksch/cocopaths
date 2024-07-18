@@ -532,7 +532,6 @@ def apply_cutoff(enum,parameters,all_complexes):
         
 
 def enforce_via_transient(cut_macrostate,enum,all_complexes,cut_macrostates,parameter):
-
     """Idea: By setting all outgoing reactions of the macrostate to > k_fast resting_complex -> transient complex. 
     """
     #exiting the function if non cutable macrostates
@@ -628,7 +627,7 @@ def flatten(lst):
             result.append(item)
     return result
 
-def enforce_cutoff_macrostate(macrostate,enum,all_complexes,cut_macrostates):      
+def enforce_cutoff_macrostate(macrostate,enum,all_complexes,cut_macrostates):
     cocosim_logger.info(f'\n\n\nEnforcing Macrostate Cutoff for {macrostate} with occupancy {macrostate.occupancy}\n\n')
     cut_complexes = macrostate._complexes
     cut_occ = sum([complex.occupancy for complex in cut_complexes])
@@ -742,8 +741,9 @@ def enumerate_step(complexes, reactions, parameter, all_complexes):
     return resulting_complexes, transient_complexes, enum
 
 def map_transient_states(resting_complexes,transient_complexes,all_complexes,enum,parameters):
+    """Maps transient states onto resting states. Looks where each transient will end up into.
+    """
     cocosim_logger.info(f"\n\nMap Transient states\n\n")
-
     new_complexes = {}
     for key, complex in copy.deepcopy(all_complexes).items():
         for t_complex in transient_complexes:
@@ -755,7 +755,6 @@ def map_transient_states(resting_complexes,transient_complexes,all_complexes,enu
                         macrostate = tup[1][0]
                         stat_dist = enum.condensation.stationary_dist[macrostate]
 
-                        
                         for stat_complex, value in stat_dist.items():
                             ##new_conc = curr_conc + (va(exit prob of transient) * value(stationary of resting state in macrostate) * t_c(concentration of transient state)) 
                             try:
@@ -786,7 +785,6 @@ def update_complex_in_all_complexes(complex,all_complexes):
 
 
 def write_output(final_structures,d_seq,parameters = None):
-
     data_output = ""
     spacer_indices = [index for index, entry in enumerate(d_seq.split()) if entry.startswith('S')]
     ts = 0
