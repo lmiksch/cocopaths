@@ -20,8 +20,10 @@ jobs:
 
       - name: Install additional Python dependencies
         run: |
-          pip install pytest-cov  
+          pip install flit
           pip install peppercornenumerator
+          pip install pytest
+          pip install pytest-cov  
           pip install crnsimulator
           pip install coverage
           pip install viennarna
