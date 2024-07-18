@@ -17,6 +17,10 @@ jobs:
           auto-update-conda: true
           environment-file: environment.yml
           activate-environment: cocopaths-env
+      - name: Initialize Conda
+        run: |
+          conda init bash
+          source ~/.bashrc 
 
 
       - name: Run pytest
