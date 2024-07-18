@@ -45,7 +45,7 @@ def create_input(filename,occupancies,input_path):
     parser = argparse.ArgumentParser(description="cocosim is a cotranscriptional folding path simulator using peppercornenumerate to simulate a domain level sequence during transcription.")
     parser.add_argument("-cutoff","--cutoff", action= "store",default=float('-inf'), help="Cutoff value at which structures won't get accepted (default: -inf)")
     parser.add_argument("-v","--verbosity",action="count")
-    args = args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
     args.cutoff = float(args.cutoff)
     file_path = os.path.join(input_path,filename)
     with open(file_path, 'r') as file:
