@@ -28,7 +28,7 @@ jobs:
           conda init bash
           source ~/.bashrc 
           conda activate cocopaths-env
-          pytest 
+          pytest-cov
         shell: bash
 
 
