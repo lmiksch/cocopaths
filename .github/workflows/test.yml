@@ -33,9 +33,9 @@ jobs:
 
       - name: Run coverage
         run: |
+          conda activate cocopaths-env
           coverage run -m pytest
         working-directory: .
-
 
 
       - name: Upload coverage
