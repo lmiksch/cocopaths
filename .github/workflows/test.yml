@@ -18,14 +18,11 @@ jobs:
           environment-file: environment.yml
           activate-environment: cocopaths-env
 
-      - name: Ensure Conda Initialization
-        run: |
-          conda init bash
-        shell: bash
 
       - name: Run pytest
         run: |
           source ~/.bashrc
+          conda init bash
           conda activate cocopaths-env
           pytest --cov=./ --cov-report=xml
         shell: bash
