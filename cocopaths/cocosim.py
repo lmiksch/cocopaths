@@ -344,7 +344,7 @@ def sim_condensed_rates(reactants,concvect,parameters,d_length):
     parser.add_argument("-s","--steps",help="Number of steps in the optimization",default=2000,type=int)
     parser.add_argument("-aCFP", "--aCFP", action="store", type=str, default=None,help="aCFP where each step is seperated by a comma. If not specified the user needs to use the Terminal as input.")
 
-    s_args = parser.parse_args()
+    s_args, unknown = parser.parse_known_args()
     s_args.cutoff = float(parameters["cutoff"])
 
     #need to hardcode all args:
