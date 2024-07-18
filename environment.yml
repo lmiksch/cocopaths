@@ -1,6 +1,7 @@
 name: cocopaths-env
 channels:
   - conda-forge
+  - defaults
 dependencies:
   - python
   - infrared
