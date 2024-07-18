@@ -3,6 +3,14 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python 3.9
+  - python=3.12
   - infrared
   - pip
+  - pip:
+    - flit
+    - peppercornenumerator
+    - pytest
+    - pytest-cov  
+    - crnsimulator
+    - coverage
+    - viennarna
