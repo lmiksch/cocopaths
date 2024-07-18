@@ -10,7 +10,7 @@ dependencies:
     - flit
     - peppercornenumerator
     - pytest
-    - pytest-cov  
+    - pytest-cov
     - crnsimulator
     - coverage
     - viennarna

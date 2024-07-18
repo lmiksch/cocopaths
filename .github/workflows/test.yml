@@ -31,11 +31,13 @@ jobs:
 
       - name: Run pytest
         run: |
+          source activate cocopaths-env
           pytest
         working-directory: .
 
       - name: Run coverage
         run: |
+          source activate cocopaths-env
           coverage run -m pytest
         working-directory: .
 
