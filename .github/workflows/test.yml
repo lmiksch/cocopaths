@@ -17,12 +17,11 @@ jobs:
           auto-update-conda: true
           environment-file: environment.yml
           activate-environment: cocopaths-env
-
-      - name: Debug Conda Info
-        run: |
-          conda info
-          conda list
-        working-directory: .
+          
+      - name: install Infrared
+        rune: |
+           conda install conda-forge::infrared 
+        working-directory: . 
 
       - name: Verify installation of infrared
         run: |
@@ -31,7 +30,7 @@ jobs:
 
       - name: Run pytest
         run: |
-          source activate cocopaths-env
+          conda activate cocopaths-env
           pytest
         working-directory: .
 
