@@ -1,7 +1,7 @@
 import infrared as ir 
 from infrared import rna
 import RNA, random, math, argparse, logging, os,sys
-from .utils import(is_balanced_structure,afp_terminal_input,afp_to_domainfp,path_to_pairtablepath,split_into_modules)
+from .utils import(is_balanced_structure,acfp_terminal_input,acfp_to_domainfp,path_to_pairtablepath,split_into_modules)
 from cocopaths import __version__
 from cocopaths.cocosim import verify_domain_foldingpath
 from peppercornenumerator.input import read_pil
@@ -21,12 +21,11 @@ def valid_cutoff(value):
     else:
         raise argparse.ArgumentTypeError(f"Cutoff must be between 0 and 1, but got {value}")
 
-def objective_function(cefe,fe,efe,c_barrier,barrier,ensemble_defect):
+def objective_function(cefe,fe,efe,c_barrier,barrier=0,ensemble_defect=0):
     """
     Function exists to only change one thing when changing the obj function
     """
-    
-    #obj_fun =  "abs(cefe - fe) + 0.1*barrier + ensemble_defect" 
+    #obj_fun =  "abs(cefe - fe) + 0.1*barrier + ensemble_defect"#potential other obj function which forces a fixed structure
     obj_fun = "abs(efe - cefe) + 0.1*c_barrier"
     score = eval(obj_fun.format(cefe=cefe,fe=fe,barrier=barrier,ensemble_defect=ensemble_defect))
     return score,obj_fun
@@ -35,7 +34,6 @@ def couple(pair):
 	if pair[0][0].upper() == pair[1][0].upper() and pair[0] != pair[1]:
 		return True
      
-
 
 def domain_path_to_nt_path(path,d_seq,parameters):
     """ Domain_path_to_nt_path
@@ -49,11 +47,9 @@ def domain_path_to_nt_path(path,d_seq,parameters):
     Returns:
         ext_path (list): where each sublist corresponds to the extended domain path
     """
-
     split_seq = d_seq.split()
     ext_path = []
     
-
     for step_index,step in enumerate(path): 
         ex_step_path = ""
         for nt,domain in zip(list(step),split_seq):
@@ -61,9 +57,7 @@ def domain_path_to_nt_path(path,d_seq,parameters):
             ex_step_path += extendo
         ext_path.append(ex_step_path)
 
-
     return ext_path
-
 
 
 def is_star_pair(a,b):
@@ -81,23 +75,13 @@ def find_toeholdstruct(domain_seq,domain_fp,step_index,pair_index):
         Returns:
             toehold_struct(tuple): structure where toeholds are formed
     '''
-
     module_list = split_into_modules(domain_seq)
-    
-    #print(f'\n Finding toehold structures')
-    #print(f'{domain_seq = }\n{domain_fp = }\n{step_index = }\n{pair_index}')
-    #print(f'to go  step = {domain_fp[step_index]}\npairing step {domain_fp[pair_index]}\n{module_list = }')
 
     #attacker is the first if no bp between them 
     #attacker second unit if bp between them 
 
-
-
     attack_module = module_list[pair_index]
     pair_module = module_list[step_index]
-
-    #print(f'\n{attack_module = }')
-    #print(f'\n{pair_module = }')
 
     outside_toehold_indices = []
     inside_toehold_indices = []
@@ -105,14 +89,10 @@ def find_toeholdstruct(domain_seq,domain_fp,step_index,pair_index):
     inside_domain = str(-1)
     outside_domain = str(-1)
 
-
     after_Logic = False
     for d_index_1,domain_1 in enumerate(attack_module.split()):
         for d_index_2,domain_2 in enumerate(pair_module.split()): 
             if is_star_pair(domain_1,domain_2) and domain_1[0] != 'L': 
-                #print(f'star pair {domain_1}, {domain_2}')
-
-
                 if after_Logic:
                     outside_domain = domain_1
                         
@@ -122,19 +102,11 @@ def find_toeholdstruct(domain_seq,domain_fp,step_index,pair_index):
         if domain_1[0] == 'L':
             after_Logic = True
 
-    #print(f'\nOutside {outside_domain}')
-
-     
-    #print(f'Inside {inside_domain}')
-
     s_index = 0
     between_struct = False
     between = False
-    #print(domain_fp[step_index])
-    #print(domain_seq.split())
 
     for char,domain in zip(domain_fp[step_index-1],domain_seq.split()):
-        #print(char,between)
         if domain[0] == 'S':
             s_index = domain[1]
         
@@ -152,8 +124,6 @@ def find_toeholdstruct(domain_seq,domain_fp,step_index,pair_index):
     if between_struct:
         toehold = outside_domain
         for i,ind in zip(attack_module.split(),range(len(attack_module))):
-            #print(i,'index = ',ind)
-
             if i[0] == toehold[0]:
                 toehold_struct = domain_fp[step_index-1] + '.' * ind
 
@@ -163,11 +133,6 @@ def find_toeholdstruct(domain_seq,domain_fp,step_index,pair_index):
             #print(i,'i = ')
             if i[0] == toehold[0]:
                 toehold_struct = domain_fp[step_index-1] + '.' * ind
-
-
-    
-
-
     s_index = 0
 
     for char,domain,index in zip(domain_fp[step_index],domain_seq.split(),range(len(domain_fp[step_index]))):
@@ -176,25 +141,22 @@ def find_toeholdstruct(domain_seq,domain_fp,step_index,pair_index):
         
         if domain[0] == toehold[0] and (s_index == step_index or s_index == pair_index):
             toehold_struct = toehold_struct[:index] + domain_fp[step_index][index] + toehold_struct[index + 1:]
-
     return toehold_struct
-        
 
-    exit()
 
-def toehold_structures(domain_fp,domain_seq,afp):
-    """Calculates the structures after the toeholds have formed in the folding path.
+def toehold_structures(domain_fp,domain_seq,acfp):
+    """Calculates the structures after the toeholds have formed in the folding path. \
+        Function is redundant since opitimizing for toehhold structures does not improve design.
 
     Args:
         domain_fp(list): each entry corresponds to a step in folding path
         domain_seq(str): domain_level sequence 
     Returns:
     """
-
     split_d_seq = domain_seq.split()
 
     pt_path = path_to_pairtablepath(domain_fp)
-    afp_pt = path_to_pairtablepath(afp)
+    acfp_pt = path_to_pairtablepath(acfp)
    
 
     module_seq = split_into_modules(domain_seq)
@@ -204,23 +166,16 @@ def toehold_structures(domain_fp,domain_seq,afp):
     for i,step in enumerate(domain_fp[:-1]):
         toehold_path.append(step)
         if step != domain_fp[i+1][:len(step)]:#checks for refolding event if structure has changed
-            #print(f'{step = }, {domain_fp[i+1][:len(step)] = }')
+            p_module_index = acfp_pt[i+1][-1] -1
 
-            p_module_index = afp_pt[i+1][-1] -1
-
-            #print(f'{p_module_index = }')
-
-            #print(f'{module_seq = }')
 
             if len(module_seq[i+1].split()) > 1 and len(module_seq[p_module_index].split()) > 1: #skips steps where no domains are employed
                 toehold_struct = find_toeholdstruct(domain_seq,domain_fp,i+1,p_module_index)
-
                 toehold_path.append(toehold_struct)
 
     toehold_path.append(domain_fp[-1])
-
-
     return toehold_path
+
 
 def convert_to_UL(string):
     """Converts sting annotated domain sequence into a upper lower case annotated string
@@ -232,7 +187,6 @@ def convert_to_UL(string):
         UL_seq (str): Upper lower case annotated domain level sequence
     
     """
-
     split_seq = string.split()
     counts = string.count("*")
     c_string = split_seq
@@ -249,9 +203,9 @@ def convert_to_UL(string):
             c_string[x] = c_string[x].upper()
             c_string[x] = c_string[x][:-1]
     
-    c_string = " ".join(c_string)
-    
+    c_string = " ".join(c_string)    
     return c_string
+
 
 def identical_domains_constraint(domain,split_seq,model,parameters):
     """Identical_domains_constraint
@@ -266,30 +220,22 @@ def identical_domains_constraint(domain,split_seq,model,parameters):
         if split_seq[x] == domain:
             i_pointer = 0
             
-
             for u in split_seq[:x]:
-                
                 i_pointer += parameters["d_length"][u]
-
             j_pointer = i_pointer    
 
             for q in range(len(split_seq[:x]),len(split_seq)):
-           
                 if domain not in split_seq[x+1:]:
                     return    
                 if split_seq[q] == domain and j_pointer != i_pointer:
-                   
                     break
                 j_pointer += parameters["d_length"][split_seq[q]]
 
-        
             if i_pointer > j_pointer:
                 return
             for z in range(parameters["d_length"][domain]):
                 if i_pointer != j_pointer:
-                    
-                    model.add_constraints(IdenticalDomains(i_pointer,j_pointer))
-                    
+                    model.add_constraints(IdenticalDomains(i_pointer,j_pointer))    
                 i_pointer += 1
                 j_pointer += 1
 
@@ -345,6 +291,7 @@ def call_findpath(seq, ss1, ss2, md, fpw, mxb = float('inf')):
         return mypath, barrier
     return None, None
 
+
 def constrained_efe(sequence,c):
         """Calculates the ensemble free energy of sequence
         
@@ -352,6 +299,7 @@ def constrained_efe(sequence,c):
         fc = RNA.fold_compound(sequence)
         # fc.hc_add_from_db(c) # not sure if it's necessary to add constraint
         return fc.pf()[1]
+
 
 def mc_optimize(model, objective, steps, temp, start=None):
         sampler = ir.Sampler(model)
@@ -376,13 +324,13 @@ def mc_optimize(model, objective, steps, temp, start=None):
         return (best, bestval)
 
 
-def score_sequence(seq,d_seq,parameters,afp,domain_fp):
+def score_sequence(seq,d_seq,parameters,acfp,domain_fp):
     '''Scores the sequence with the current objective function from cocodesign
     
     Args: 
         seq(str): nucleotide sequence 
         parameters(dict): dict of parameters important is that d_length dict exists
-        afp(list): each entry corresponds to a step in the abstract folding path
+        acfp(list): each entry corresponds to a step in the abstract folding path
 
     Returns: 
         output(str): Formatted output for writing in file or displaying in terminal
@@ -408,9 +356,6 @@ def score_sequence(seq,d_seq,parameters,afp,domain_fp):
         nt_path.append("".join(seq[:len(x)]))
     nt_path.append(seq)
 
-
-
-
     total = []
     output_matrix = []
 
@@ -434,38 +379,23 @@ def score_sequence(seq,d_seq,parameters,afp,domain_fp):
         
         cefe = fc.pf()[1]
         
-
-        
-
-        
-        mypath, barrier = call_findpath(nt_path[x],ss1,ext_path[x],0,30)
-        if mypath != None:
-            deltaE = abs(mypath[-1][1]) - abs(mypath[0][1])
-        else: 
-            deltaE = 99
-            barrier = 99
-        global factor
-        
-
-
+        #barrier for unconstraint structures
+        #mypath, barrier = call_findpath(nt_path[x],ss1,ext_path[x],0,30)
+        #if mypath != None:
+        #    deltaE = abs(mypath[-1][1]) - abs(mypath[0][1])
+        #else: 
+        #    deltaE = 99
+        #    barrier = 99
+        #global factor
+        barrier = 0
         #constraint barrier
-        
-        #print(f"{ss1 = }")
-        #print(f"{ext_path[x] = }")
-
-
         fc_1 = RNA.fold_compound(nt_path[x])
         fc_1.hc_add_from_db(ss1)
         c_mfe_1 = fc_1.mfe()[0]
-        #print(f"{ext_path[x] = }")
 
         fc_2 = RNA.fold_compound(nt_path[x])
         fc_2.hc_add_from_db(ext_path[x].replace('.','x'))
         c_mfe_2 = fc_2.mfe()[0]
-
-        #print(f"{c_mfe_1 = }")
-        #print(f"{c_mfe_2 = }")
-
 
         mypath, c_barrier = call_findpath(nt_path[x],c_mfe_1,c_mfe_2,0,30)
         if mypath != None:
@@ -475,16 +405,11 @@ def score_sequence(seq,d_seq,parameters,afp,domain_fp):
             c_barrier = 99
         global factor
 
-        
-        #print(f'{efe = }, {cefe = }, {efe = }, {c_barrier = }, {barrier = }')
-
         ensemble_defect = fc.ensemble_defect(ext_path[x])
         obj_score,obj_function = objective_function(cefe,fe,efe,c_barrier,barrier,ensemble_defect)
         total.append(obj_score) 
         prob = fc.pr_structure(ext_path[x].replace(".","x"))
         output_matrix.append([obj_score,prob,abs(efe - cefe),c_barrier,len(mypath),ensemble_defect])
-
-        #output += f"{obj_score:<12.6g}\t{prob:<8.6g}\t{(efe - fe) ** 2:<11.6g}\t{barrier:<8.6g}\t{len(mypath):<9}\t{ensemble_defect:<9}\n"
 
     mean_efe_fe_squared = sum(row[2] for row in output_matrix) / len(output_matrix)
     mean_ensemble_defect = sum(row[5] for row in output_matrix) / len(output_matrix)
@@ -504,7 +429,6 @@ def score_sequence(seq,d_seq,parameters,afp,domain_fp):
         output_matrix[i].append(total[i])
         mean = sum(total)/len(total)
 
-     
     #format output 
     output = f"{obj_function = }\nObj Score\tProb    \tEfe-Fe^2   \tBarrier \tPath Length\tEnsemble Defect\tEfe-Fe^2 Error\tEnsemble Defect Error\tSquared Error\tTotal Score\n"
     output += "\n".join(
@@ -515,8 +439,9 @@ def score_sequence(seq,d_seq,parameters,afp,domain_fp):
 
     return max(total),output
 
-def nt_path_to_afp(nt_path,domain_seq,parameters):
-    afp = []
+
+def nt_path_to_acfp(nt_path,domain_seq,parameters):
+    acfp = []
     for i,step in enumerate(nt_path):
         cur_struct = []
         seen_l = 0            
@@ -532,17 +457,15 @@ def nt_path_to_afp(nt_path,domain_seq,parameters):
                 cur_struct.append(step[index + 1])
                 index += parameters['d_length'][domain]
 
-        afp.append(''.join(cur_struct))
+        acfp.append(''.join(cur_struct))
 
-    return afp 
+    return acfp 
 
 
-def rna_design(seq,path,parameters,afp,domain_fp):
+def rna_design(seq,path,parameters,acfp,domain_fp):
 
     split_seq = seq.split()
-
     d_seq_len = sum([int(parameters["d_length"][x]) for x in split_seq])
-    
     
     # define constraints
     #Identical Domains
@@ -555,14 +478,12 @@ def rna_design(seq,path,parameters,afp,domain_fp):
 
     model = ir.Model(d_seq_len,4)
 
-
     for domain in set(parameters["d_length"]):
         if domain != "l":
             identical_domains_constraint(domain,split_seq,model,parameters)
-    
 
     ext_path = path
-    
+
     # Folding path constraint
     for x in ext_path: 
         cons = []
@@ -570,12 +491,11 @@ def rna_design(seq,path,parameters,afp,domain_fp):
         cons = [rna.BPComp(i,j) for (i,j) in bps]
         model.add_constraints(cons)
 
-    objective = lambda x: -score_sequence(rna.ass_to_seq(x),seq,parameters,afp,domain_fp)[0]
+    objective = lambda x: -score_sequence(rna.ass_to_seq(x),seq,parameters,acfp,domain_fp)[0]
 
     print("Hello there. Please wait a moment, we will be right back with your sequence.")
 
     best, best_val = mc_optimize(model, objective,steps = parameters['steps'], temp = 0.04)
-
 
     print("Calculated NT sequence:")
     print(rna.ass_to_seq(best), -best_val)
@@ -600,9 +520,9 @@ def set_verbosity(cocodesign_logger, console_handler, verbosity):
         console_handler.setLevel(logging.CRITICAL)
         cocodesign_logger.setLevel(logging.CRITICAL)
 
+
 def main():
     
-
     #_________________Argparse_________________#
     parser = argparse.ArgumentParser(
         formatter_class = argparse.RawDescriptionHelpFormatter,
@@ -621,64 +541,46 @@ def main():
     parser.add_argument("-cutoff", "--cutoff", action="store", type=valid_cutoff, default=float('-inf'),help="Cutoff value at which structures won't get accepted (default: -inf, valid range: 0 to 1)")
     parser.add_argument("-aCFP", "--aCFP", action="store", type=str, default=None,help="aCFP where each step is seperated by a comma. If not specified the user needs to use the Terminal as input.")
 
-
-
-
-
     args = parser.parse_args()
-
     #_________________Set_logger_verbosity________________#
 
     set_verbosity(cocodesign_logger, console_handler, args.verbose)
     d_length = {}
 
     if args.input.isatty():
-            
             print("\n")
             print("Please input a domain level sequence:")
             d_seq = input()
     else:
-
         file_extension = os.path.splitext(args.input.name)[1]  # Get the file extension
-
         if file_extension == ".pil":
-            afp = None
+            acfp = None
             pil_input = read_pil(args.input,True)
-            print(pil_input)
             if len(pil_input[0]) == 1:
                 input_complex = next(iter(pil_input[0].values()))
-                print("Value of the entry:", input_complex)
-                print(f"{input_complex._sequence = }  ")
-                print(f"{input_complex.kernel_string = }  ")
-                
-
+                print(f"Value of the entry: {input_complex = }\n{input_complex._sequence = }\n{input_complex.kernel_string = }")
                 d_seq = input_complex.kernel_string
 
                 if all(char.isalpha() or char == '*' for char in d_seq):
                     raise SystemExit("SystemExit: Only a domain level sequence is accepted. (No structural information)")
-
+                
                 for domain in input_complex._sequence:
                     length = domain._length
                     name = domain._name
                     if name not in d_length:
                         d_length[name] = length
-
-                print(f"{d_length = }")
-
-                print(f'\nInput domain level sequence: {d_seq}\n')
-                        
+                print(f'\nInput domain level sequence: {d_seq}\n')      
             else:
                 raise SystemExit("SystemExit:More than one kernel sequence in input. We can only simulate one kernel string at a time. ")              
-    
         else: 
-            #Handle input from cocosim here
+            #Future: Incorperate cocosim input here
             raise SystemExit("Only data in the .pil format is currently accepted.")
 
-    print("Please input the afp by which the domain level sequence was designed:")
+    print("Please input the acfp by which the domain level sequence was designed:")
     if not args.aCFP:
-        afp = afp_terminal_input()
+        acfp = acfp_terminal_input()
     else:
-        afp = args.aCFP.split(',')
+        acfp = args.aCFP.split(',')
 
     if len(d_length) == 0:    
         for domain in d_seq.split():
@@ -689,57 +591,31 @@ def main():
             else: 
                 d_length[domain] = 3 
 
-   
     parameters = {"k_slow": args.k_slow,'k_fast': args.k_fast, "cutoff": args.cutoff,"d_length":d_length,"d_seq":d_seq,"logic":args.logic,'steps':args.steps}
-
-
-    # add check to see if number of folding steps = number of spacer domains
 
     #___simulate_domain-level-foldingpath______# 
 
     if not args.force:
-        dominant_fp = verify_domain_foldingpath(afp,d_seq,parameters)
+        dominant_fp = verify_domain_foldingpath(acfp,d_seq,parameters)
 
         if not dominant_fp:
-            print(f"Simulated folding path does not match afp")
+            print(f"Simulated folding path does not match acfp")
             exit()
 
-
-    #How to get from AFP to domain fp 
-
-    domain_fp = afp_to_domainfp(afp,d_seq)
-
+    #How to get from acfp to domain fp 
+    domain_fp = acfp_to_domainfp(acfp,d_seq)
     ext_folding_path = domain_path_to_nt_path(domain_fp,d_seq,parameters)
 
-    print(f"Input AFP: {afp}\n")
+
+    print(f"Input acfp: {acfp}\n")
     print(f"Input Domain level sequence: {d_seq}\n")    
-    nt_seq, score = rna_design(d_seq,ext_folding_path,parameters,afp,domain_fp)
+    nt_seq, score = rna_design(d_seq,ext_folding_path,parameters,acfp,domain_fp)
 
     print(f"\n\nRNA design done\nSequence = {nt_seq}\n{score = }\n{extend_domain_seq(d_seq,parameters)}")
 
-
-    #print output and extended nucleotide sequence for easier analysis 
     return nt_seq
 
 
 if __name__ == "__main__":
     
     main()
-
-    
-    afp = ['.','()','.()','()()']
-    domain_seq = ' L0*  S0 a L0 b S1 c* b* L0* a* d* S2 d a L0 b c S3'
-
-    domain_fp =  afp_to_domainfp(afp,domain_seq)
-
-    #print((domain_fp,domain_seq,afp))
-
-    '''
-
-    afp = ['.','()','().','(())']
-    domain_seq = ' a* b* L0* c* d* S0 c L0 b S1  L0*  S2 d c L0 b a S3'
-
-    domain_fp =  afp_to_domainfp(afp,domain_seq)
-
-    toehold_structures(domain_fp,domain_seq,afp)
-    '''

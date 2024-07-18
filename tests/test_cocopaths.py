@@ -92,14 +92,14 @@ def test_is_balanced_structure():
 
 def test_get_edges(configure_logger):
     
-    afp = [[1, 0], [2, 2, 1], [3, 0, 3, 2], [4, 4, 3, 2, 1]]
+    acfp = [[1, 0], [2, 2, 1], [3, 0, 3, 2], [4, 4, 3, 2, 1]]
     right_edges = {(1,2),(2,3),(1,4)}
     g = graph()
-    g.create_nodes_from_pairtable(afp)
+    g.create_nodes_from_pairtable(acfp)
 
     nodes = list(g.graph.keys())
     nodes.insert(0,0)
-    g.create_edges(afp,nodes)
+    g.create_edges(acfp,nodes)
     g.get_edges()
     
 
@@ -109,33 +109,33 @@ def test_get_edges(configure_logger):
 
 def test_bipartite_check(configure_logger):
 
-    afp = [[1, 0], [2, 2, 1], [3, 0, 3, 2], [4, 4, 3, 2, 1]]
+    acfp = [[1, 0], [2, 2, 1], [3, 0, 3, 2], [4, 4, 3, 2, 1]]
     
     g = graph()
-    g.create_nodes_from_pairtable(afp)
+    g.create_nodes_from_pairtable(acfp)
 
     nodes = list(g.graph.keys())
     nodes.insert(0,0)
-    g.create_edges(afp,nodes)
+    g.create_edges(acfp,nodes)
     g.get_edges()
     g.print_nodes()
-    connected_components = find_connected_modules(afp)
+    connected_components = find_connected_modules(acfp)
     
     assert g.bipartite_check(connected_components=connected_components), f"Bipartite Check 1 failed result is {g.bipartite_check(connected_components)}"
     print("\nNodes after\n")
     g.print_nodes()
     print("\n")
-    afp = [[1,0],[2,2,1],[3,0,3,2],[4,3,4,1,2]]
+    acfp = [[1,0],[2,2,1],[3,0,3,2],[4,3,4,1,2]]
     right_edges = {(1,2),(2,3),(1,4)}
     g = graph()
-    g.create_nodes_from_pairtable(afp)
+    g.create_nodes_from_pairtable(acfp)
 
     nodes = list(g.graph.keys())
     nodes.insert(0,0)
-    g.create_edges(afp,nodes)
+    g.create_edges(acfp,nodes)
     g.get_edges()
     
-    connected_components = find_connected_modules(afp)
+    connected_components = find_connected_modules(acfp)
     
     
     g.print_nodes()
@@ -143,34 +143,34 @@ def test_bipartite_check(configure_logger):
     assert bipartite_result == False,f"Bipartite Check 2 failed result is {g.bipartite_check(connected_components)}"
 
 
-    afp = [[1, 0], [2, 2, 1], [3, 0, 3, 2], [4, 4, 3, 2, 1], [5, 0, 3, 2, 5, 4], [6, 6, 3, 2, 5, 4, 1]]
+    acfp = [[1, 0], [2, 2, 1], [3, 0, 3, 2], [4, 4, 3, 2, 1], [5, 0, 3, 2, 5, 4], [6, 6, 3, 2, 5, 4, 1]]
     right_edges = {(1,2),(2,3),(1,4)}
     g = graph()
-    g.create_nodes_from_pairtable(afp)
+    g.create_nodes_from_pairtable(acfp)
 
     nodes = list(g.graph.keys())
     nodes.insert(0,0)
-    g.create_edges(afp,nodes)
+    g.create_edges(acfp,nodes)
     g.get_edges()
     
-    connected_components = find_connected_modules(afp)
+    connected_components = find_connected_modules(acfp)
     
     
     g.print_nodes()
     bipartite_result = g.bipartite_check(connected_components)
     assert bipartite_result == True,f"Bipartite Check 3 failed result is {g.bipartite_check(connected_components)}"
 
-    afp = [[1,0],[2,0,0],[3,0,3,2],[4,0,0,4,3],[5,0,5,4,3,2]]
+    acfp = [[1,0],[2,0,0],[3,0,3,2],[4,0,0,4,3],[5,0,5,4,3,2]]
     
     g = graph()
-    g.create_nodes_from_pairtable(afp)
+    g.create_nodes_from_pairtable(acfp)
 
     nodes = list(g.graph.keys())
     nodes.insert(0,0)
-    g.create_edges(afp,nodes)
+    g.create_edges(acfp,nodes)
     g.get_edges()
     
-    connected_components = find_connected_modules(afp)
+    connected_components = find_connected_modules(acfp)
     
     
     g.print_nodes()
@@ -184,23 +184,23 @@ def test_bipartite_check(configure_logger):
 def test_pseudoknot_attack(configure_logger):
 
     with pytest.raises(SystemExit):
-        afp = [".","()",".()","(())","(()).","()(())"]
+        acfp = [".","()",".()","(())","(()).","()(())"]
 
-        afp_graph = build_graph(afp)
+        acfp_graph = build_graph(acfp)
 
         
 
-        domain_seq = afp_graph.get_domain_seq()
+        domain_seq = acfp_graph.get_domain_seq()
 
         print(domain_seq)
 
-    afp = [".",'()',"().","(..)","().()"]
+    acfp = [".",'()',"().","(..)","().()"]
 
-    afp_graph = build_graph(afp)
+    acfp_graph = build_graph(acfp)
 
     
 
-    domain_seq = afp_graph.get_domain_seq()
+    domain_seq = acfp_graph.get_domain_seq()
 
     print(domain_seq)
 
@@ -208,43 +208,43 @@ def test_pseudoknot_attack(configure_logger):
 
 def test_detect_cycle(configure_logger):
     with pytest.raises(SystemExit):
-        afp = [".","()",".()","(())","(.())"]
+        acfp = [".","()",".()","(())","(.())"]
         
-        afp_graph = build_graph(afp)
+        acfp_graph = build_graph(acfp)
 
 def test_graph(configure_logger):
-    afp = [[1, 0], [2, 2, 1], [3, 0, 3, 2], [4, 4, 3, 2, 1]]
+    acfp = [[1, 0], [2, 2, 1], [3, 0, 3, 2], [4, 4, 3, 2, 1]]
     g = graph() 
-    g.create_nodes_from_pairtable(afp)
-    assert len(g.graph) == len(afp)
+    g.create_nodes_from_pairtable(acfp)
+    assert len(g.graph) == len(acfp)
 
 def test_1_different_substructures(configure_logger):
     with pytest.raises(SystemExit):
         path = [".","()","().",".()."]
 
-        afp_graph = build_graph(path)
+        acfp_graph = build_graph(path)
 
 def test_2_different_substructures(configure_logger):
 
     with pytest.raises(SystemExit):
         path = [".","()","().","()()","()().","(())()"]
 
-        afp_graph = build_graph(path)
+        acfp_graph = build_graph(path)
         
 def test_3_different_substructures(configure_logger):
      
     with pytest.raises(SystemExit):
         path = [".","()","().","(())","()()."]
 
-        afp_graph = build_graph(path)
+        acfp_graph = build_graph(path)
 
 def test_4_different_substructures(configure_logger):
     
     with pytest.raises(SystemExit):
         path = [".","()",".()","()()","()().",".()()."]
 
-        afp_graph = build_graph(path)
-        afp_graph.verify_weights(path)
+        acfp_graph = build_graph(path)
+        acfp_graph.verify_weights(path)
 
 
 def test_5_different_substructures(configure_logger):
@@ -252,8 +252,8 @@ def test_5_different_substructures(configure_logger):
     with pytest.raises(SystemExit):
         path = [".","()",".()","()()",".()()"]
 
-        afp_graph = build_graph(path)
-        afp_graph.verify_weights(path)
+        acfp_graph = build_graph(path)
+        acfp_graph.verify_weights(path)
 
 
 
@@ -261,12 +261,12 @@ def test_1_create_domain_seq(configure_logger):
        
     print("\n\n\nTest 1\n\n\n")
     
-    afp_1 = [[1,0],[2,2,1],[3,0,3,2],[4,4,3,2,1],[5,0,3,2,5,4],[6,6,3,2,5,4,1]]
+    acfp_1 = [[1,0],[2,2,1],[3,0,3,2],[4,4,3,2,1],[5,0,3,2,5,4],[6,6,3,2,5,4,1]]
 
-    afp_graph = build_graph(afp_1)
+    acfp_graph = build_graph(acfp_1)
 
     
-    domain_seq_1 = afp_graph.get_domain_seq()
+    domain_seq_1 = acfp_graph.get_domain_seq()
 
     assert domain_seq_1 == [' L0*  S0', 'a L0 b S1', 'b* L0* a* S2', 'c L0 d S3', 'd* L0* c* S4', ' L0  S5'], f"Create Domain_seq 1 failed: Result: {domain_seq_1} Solution:  [' m0* ', 'a m0 b', 'c* b* m0* a* e*', 'g e a m0 b c j', 'j* c* b* m0* a* e* g*']"
 
@@ -277,12 +277,12 @@ def test_2_create_domain_seq(configure_logger):
     
     print("\n\n\nTest 2\n\n\n")
     
-    afp_2 = [[1, 0], [2, 2, 1], [3, 2, 1, 0], [4, 4, 3, 2, 1]]
+    acfp_2 = [[1, 0], [2, 2, 1], [3, 2, 1, 0], [4, 4, 3, 2, 1]]
 
-    afp_graph = build_graph(afp_2)
+    acfp_graph = build_graph(acfp_2)
 
     
-    domain_seq_2 = afp_graph.get_domain_seq()
+    domain_seq_2 = acfp_graph.get_domain_seq()
 
 
 
@@ -294,12 +294,12 @@ def test_3_create_domain_seq(configure_logger):
 
     print("\n\n\nTest 3\n\n\n")
 
-    afp_3 = [".","()","().","()()","().()","()(())"]
+    acfp_3 = [".","()","().","()()","().()","()(())"]
 
-    afp_graph = build_graph(afp_3)
+    acfp_graph = build_graph(acfp_3)
 
     
-    domain_seq_3 = afp_graph.get_domain_seq()
+    domain_seq_3 = acfp_graph.get_domain_seq()
 
 
     assert domain_seq_3 == [' L0*  S0', ' L0  S1', ' L1*  S2', 'a L1 b S3', 'b* L1* a* S4', ' L1  S5'], f"Create domain_seq 3 failed Result: {domain_seq_3}, Solution: [' m0* ', ' m0 ', ' m1* ', 'a m1 b', 'b* m1* a*', ' m1 ']"
@@ -310,13 +310,13 @@ def test_4_create_domain_seq(configure_logger):
 
     print("\n\n\nTest 4\n\n\n")
 
-    afp_4 = [".","()","().","()()","()().","()()()","()()()."]
+    acfp_4 = [".","()","().","()()","()().","()()()","()()()."]
 
 
-    afp_graph = build_graph(afp_4)
+    acfp_graph = build_graph(acfp_4)
 
     
-    domain_seq_4 = afp_graph.get_domain_seq()
+    domain_seq_4 = acfp_graph.get_domain_seq()
     
 
     assert domain_seq_4 == [' L0*  S0', ' L0  S1', ' L1*  S2', ' L1  S3', ' L2*  S4', ' L2  S5', ' L3*  S6'], f"Create domain_seq 4 failed Result: {domain_seq_4},Solution: [' m0* ', ' m0 ', ' m1* ', ' m1 ', ' m2* ', ' m2 ', ' m3* ']"
@@ -329,10 +329,10 @@ def test_5_create_domain_seq(configure_logger):
     
     path = [".","()",".()","(())","(()).","(()())"]
     
-    afp_graph = build_graph(path)
+    acfp_graph = build_graph(path)
 
     
-    domain_seq_5 = afp_graph.get_domain_seq()
+    domain_seq_5 = acfp_graph.get_domain_seq()
     
 
     assert domain_seq_5 == ['a* b* L0* c* d* S0', 'e L0 f S1', 'f* L0* e* S2', 'c L0 b S3', ' L0*  S4', 'd c L0 b a S5'], f"Create domain_seq 5 failed Result: {domain_seq_5},Solution: ['a* b* m0* c* d* l0', 'e m0 f l1', 'f* m0* e* l2', 'c m0 b l3', ' m0*  l4', 'd c m0 b a l5']"
@@ -349,10 +349,10 @@ def test_6_create_domain_seq(configure_logger):
         
     path = [".","()",".()","()()",".()()"]
     
-    afp_graph = build_graph(path)
+    acfp_graph = build_graph(path)
 
     
-    domain_seq_6 = afp_graph.get_domain_seq()
+    domain_seq_6 = acfp_graph.get_domain_seq()
     
 
     assert  domain_seq_6  == [' L0*  S0', 'a L0 b S1', 'c* b* L0* a* d* S2', 'e d a L0 b c f S3', 'f* c* b* L0* a* d* e* S4'], f"Create domain_seq_7 failed Result: {domain_seq_7},Solution: [' m0*  l0', 'a m0 b l1', 'c* b* m0* a* d* l2', 'e d a m0 b c f l3', 'f* c* b* m0* a* d* e* l4']"
@@ -366,10 +366,10 @@ def test_7_create_domain_seq(configure_logger):
         
     path = [".","()",".()","(())","(())."]
     
-    afp_graph = build_graph(path)
+    acfp_graph = build_graph(path)
 
     
-    domain_seq_7 = afp_graph.get_domain_seq()
+    domain_seq_7 = acfp_graph.get_domain_seq()
     
 
     assert  domain_seq_7  == [' L0*  S0', 'a L0 b S1', 'b* L0* a* S2', ' L0  S3', ' L1*  S4']
@@ -385,10 +385,10 @@ def test_8_create_domain_seq(configure_logger):
         
     path = [".","()","()."]
     
-    afp_graph = build_graph(path)
+    acfp_graph = build_graph(path)
 
     
-    domain_seq_8 = afp_graph.get_domain_seq()
+    domain_seq_8 = acfp_graph.get_domain_seq()
     
 
     assert  domain_seq_8  == [' L0*  S0', ' L0  S1', ' L1*  S2']

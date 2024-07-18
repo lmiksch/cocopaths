@@ -6,7 +6,7 @@ from io import StringIO
 from cocopaths.cocodesign import (
     set_verbosity,
     verify_domain_foldingpath,
-    afp_to_domainfp,
+    acfp_to_domainfp,
     domain_path_to_nt_path,
     rna_design,
     extend_domain_seq,
@@ -64,7 +64,7 @@ def test_main(monkeypatch, tmp_path):
     def mock_input(prompt=None):
         if prompt and "Please input a domain level sequence:" in prompt:
             return "L1 S1"
-        elif prompt and "Please input the afp by which the domain level sequence was designed:" in prompt:
+        elif prompt and "Please input the acfp by which the domain level sequence was designed:" in prompt:
             return ".\n()\n()\n.()\n()()\n$"
         else:
             return ""  # Handle the case where prompt is None or unexpected prompt string
@@ -119,7 +119,7 @@ def test_main_sim_fail(monkeypatch, tmp_path):
     def mock_input(prompt=None):
         if prompt and "Please input a domain level sequence:" in prompt:
             return "L1 S1"
-        elif prompt and "Please input the afp by which the domain level sequence was designed:" in prompt:
+        elif prompt and "Please input the acfp by which the domain level sequence was designed:" in prompt:
             return ".\n()\n()\n.()\n()()\n$"
         else:
             return ""  # Handle the case where prompt is None or unexpected prompt string
