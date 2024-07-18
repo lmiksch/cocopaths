@@ -18,6 +18,12 @@ jobs:
           environment-file: environment.yml
           activate-environment: cocopaths-env
 
+      - name: Debug Conda Info
+        run: |
+          conda info
+          conda list
+        working-directory: .
+
       - name: Install additional Python dependencies
         run: |
           pip install flit
