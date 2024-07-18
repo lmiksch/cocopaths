@@ -13,7 +13,7 @@ jobs:
       - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          python-version: 3.10  # Ensure this matches the environment.yml
+          python-version: 3.9  # Ensure this matches the environment.yml
           auto-update-conda: true
           environment-file: environment.yml
           activate-environment: cocopaths-env
