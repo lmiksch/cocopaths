@@ -26,6 +26,7 @@ jobs:
       - name: Run pytest
         run: |
           conda init bash
+          source ~/.bashrc 
           conda activate cocopaths-env
           pytest --cov=./ --cov-report=xml
         shell: bash
