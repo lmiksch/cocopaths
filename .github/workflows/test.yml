@@ -13,35 +13,43 @@ jobs:
       - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          python-version: 3.12  # Ensure this matches the environment.yml
+          python-version: 3.12
           auto-update-conda: true
           environment-file: environment.yml
           activate-environment: cocopaths-env
 
-      - name: Run pytest
+      - name: Ensure Conda Initialization
         run: |
-          conda activate cocopaths-env
-          pytest
-        working-directory: .
-
+          conda init bash
+        shell: bash
       - name: install Infrared
         run: |
            conda install conda-forge::infrared 
         working-directory: . 
 
+      - name: Run pytest
+        run: |
+          source ~/.bashrc
+          conda activate cocopaths-env
+          pytest
+        shell: bash
+
       - name: Verify installation of infrared
         run: |
+          source ~/.bashrc
+          conda activate cocopaths-env
           conda list infrared
-        working-directory: .
-
+        shell: bash
 
       - name: Run coverage
         run: |
-          source activate cocopaths-env
+          source ~/.bashrc
+          conda activate cocopaths-env
           coverage run -m pytest
-        working-directory: .
+        shell: bash
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
