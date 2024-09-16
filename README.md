@@ -91,34 +91,5 @@ Cocosim can be used separately from cocopaths. It accepts input either through t
 CocoDesign is currently designed to operate independently. It accepts either a .pil format file as input, where the user can specify the domain lengths, or an input via the terminal, with the default parameters for domain lengths.
 CocoDesign initiates by validating the cotranscriptional folding path at the domain level. If the simulated path does not align with the abstract folding path, it will not continue unless the -force flag is activated. 
 
-## ToDo: 
-
-
-### General
-1. Cleanup code
-
-
-### CocoPath
-1. 
-
-### CocoSim 
-
-1. Write tests for verification
-2. Bug: Complementary domains must be separated by another domain --> Bug on Peppercornenumerator side
-
-### CocoDesign 
-
-1. Modify it to use cocosim output automatically
-
-
-
-### Current Bugs: 
- - CocoPaths
- 
- - Cocosim:
-  - sometime segmentation fault(coredumped) during steps -> bug not reproducable if it occurs just redo the call
- 
-
-
 
   
