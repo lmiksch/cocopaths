@@ -527,6 +527,7 @@ def apply_cutoff(enum,parameters,all_complexes):
             if rm_occ + macro.occupancy > parameters["cutoff"]:
                 break
             enum = enforce_via_transient(macro,enum,all_complexes,cut_macrostates,parameters)
+            rm_occ += macro.occupancy
     oc_sum = 0
     return enum
         
