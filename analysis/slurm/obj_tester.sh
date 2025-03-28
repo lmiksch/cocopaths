@@ -5,15 +5,15 @@
 #SBATCH --error=logs/coco_obj_analysis_%A_%a.err
 #SBATCH --ntasks=1
 #SBATCH --mem=4G
-#SBATCH --cpus-per-task=20
-#SBATCH --array=1-40
+#SBATCH --cpus-per-task=1
+#SBATCH --array=0
 #SBATCH --time=48:00:00
 
 echo "Starting job $SLURM_ARRAY_TASK_ID"  # Debug statement
 
 QUEUE_FILE="/home/mescalin/miksch/Documents/cocopaths/analysis/slurm/queue_file.txt"
 LOCK_FILE="/home/mescalin/miksch/Documents/cocopaths/analysis/slurm/queue_file.lock"
-FILE_PATH="/home/mescalin/miksch/Documents/cocopaths/analysis/1_run/6_steps_out.tsv"
+FILE_PATH="/home/mescalin/miksch/Documents/cocopaths/analysis/23_run/6_steps_out_new_alog.tsv"
 OUTPUT_FILE="/home/mescalin/miksch/Documents/cocopaths/analysis/slurm/output/6_steps_out.txt"
 CONDA_ENV="bioinf"
 
@@ -56,6 +56,10 @@ while true; do
 
     echo "Analysis complete for index $NEXT_INDEX"  # Debug statement
 
+    # Add a small delay to allow other tasks to acquire the next index from the queue
+    sleep 2
+
 done
 
 echo "Job completed"  # Debug statement
+

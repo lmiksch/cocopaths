@@ -1,6 +1,5 @@
 from typing import Any
 import re,argparse, logging, sys, copy
-from itertools import product
 from cocopaths import __version__
 from .utils import (pairtablepath_to_dotbracket,path_to_pairtablepath, find_connected_modules,is_balanced_structure,acfp_terminal_input, structure_to_pairtable, is_legal_dotbracket)
 import string
@@ -552,8 +551,8 @@ class graph():
             The new structure (str) after binding, or None if no valid binding is detected.
         """
         # Ensure the last-character condition.
-        #if prev_step[-1] != '.' or curr_step[-1] != ')':
-        #    return None
+        if prev_step[-1] != '.' or curr_step[-1] != ')':
+            return None
 
         candidate_index = None
         # Look for the first candidate position (except the last) where prev_step is '.' and curr_step is '('.
@@ -659,7 +658,7 @@ class graph():
         ]
         logger.debug(f"\nCurrent structure: {current}")
         for rule_name, rule_func in rules:
-            #logger.debug("\nTrying rule:", rule_name)
+            logger.debug("\nTrying rule:", rule_name)
             outcomes = rule_func(current)
             if outcomes is None:
                 outcomes = []
@@ -709,7 +708,7 @@ class graph():
         logger.debug(f"New step \n\n{curr_step = } {prev_step = }")
         r0 = self.apply_R0(curr_step, modified_structure)
         if r0 is not None:
-            rule_seq.append(("R0"))
+            rule_seq.append(("R0",))
             if r0 != modified_structure:
                 modified_structure = r0
             else:
@@ -721,7 +720,9 @@ class graph():
             rule_seq.append(("R1", r1))
             modified_structure = r1
 
-        #if check_unpaired_complements()
+      
+         
+        
                 
         logger.debug(f"R1 post {modified_structure = }")
 
@@ -902,13 +903,12 @@ class graph():
                 max_weight = float("-inf")
                 max_weight = max([self.edges[neighbor] for neighbor in current_neighbors], default=float("-inf"))
 
-                if self.edges[curr_edge] > max_weight:# and self.edges[curr_edge] != 1:
+                if self.edges[curr_edge] > max_weight and self.edges[curr_edge] != 1:
                     logger.debug(f"{self.edges[curr_edge] = } , {max_weight = }")
                     logger.debug(f"\n{active_edges = }")
                     logger.debug(f"\n{inactive_edges = }")
                     logger.debug(f"Verify Weights: Folding path not possible in this step: {step}\n\n Goodbye")
                     return False 
-
         return True
           
     #_________Weights______#
@@ -922,7 +922,7 @@ class graph():
         domain_seq = []
 
         for x,node in enumerate(self.graph):
-            domain_seq.append(str(" ".join(node.prefix) + " " + node.middle + " " + " ".join(node.suffix) + " " + "Z" + str(x)))
+            domain_seq.append(str(" ".join(node.prefix) + " " + node.middle + " " + " ".join(node.suffix) + " " + "S" + str(x)))
         
         logger.debug(f"Resulting domain seq: {domain_seq}")
         logger.debug(f"{self.edges}")
@@ -1038,8 +1038,6 @@ class graph():
         If all complementary unpaired pairs are "interfered" with by an external pairing (or no such pair exists),
         return True.
         """
-
-        #print(f'\nCheck unpaired complements{acfp = }')
         for step in acfp:
             n = step[0]
             for x in range(1, n + 1):
@@ -1053,21 +1051,19 @@ class graph():
                         continue
                     node_y = self.get_node_by_name(y)
                     # Check if x and y are complementary and in the same connected component.
-                    #print(f'{node_x.connected = } {node_y.connected = } {node_x.complement} {node_y.complement}')
                     if node_x.connected == node_y.connected and node_x.complement != node_y.complement:
-                        return False
-                        #interfering_found = False
-                        ## Check all indices between x and y.
-                        #for j in range(x + 1, y):
-                        #    if step[j] != 0:
-                        #        partner = step[j]
-                        #        # If the partner is outside the [x, y] range, we mark that interference.
-                        #        if partner < x or partner > y:
-                        #            interfering_found = True
-                        #            break
-                        ## If no interfering pairing is found, then this pair of unpaired, complementary domains is "isolated."
-                        #if not interfering_found:
-                        #    return False
+                        interfering_found = False
+                        # Check all indices between x and y.
+                        for j in range(x + 1, y):
+                            if step[j] != 0:
+                                partner = step[j]
+                                # If the partner is outside the [x, y] range, we mark that interference.
+                                if partner < x or partner > y:
+                                    interfering_found = True
+                                    break
+                        # If no interfering pairing is found, then this pair of unpaired, complementary domains is "isolated."
+                        if not interfering_found:
+                            return False
         return True
 
     def consistency_check(self,acfp):
@@ -1158,7 +1154,7 @@ class graph():
         return True
 
 
-def preprocessing(acfp):
+def build_graph(acfp):
     """Takes an acfp and creates a graph based on it. Using the graph a domain level sequence can be created. 
 
         Args:
@@ -1237,95 +1233,19 @@ def preprocessing(acfp):
     if failed_checks:
         error_message = "The following checks failed: " + ", ".join(failed_checks)
         raise SystemExit(error_message)
+
+    #if acfp_graph.pseudoknot_attack_detection(pairtable_acfp):
+            #raise SystemExit("SystemExit: Pseudoknot attack detected. Choose a path without Pseudoknot attacks")
     
-    assignment = [[] for _ in acfp]
-    i = 0
-    for current_node in acfp_graph.graph:
-        current_node.middle = "L" + str(current_node.connected)
-        if current_node.complement:
-            current_node.middle += "*"
-        assignment[i] = str(current_node.middle)
-        i += 1
-
-    logger.debug(f"{assignment = }")
-    return assignment
-
-def complement(d_list):
-    '''Takes a list of domains and returns the complement of it. 
-
-    Args:
-        d_list (list): List containing domains
-
-    Returns:
-        list: Complement of the input list
-    '''
-
-
-    n = len(d_list)
-    middle = [d_list[n // 2]]  # Middle needs to be in a list for concatenation
-    front = d_list[:n // 2]  # Front part
-    back = d_list[n // 2 + 1:]  # Back part
-
-    def complement_list(part):
-        
-        transformed = []
-
-        for element in reversed(part):  # Reverse order while iterating
-            if isinstance(element, list):
-                transformed.append(complement_list(element))  # Recursively process nested lists
-            else:
-                if '*' in element:
-                    transformed.append(element.replace('*', ''))
-                else:
-                    transformed.append(element + '*')
-        return transformed
-
-    comp_middle = complement_list(middle)  # Process middle correctly
-    comp_front = complement_list(front)  # No need to reverse here, already done in the loop
-    comp_back = complement_list(back)
-
-    logger.debug(f'complement = {comp_back + comp_middle + comp_front}')
-    return comp_back + comp_middle + comp_front  # Swap front and back
-
+    #acfp_graph.check_unpaired_complements(pairtable_acfp)
 
     
-def flatten_list(nested_list):
-    """Flattens a nested list while preserving the order."""
-    flat_list = []
-    
-    for element in nested_list:
-        if isinstance(element, list):
-            flat_list.extend(flatten_list(element))  # Recursively flatten
-        else:
-            flat_list.append(element)  # Add non-list elements directly
-    
-    return flat_list
+    #graph.print_nodes
+    #acfp_graph.get_weights(acfp=pairtable_acfp)
+    #acfp_graph.verify_weights(acfp=pairtable_acfp)
+    #acfp_graph.get_domain_seq()
 
-def translate_acfp(acfp):
-    
-    A = preprocessing(acfp)    
-    pt_path = path_to_pairtablepath(acfp)
-
-    S = [[] for _ in acfp]
-    x = 0 
-    d = list(string.ascii_lowercase)
-    d.extend("".join(pair) for pair in product(d, repeat=2))
-    for i in range(len(acfp)):
-        S[i].append(A[i])
-        pt = pt_path[i]
-        logger.debug(f'\nStep: {acfp[i]} pt  {pt} \n current seq: {S = } ')
-        if pt[-1] > 0:  # Ensure valid reference (not 0)
-            ref_index = pt[-1] - 1  # Convert 1-based index to 0-based
-
-            S[i] = complement(S[ref_index])  
-            S[i] = [d[x+1], S[i], d[x]]
-            S[ref_index] = [str(d[x] + '*'), S[ref_index], str(d[x+1] + '*')]
-            x += 2
-
-    for j in range(len(acfp)):
-        S[j].append(str('Z' + str(j)))
-
-    return flatten_list(S)
+    return acfp_graph
 
 def set_verbosity(console_handler,verbosity):
     if verbosity == 0:
@@ -1394,14 +1314,11 @@ The acfp must have following propperties to be translated to a domain level sequ
             acfp = input_parser(args.input)
             print(f"\n\nInput folding path:\n{acfp}\n\n")
 
-        #_________________Translation_of_d_seq_________________#
+        #_________________Creation of Graph_________________#
         logger.debug(acfp)
-        
-
-        domain_list = translate_acfp(acfp)
-        domain_seq = ' '.join(domain_list)
-        print(f'Resulting Domain seq: {domain_seq}')
-
+        acfp_graph = build_graph(acfp)
+        print(f"Resulting Domain Level sequence: {' '.join(acfp_graph.get_domain_seq())}")
+        print('Length of domain seq = ', len(" ".join(acfp_graph.get_domain_seq()).split()))
 
 if __name__ == "__main__":
 

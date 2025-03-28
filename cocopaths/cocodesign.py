@@ -53,10 +53,12 @@ def domain_path_to_nt_path(path,d_seq,parameters):
     for step_index,step in enumerate(path): 
         ex_step_path = ""
         for nt,domain in zip(list(step),split_seq):
-            extendo = nt * parameters["d_length"][domain]
+            if domain[0] != 'Z':
+                extendo = nt * parameters["d_length"][domain]
+            else:
+                extendo = 'x' * parameters["d_length"][domain] 
             ex_step_path += extendo
         ext_path.append(ex_step_path)
-
     return ext_path
 
 
@@ -254,8 +256,8 @@ def extend_domain_seq(d_seq,parameters):
             extended_domain_seq += "L" * int(parameters["d_length"][domain])
         elif UL_domain[0] == "l":
             extended_domain_seq += "l" * int(parameters["d_length"][domain])
-        elif UL_domain[0] == "S":
-            extended_domain_seq += "S" * int(parameters["d_length"][domain])
+        elif UL_domain[0] == "Z":
+            extended_domain_seq += "Z" * int(parameters["d_length"][domain])
         else:
             extended_domain_seq += UL_domain * int(parameters["d_length"][domain])
 
@@ -366,7 +368,14 @@ def score_sequence(seq,d_seq,parameters,acfp,domain_fp):
             ss1 = ext_path[x] 
         else:
             ss1 = ext_path[x-1] + ("." * (len(nt_path[x])-len(nt_path[x-1])))
-         
+
+        if parameters['hard_constraint']:
+            ss1.replace('.','x')
+
+            ext_path = [s.replace(".", "x") for s in ext_path]
+            nt_path = [s.replace(".", "x") for s in nt_path]
+        
+
         fc = RNA.fold_compound(nt_path[x])
         
         efe = fc.pf()[1]
@@ -394,7 +403,10 @@ def score_sequence(seq,d_seq,parameters,acfp,domain_fp):
         c_mfe_1 = fc_1.mfe()[0]
 
         fc_2 = RNA.fold_compound(nt_path[x])
-        fc_2.hc_add_from_db(ext_path[x].replace('.','x'))
+
+      
+        fc_2.hc_add_from_db(ext_path[x])
+
         c_mfe_2 = fc_2.mfe()[0]
 
         mypath, c_barrier = call_findpath(nt_path[x],c_mfe_1,c_mfe_2,0,30)
@@ -408,7 +420,9 @@ def score_sequence(seq,d_seq,parameters,acfp,domain_fp):
         ensemble_defect = fc.ensemble_defect(ext_path[x])
         obj_score,obj_function = objective_function(cefe,fe,efe,c_barrier,barrier,ensemble_defect)
         total.append(obj_score) 
-        prob = fc.pr_structure(ext_path[x].replace(".","x"))
+
+        prob = fc.pr_structure(ext_path[x])
+
         output_matrix.append([obj_score,prob,abs(efe - cefe),c_barrier,len(mypath),ensemble_defect])
 
     mean_efe_fe_squared = sum(row[2] for row in output_matrix) / len(output_matrix)
@@ -430,7 +444,7 @@ def score_sequence(seq,d_seq,parameters,acfp,domain_fp):
         mean = sum(total)/len(total)
 
     #format output 
-    output = f"{obj_function = }\nObj Score\tProb    \tEfe-Fe^2   \tBarrier \tPath Length\tEnsemble Defect\tEfe-Fe^2 Error\tEnsemble Defect Error\tSquared Error\tTotal Score\n"
+    output = f"{obj_function = }\nObj Score\tProb    \tEfe-Fe   \tBarrier \tPath Length\tEnsemble Defect\tEfe-Fe^2 Error\tEnsemble Defect Error\tSquared Error\tTotal Score\n"
     output += "\n".join(
         f"{row[0]:<12.6g}\t{row[1]:<8.6g}\t{row[2]:<11.6g}\t{row[3]:<8.6g}\t{row[4]:<9}\t{row[5]:<9.5}\t{row[6]:<15.6g}\t{row[7]:<21.6g}\t{row[8]:<13.6g}\t{row[9]:<11.6g}" 
         for row in output_matrix)
@@ -449,9 +463,9 @@ def nt_path_to_acfp(nt_path,domain_seq,parameters):
         for domain in domain_seq.split():
             if domain.endswith(str(i)):
                 break
-            elif not domain.startswith('L') and not domain.startswith('S'):
+            elif not domain.startswith('L') and not domain.startswith('Z'):
                 index += parameters['d_length'][domain[0]]
-            elif domain.startswith('S'):
+            elif domain.startswith('Z'):
                 index += parameters['d_length'][domain]
             elif domain.startswith('L'):
                 cur_struct.append(step[index + 1])
@@ -540,6 +554,7 @@ def main():
     parser.add_argument("-f", "--force", action="store_true", default=False,help="Forces the design disregarding the outcome of the simulation (default = False)")
     parser.add_argument("-cutoff", "--cutoff", action="store", type=valid_cutoff, default=float('-inf'),help="Cutoff value at which structures won't get accepted (default: -inf, valid range: 0 to 1)")
     parser.add_argument("-aCFP", "--aCFP", action="store", type=str, default=None,help="aCFP where each step is seperated by a comma. If not specified the user needs to use the Terminal as input.")
+    parser.add_argument("-h_c", "--hard_constraint", action="store_true", default=False,help="While checking wether a sequence is succesfull or not all unpaired regions must stay unpaired.")
 
     args = parser.parse_args()
     #_________________Set_logger_verbosity________________#
@@ -586,12 +601,12 @@ def main():
         for domain in d_seq.split():
             if domain[0] == "L":
                 d_length[domain] = 8
-            elif domain[0] == 'S':
+            elif domain[0] == 'Z':
                 d_length[domain] =  round(int(domain[1]) * 4)  
             else: 
                 d_length[domain] = 3 
 
-    parameters = {"k_slow": args.k_slow,'k_fast': args.k_fast, "cutoff": args.cutoff,"d_length":d_length,"d_seq":d_seq,"logic":args.logic,'steps':args.steps}
+    parameters = {"k_slow": args.k_slow,'k_fast': args.k_fast, "cutoff": args.cutoff,"d_length":d_length,"d_seq":d_seq,"logic":args.logic,'steps':args.steps,'hard_constraint':args.hard_constraint}
 
     #___simulate_domain-level-foldingpath______# 
 

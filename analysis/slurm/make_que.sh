@@ -4,8 +4,8 @@
 QUEUE_FILE="./queue_file.txt"
 
 # Create or overwrite the queue file with indices from 0 to 421
-for i in $(seq 0 421); do
+for i in $(seq 131 540); do
     echo $i >> $QUEUE_FILE
 done
 
-echo "Queue file created at $QUEUE_FILE with indices from 0 to 421."
+echo "Queue file created at $QUEUE_FILE with indices from 0 to 540."

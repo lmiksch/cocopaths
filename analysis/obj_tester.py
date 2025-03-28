@@ -1,6 +1,6 @@
 import argparse
 from cocopaths.cocopath import build_graph
-from cocopaths.cocodesign import rna_design,domain_path_to_nt_path,afp_to_domainfp,constrained_efe,objective_function,call_findpath,extend_domain_seq,score_sequence
+from cocopaths.cocodesign import rna_design,domain_path_to_nt_path,acfp_to_domainfp,constrained_efe,objective_function,call_findpath,extend_domain_seq,score_sequence
 from cocopaths.utils import only_logic_domain_struct
 import RNA
 import numpy as np 
@@ -12,6 +12,7 @@ from scipy.stats import pearsonr, spearmanr
 from statistics import mean
 import pandas as pd
 import ast
+import string
 
 
 
@@ -28,9 +29,9 @@ def coco_suite(folding_path,output,steps,parameters):
     """
     #CocoPath
 
-    afp_graph = build_graph(folding_path)
+    acfp_graph = build_graph(folding_path)
 
-    domain_seq = ' '.join(afp_graph.get_domain_seq())
+    domain_seq = ' '.join(acfp_graph.get_domain_seq())
 
     print(f"Resulting Domain Level sequence: {domain_seq}")
 
@@ -42,15 +43,16 @@ def coco_suite(folding_path,output,steps,parameters):
     #CocoDesign
     #for now force each folding path 
 
-    domain_fp = afp_to_domainfp(folding_path,domain_seq)
+    domain_fp = acfp_to_domainfp(folding_path,domain_seq)
 
     print(f"\n\nBegin RNA design\n")
 
     ext_fp = domain_path_to_nt_path(domain_fp,domain_seq,parameters)
 
+    print('Step 1')
     nt_sequence,score = rna_design(domain_seq,ext_fp,parameters)
 
-
+    print('Step 2')
     detailed_scores = score_sequence(nt_sequence,domain_seq,parameters,folding_path)[1]
 
 
@@ -166,23 +168,24 @@ def drt_match(drt_out_struct,fp_struct):
 
 
 
-def score_sim_nt_seq(nt_seq,afp,parameters):
+def score_sim_nt_seq(nt_seq,acfp,parameters):
 
-    afp_graph = build_graph(afp)
+    acfp_graph = build_graph(acfp)
     
-    d_seq = ' '.join(afp_graph.get_domain_seq())
+    d_seq = ' '.join(acfp_graph.get_domain_seq())
     print(f'{d_seq = }')
 
-    score,output = score_sequence(nt_seq,d_seq,parameters,afp)
+    score,output = score_sequence(nt_seq,d_seq,parameters,acfp)
 
 
-    domain_fp = afp_to_domainfp(afp,d_seq)
+    domain_fp = acfp_to_domainfp(acfp,d_seq)
     print(output)
 
     evaluate_nt_fp(nt_seq,domain_fp,d_seq,parameters)
 
 def get_default_parameters():
-    domain_seq_fp2 = 'a* L0* L1 L2 L3 L4 L5 L5 L6 L7 L8 L9 L10 L1* L2* L3* L4* L5* L6* L7* L8* L9* L11 b* S0 g h i j k l m n o p q r s t u v w c L0 d S1 e b L0 a f S2 f* a* L0* b* e* S3 g* d* L0* c* h* S4 h c L0 d g S5'
+
+    domain_seq_fp2 = result += 'a b c d e f g h i j k l m n o p q r s t u v w x y z a* b* c* d* e* f* g* h* i* j* k* l* m* n* o* p* q* r* s* t* u* v* w* x* y* z* L0 L1 L2 L3 L4 L5 L6 L7 L8 L9 L10 L11 L12 L13 L14 L15 L16 L17 L18 L19 L20 L21 L22 L23 L24 S0 S1 S2 S3 S4 S5 S6 S7 S8 S9 S10 S11 S12 S13 S14 S15 S16 S17 S18 S19 S20 S21 S22 S23 S24 S25'
 
     domain_seq = domain_seq_fp2
     d_length = {}
@@ -278,8 +281,8 @@ def analyze_all_fps(file_path,start_index):
     print(input_tsv.head())
     print(input_tsv.info())
 
-    #convert AFP entries into list
-    input_tsv['AFP'] = input_tsv['AFP'].apply(ast.literal_eval)
+    #convert acfp entries into list
+    input_tsv['acfp'] = input_tsv['acfp'].apply(ast.literal_eval)
 
     parameters = get_default_parameters()
     obj_fun = objective_function(0,0,0,0,0,0)[1]
@@ -291,19 +294,19 @@ def analyze_all_fps(file_path,start_index):
 
     if not os.path.exists(output_file):
         with open(output_file,'a') as out_file:
-            out_file.write(f'Id\tAFP                    \tnt_success\ttries\tavg_occ\tdomain_sucess\tcorr_coeffiecient\tp_value\n')
+            out_file.write(f'Id\tacfp                    \tnt_success\ttries\tavg_occ\tdomain_sucess\tcorr_coeffiecient\tp_value\n')
 
 
     for index,row in input_tsv.iloc[start_index:].iterrows():
-        print(row['AFP'],row['dominating_struct'])
+        print(row['acfp'],row['dominating_struct'])
 
-        curr_path = row['AFP']
+        curr_path = row['acfp']
 
         result_pop = 0
 
         #create folder for each run 
-        afp_folder = out_folder + str(index) + '_afp'
-        os.makedirs(afp_folder)
+        acfp_folder = out_folder + str(index) + '_acfp'
+        os.makedirs(acfp_folder)
 
         total_score = []
         total_pop = []
@@ -322,7 +325,7 @@ def analyze_all_fps(file_path,start_index):
         result_pop = []
 
         for tries in range(0,num_tries):   
-                output = afp_folder + '/' + str(index)
+                output = acfp_folder + '/' + str(index)
                 #try:
                 nt_sequence,domain_sequence,domain_fp,parameters,score = coco_suite(curr_path,output,3000,parameters) 
                 populations = evaluate_nt_fp(nt_sequence,domain_fp,domain_sequence,parameters,output)

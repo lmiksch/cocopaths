@@ -13,6 +13,8 @@ from cocopaths.cocodesign import (
     main
 )
 
+from cocopaths.utils import drt_match, split_extend_structure, is_legal_dotbracket
+
 # Fixture to setup logger
 @pytest.fixture(scope="function")
 def configure_logger():
@@ -129,6 +131,80 @@ def test_main_sim_fail(monkeypatch, tmp_path):
     with pytest.raises(SystemExit):
         nt_seq = main()
 
+
+# Define a set of test cases as parameters.
+@pytest.mark.parametrize("domain_seq, fp_struct, drt_struct, domain_lengths, expected", [
+    # Test Case 1: Provided example with no 'x'
+    (
+        "a b c d e",
+        "...(((.))).",      # fp_struct
+        "().(((.))).",      # drt_struct
+        {'a': 3, 'b': 3, 'c': 1, 'd': 3, 'e': 1},
+        True
+    ),
+    # Test Case 2: Provided example with  'x'
+    (
+        "a b c d e",
+        "xxx(((.))).",      # fp_struct
+        "().(((.))).",      # drt_struct
+        {'a': 3, 'b': 3, 'c': 1, 'd': 3, 'e': 1},
+        False
+    ),
+    # Test Case 3: 
+    (
+        "a b",
+        "......",           # fp_struct
+        "......",           # drt_struct
+        {'a': 3, 'b': 3},
+        True
+    ),
+    # Test Case 4: Mismatch in one domain (when fp_sub_struct has no dots, the two must match exactly)
+    (
+        "a b",
+        "...(((",           # For a: '...', b: '((('
+        "...(()(",          # For a: '...', b: '(()(' (mismatch)
+        {'a': 3, 'b': 3},
+        False
+    ),
+    # Test Case 5: Illegal dot-bracket structure in one domain.
+    # Here, we assume is_legal_dotbracket returns False when '(' and ')' counts are not equal.
+    (
+        "a b",
+        "...((((",          # For a: '...', b: '((((' (legal fp_struct)
+        "...((()",          # For a: '...', b: '((()' (illegal: unmatched parentheses)
+        {'a': 3, 'b': 4},
+        False
+    ),
+    # Test Case 6: 
+    (
+        "a b c d e",
+        "...(((..))).",      # fp_struct
+        "().(((()))).",      # drt_struct
+        {'a': 3, 'b': 3, 'c': 2, 'd': 3, 'e': 1},
+        True
+    ),
+    # Test Case 6: 
+    (
+        "a b c d e",
+        "...(((xx))).",      # fp_struct
+        "().(((()))).",      # drt_struct
+        {'a': 3, 'b': 3, 'c': 2, 'd': 3, 'e': 1},
+        False
+    ),
+    # Test Case 7: 
+    (
+        "a b c d e",
+        "...(((xx))).",      # fp_struct
+        "().(((..))).",      # drt_struct
+        {'a': 3, 'b': 3, 'c': 2, 'd': 3, 'e': 1},
+        True
+    ),
+])
+
+def test_drt_match(domain_seq, fp_struct, drt_struct, domain_lengths, expected):
+    parameters = {'domain_lengths': domain_lengths}
+    result = drt_match(drt_struct, fp_struct, parameters, domain_seq)
+    assert result == expected
     
     
 

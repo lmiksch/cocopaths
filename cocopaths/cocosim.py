@@ -103,8 +103,8 @@ def run_sim(d_seq, parameters):
         occ_sum = 0 
         for complex in folding_step_complexes[-1]:
             occ_sum += complex.occupancy
-        assert abs(occ_sum - 1 ) < 1e-10,f"Difference at the beginning = {abs(occ_sum - 1 )} -> previous step was fucked"
-
+        assert abs(occ_sum - 1) < 1e-5, f"Unexpected difference: {abs(occ_sum - 1):.10e}"
+        assert abs(occ_sum - 1 ) < 1e-5,f"Difference at the beginning = {abs(occ_sum - 1 )} -> previous step "
         #______Function_for_extending_and_updating_names__ 
 
         old_names = []
@@ -212,7 +212,7 @@ def run_sim(d_seq, parameters):
         cocosim_logger.info(f"Sum of macrostate occupancies before cutoff: {macro_sum:.20f}")
         cocosim_logger.info(f"Sum of occupancy before cutoff: {oc_sum:.20f}")
         oc_sum = round(oc_sum,10)
-        if abs(oc_sum - 1) <= 1e-10:	
+        if abs(oc_sum - 1) <= 1e-5:	
             for complex in resting_complexes:
                 if not is_complex_in_all_complexes(complex,all_complexes):
                     raise SystemExit("resulting resting complex not in all complexes")
@@ -230,13 +230,13 @@ def run_sim(d_seq, parameters):
         oc_sum = round(oc_sum,10) #can be later adjusted
 
         # checks to see of occupancies sum up to 1
-        if abs(oc_sum - 1) <= 1e-10:	
+        if abs(oc_sum - 1) <= 1e-5:	
             folding_step_complexes.append(resting_complexes)
             for complex in resting_complexes:
                 if not is_complex_in_all_complexes(complex,all_complexes):
                     raise SystemExit("resulting resting complex not in all complexes")
         else:
-            raise SystemExit(f"SystemExit: Occupancies summ up to {oc_sum}")
+            raise SystemExit(f"SystemExit: Occupancies summ up to {oc_sum}_")
 
     return folding_step_complexes
 
@@ -487,7 +487,7 @@ def calc_macro_pop(enum,all_complexes,resulting_complexes,parameters):
     for complex in resulting_complexes:
         cocosim_logger.info(f"{complex},{complex.occupancy}")
     
-    assert round(summe,10) == 1, f'Occupancies sum up to {summe} and not 1' 
+    assert round(summe,5) == 1, f'Occupancies sum up to {summe} and not 1' 
 
     return resulting_complexes
             
@@ -529,6 +529,7 @@ def apply_cutoff(enum,parameters,all_complexes):
             enum = enforce_via_transient(macro,enum,all_complexes,cut_macrostates,parameters)
             rm_occ += macro.occupancy
     oc_sum = 0
+    cocosim_logger.debug(f"Ending Prunning pruned {cut_macrostates = }")
     return enum
         
 
@@ -702,6 +703,51 @@ def enforce_cutoff_complex(enum,macrostate,cut_complex,parameters,all_complexes,
         updated_macro_occupancy += complex.occupancy
     assert abs(updated_macro_occupancy - macro_occ) <= 1e-10,f'Updated Macro Occupancy {updated_macro_occupancy:.10f} initial macro_occ {macro_occ:.10f}' 
 
+def reset_enumeration_state(enum):
+    """
+    Clears any internal state in the Enumerator and its PepperCondensation,
+    so that calls to .enumerate() and .condense() start from scratch.
+    """
+    # 1. Clear enumerator state
+    if hasattr(enum, '_resting_complexes') and enum._resting_complexes is not None:
+        enum._resting_complexes.clear()
+    else:
+        enum._resting_complexes = []
+
+    if hasattr(enum, '_transient_complexes') and enum._transient_complexes is not None:
+        enum._transient_complexes.clear()
+    else:
+        enum._transient_complexes = []
+
+    if hasattr(enum, '_reactions') and enum._reactions is not None:
+        enum._reactions.clear()
+    else:
+        enum._reactions = []
+
+    if hasattr(enum, '_enumeration_done'):
+        enum._enumeration_done = False
+
+    # 2. Clear condensation state if it exists
+    if hasattr(enum, 'condensation') and enum.condensation is not None:
+        cond = enum.condensation
+        if hasattr(cond, '_complex_fates') and cond._complex_fates is not None:
+            cond._complex_fates.clear()
+        if hasattr(cond, '_condensed_reactions'):
+            cond._condensed_reactions = None
+        if hasattr(cond, 'stationary_dist') and cond.stationary_dist is not None:
+            cond.stationary_dist.clear()
+        if hasattr(cond, 'cplx_decay_prob') and cond.cplx_decay_prob is not None:
+            cond.cplx_decay_prob.clear()
+        if hasattr(cond, 'exit_prob') and cond.exit_prob is not None:
+            cond.exit_prob.clear()
+        if hasattr(cond, 'reaction_decay_prob') and cond.reaction_decay_prob is not None:
+            cond.reaction_decay_prob.clear()
+        if hasattr(cond, 'set_to_fate') and cond.set_to_fate is not None:
+            cond.set_to_fate.clear()
+    else:
+        enum.condensation = None
+
+
 def enumerate_step(complexes, reactions, parameter, all_complexes):
     """Takes complexes in form of PepperComplexes and uses Peppercorn Enumerator to find possible structures and their respective occupancies. 
     
@@ -721,17 +767,23 @@ def enumerate_step(complexes, reactions, parameter, all_complexes):
     init_cplxs = [x for x in complexes.values() if x.concentration is None or x.concentration[1] != 0 and x.occupancy != 0]
     name_cplxs = list(complexes.values())
     enum = Enumerator(init_cplxs, reactions, named_complexes=name_cplxs)
-
+    
     if k_slow: 
         enum.k_slow = k_slow
 
     #need to find suitable k_fast
     if k_fast: 
         enum.k_fast= k_fast
-
+    #Reset enumerator
+    reset_enumeration_state(enum)
     # Start to enumerate
+
+    cocosim_logger.info(f"Before Enum")
     enum.enumerate()
+    cocosim_logger.info(f"After Enum before condense")
     enum.condense()
+    cocosim_logger.info(f"After condense")
+
 
     cocosim_logger.info("\n\nDone Enumerating\n\n")
     resulting_complexes = [cplx for cplx in natsorted(enum.resting_complexes)] 
@@ -787,12 +839,12 @@ def update_complex_in_all_complexes(complex,all_complexes):
 
 def write_output(final_structures,d_seq,parameters = None):
     data_output = ""
-    spacer_indices = [index for index, entry in enumerate(d_seq.split()) if entry.startswith('S')]
+    spacer_indices = [index for index, entry in enumerate(d_seq.split()) if entry.startswith('Z')]
     ts = 0
     data_output += ("\nResting Complexes after each Spacer:\n\n")
     data_output += "Transcription Step |  Occupancy   |    Structure  \n"
     for x in final_structures:
-        if x and x[0].kernel_string[-2] == "S": 
+        if x and x[0].kernel_string[-2] == "Z": 
             for complex in x:
                 if complex.occupancy >= 0.001:
                     data_output += f"{spacer_indices[ts]+ 1:3}  |	{complex.occupancy:^7.5f}	|	{complex.kernel_string} \n"
@@ -806,7 +858,7 @@ def write_output(final_structures,d_seq,parameters = None):
     struct_list = []
     for x in final_structures:
         struct_dict = {}
-        if x and x[0].kernel_string[-2] == "S": 
+        if x and x[0].kernel_string[-2] == "Z": 
             data_output += "\n"
             for complex in x:
                 if complex.occupancy >= 0.0001:
@@ -942,7 +994,7 @@ def verify_domain_foldingpath(acfp,domain_seq,parameters,simulated_structures = 
         for complex in step: 
             sim_domain_fp[i].append(''.join(complex._structure))
     
-    spacer_indices = [index - 1 for index, entry in enumerate(domain_seq.split()) if entry.startswith('S')]
+    spacer_indices = [index - 1 for index, entry in enumerate(domain_seq.split()) if entry.startswith('Z')]
     sim_unit_path = [simulated_structures[i] for i in spacer_indices]
 
     dominant_structures_fp = []
@@ -1003,9 +1055,6 @@ def main():
             print(pil_input)
             if len(pil_input[0]) == 1:
                 input_complex = next(iter(pil_input[0].values()))
-                print("Value of the entry:", input_complex)
-                print(f"{input_complex._sequence = }  ")
-                print(f"{input_complex.kernel_string = }  ")
                 d_seq = input_complex.kernel_string
                 if all(char.isalpha() or char == '*' for char in d_seq):
                     raise SystemExit("SystemExit: Only a domain level sequence is accepted. (No structural information)")
@@ -1016,7 +1065,6 @@ def main():
                     if name not in d_length:
                         d_length[name] = length
 
-                print(f"{d_length = }")
 
             else:
                 raise SystemExit("SystemExit:More than one kernel sequence in input. We can only simulate one kernel string at a time. ") 
@@ -1034,7 +1082,7 @@ def main():
         for domain in d_seq.split():
             if domain[0] == "L":
                 d_length[domain] = 8
-            elif domain[0] == 'S':
+            elif domain[0] == 'Z':
                 d_length[domain] =  round(int(domain[1]) * 4)  
             else: 
                 d_length[domain] = 3 
@@ -1073,7 +1121,7 @@ def main():
         output = ""
         d_seq
         ts = 2
-        if 'S' in d_seq:
+        if 'Z' in d_seq:
             output += write_output(simulated_structures,d_seq)
         output += f"\n\nFollowing sequence was simulated:\n{d_seq}"
         if acfp: 

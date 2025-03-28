@@ -6,7 +6,7 @@ import random
 import math
 
 from cocopaths.utils import path_to_pairtablepath
-from cocopaths.cocopath import build_graph
+from cocopaths.cocopath import translate_acfp
 import os
 def generate_structures_with_unpaired(n):
     structures = [ ]
@@ -102,7 +102,7 @@ def generate_path(n):
 def coco_legal(path):
     """Checks if cocopaths throws an error while generating a sequence. """
     try:
-        build_graph(path)
+        translate_acfp(path)
         return True
     except:
         return False
@@ -137,7 +137,7 @@ def generate_coco_legal_paths(n):
             print(path)     
 
 
-    with open("6_steps_legal.txt","a") as f:
+    with open(str(n) + "_FPs_new_algo.txt","a") as f:
         for path in final_paths[-1]:
             if coco_legal(path):
                 f.write(f"{str(path)}\n")
@@ -149,5 +149,5 @@ def generate_coco_legal_paths(n):
 
 if __name__ == "__main__":
     # Example: generate structures for length 4
-    generate_coco_legal_paths(6)
-
+    #for n in range(2,7):
+    generate_coco_legal_paths(7)

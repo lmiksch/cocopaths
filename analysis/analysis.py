@@ -5,7 +5,7 @@
 
 
 from path_generator import generate_path
-from cocopaths.cocopath import build_graph
+from cocopaths.cocopath import translate_acfp
 from cocopaths.cocosim import run_sim, write_output
 from cocopaths.utils import is_balanced_structure
 from peppercornenumerator.objects import clear_memory
@@ -34,7 +34,7 @@ def analyze_cocosim_output(simulated_structures,afp,d_seq):
             db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
             
             #part for avg occupancy of target
-            if complex.kernel_string.split()[-1][0] == "S":
+            if complex.kernel_string.split()[-1][0] == "Z":
                 if max(occupancies) == complex.occupancy and dominant_path[-1] != db_struct:
                     dominant_path.append(db_struct)
                     if  not is_balanced_structure(db_struct):
@@ -54,7 +54,7 @@ def analyze_cocosim_output(simulated_structures,afp,d_seq):
                 except:
                     continue
 
-        if not t_occ_append and step[0].kernel_string.split()[-1][0] == "S":
+        if not t_occ_append and step[0].kernel_string.split()[-1][0] == "Z":
             target_occupancies.append(0)
             i += 1
             target_dominant = False
@@ -63,8 +63,11 @@ def analyze_cocosim_output(simulated_structures,afp,d_seq):
     for complex in simulated_structures[-1]:
         kernel_string = kernel_to_dot_bracket(complex.kernel_string)
         db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
+
         if db_struct == afp[-1]:
             final_occupancy = round(complex.occupancy,4)
+        else:
+            print(f'{db_struct = }    {afp[-1] = }')
         
     print("occ sum /len",occupancy_sum,len(target_occupancies))
     avg_occupancy = occupancy_sum/len(target_occupancies)
@@ -73,8 +76,10 @@ def analyze_cocosim_output(simulated_structures,afp,d_seq):
         print("Target dominant",target_dominant)
         print("final occupancy")
         assert final_occupancy != None 
+
+    domain_success = all(x > 0.5 for x in target_occupancies)
     
-    return f"0\t{afp}\t{target_dominant}\t{round(avg_occupancy,4):8}\t{final_occupancy}\t{dominant_path}\t{target_occupancies}\t{d_seq}\n"
+    return f"0\t{afp}\t{target_dominant}\t{domain_success}\t{round(avg_occupancy,4):8}\t{final_occupancy}\t{dominant_path}\t{target_occupancies}\t{d_seq}\n"
 
 
 
@@ -195,7 +200,7 @@ def get_data(n,current_folder):
     fp_locs = "./folding_paths"
 
     
-    fp_locs = "./folding_paths" + "/" + str(n) + "_FPs.txt"
+    fp_locs = "./folding_paths" + "/" + str(n) + "_FPs_new_algo.txt"
 
     if os.path.exists(fp_locs):
         folding_paths = read_paths_from_file(fp_locs)
@@ -215,24 +220,22 @@ def get_data(n,current_folder):
         #print("\n\nCurrent Path",path)
 
         try:
-            afp_graph = build_graph(path)
-
-            domain_sequences.append(" ".join(afp_graph.get_domain_seq()))
+            domain_list = translate_acfp(path)
+            domain_sequences.append(' '.join(domain_list))
             real_paths.append(path)
-            #print("Worked for : ",afp_graph.get_domain_seq())
-        except: 
-            
+            #print("Translation successful:", domain_sequences)  # Prints output to terminal
+        except Exception as e:
+            print(f"Error during translation: {e}")  # Print the error message
+            import traceback
+            traceback.print_exc()  # Print full error stack trace for debugging
             print("Didn't work for:",path)
-    print("real paths",real_paths)
+    print("real paths",len(real_paths))
     if not os.path.exists(fp_locs):
         write_paths_to_file(fp_locs, real_paths)
     
 
-    tsv_header = "ID\tAFP\tdominating_struct\tavg_occupancy\tlast_step_occ\tstep_occs\tdominant_fp\td_seq\n"
+    tsv_header = "ID\tAFP\tdominating_struct\tdomain_success\tavg_occupancy\tlast_step_occ\tstep_occs\tdominant_fp\td_seq\n"
     for d_seq,fp in zip(domain_sequences,real_paths):
-        
-
-
     #Now simulate the whole thing and evalute the output
         d_length = {}
 
@@ -240,8 +243,8 @@ def get_data(n,current_folder):
             if domain[0] == "L":
                 d_length[domain] = 8
 
-            elif domain[0] == 'S':
-                d_length[domain] = 3 + round(int(domain[1]) * 3)  
+            elif domain[0] == 'Z':
+                d_length[domain] = 1 + round(int(domain[1]) * 3)  
             else: 
                 d_length[domain] = 4
 
@@ -251,7 +254,7 @@ def get_data(n,current_folder):
     
         simulated_structures = run_sim(d_seq,parameters)
     
-        with open(os.path.join(current_folder, f"{n}_steps_out.tsv"), "a") as file:
+        with open(os.path.join(current_folder, f"{n}_steps_out_new_alog.tsv"), "a") as file:
             new_data = analyze_cocosim_output(simulated_structures,fp,d_seq) 
             if file.tell() == 0:
                 file.write("#" + str(parameters) + "\n")
@@ -260,7 +263,7 @@ def get_data(n,current_folder):
             file.write(new_data)
     
         output = ""
-        if 'S' in d_seq:
+        if 'Z' in d_seq:
             output += write_output(simulated_structures,d_seq)
         print(output)
     
@@ -288,7 +291,7 @@ def fill_data(n,tsv_file):
 
         start_line = len(lines) - 2 
 
-    fp_locs = "./folding_paths" + "/" + str(n) + "_FPs.txt"
+    fp_locs = "./folding_paths" + "/" + str(n) + "_FPs_new_algo.txt"
 
     if os.path.exists(fp_locs):
         folding_paths = read_paths_from_file(fp_locs)
@@ -306,11 +309,9 @@ def fill_data(n,tsv_file):
         print("\n\nCurrent Path",path)
 
         try:
-            afp_graph = build_graph(path)
-
-            domain_sequences.append(" ".join(afp_graph.get_domain_seq()))
+            domain_list = translate_acfp(path)
+            domain_sequences.append(' '.join(domain_list))
             real_paths.append(path)
-            print("Worked for : ",afp_graph.get_domain_seq())
         except: 
             
             print("Didn't work for:",path)
@@ -340,7 +341,7 @@ def fill_data(n,tsv_file):
             if domain[0] == "L":
                 d_length[domain] = 8
 
-            elif domain[0] == 'S':
+            elif domain[0] == 'Z':
                 d_length[domain] =  1 + round(int(domain[1]) * 3) 
 
             else: 
@@ -363,7 +364,7 @@ def fill_data(n,tsv_file):
             _file.write(new_data)
     
         output = ""
-        if 'S' in d_seq:
+        if 'Z' in d_seq:
             output += write_output(simulated_structures,d_seq)
         print(output)
 
@@ -379,6 +380,36 @@ def fill_data(n,tsv_file):
     print("\n\nend of script\n\n")
 
 
+def cocopath_test_set(test_set):
+    ''' Tests an input testset containing folding paths by first creating domain level sequences for the test set and analyzing the results.
+
+    Args:
+        test_set(set): List of aCFP in the form of lists
+
+    Returns:
+        results(txt): Results in the form of text
+    '''
+
+
+def test_set_d_seqs(test_set):
+    '''Creates a folder containing the solved domain sequences and their parameters in the .pil form based on the aCFPs used as input.
+
+    Args:
+        test_set(set): List of aCFP in the form of lists
+
+    Returns: 
+        Folder continging a .pil file for each aCFP in the test_set
+    '''
+
+
+    for aCFP in test_set: 
+        acfp_graph = build_graph(acfp)
+        d_seq = ' '.join(acfp_graph.get_domain_seq())
+
+        
+
+
+
 def main():
 
     base_folder = "run"
@@ -387,7 +418,7 @@ def main():
     current_folder = f'{next_folder_number}_{base_folder}'
     
     os.makedirs(current_folder, exist_ok=True)
-    for i in range(3,4):
+    for i in range(3,7):
         get_data(i,current_folder)
         
     print("S_new")
@@ -395,7 +426,7 @@ def main():
 
     #uncomment to fill up file if segfault happended 
     #check if parameters match 
-    #fill_data(6,"1_run/6_steps_out.tsv")
+    #fill_data(6,"21_run/6_steps_out_new_alog.tsv")
 
     print("data is in ",current_folder)
 
@@ -406,12 +437,12 @@ def main():
 if __name__ == "__main__":
     
     
-    #main()
+    main()
 
-    analyze_folder = "results/big_ana"
-    for filename in os.listdir(analyze_folder):
-            print(filename)
-            if filename.endswith(".tsv") and os.path.isfile(os.path.join(analyze_folder, filename)):
-                tsv_filepath = os.path.join(analyze_folder, filename)
-                statistical_analysis(analyze_folder,tsv_filepath,filename)
+    #analyze_folder = "results/new_set"
+    #for filename in os.listdir(analyze_folder):
+    #        print(filename)
+    #        if filename.endswith(".tsv") and os.path.isfile(os.path.join(analyze_folder, filename)):
+    #            tsv_filepath = os.path.join(analyze_folder, filename)
+    #            statistical_analysis(analyze_folder,tsv_filepath,filename)
     #statistical_analysis(folder_path,"7_steps_out.tsv")

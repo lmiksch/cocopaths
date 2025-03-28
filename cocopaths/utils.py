@@ -16,6 +16,39 @@ def is_balanced_structure(s):
     
     return len(stack) == 0
 
+def is_legal_dotbracket(structure):
+    """
+    Check if a dot-bracket structure is legal.
+    
+    A legal structure only contains the characters '(', ')', and '.',
+    and every opening parenthesis '(' must be matched with a closing ')'.
+
+    Args:
+        structure (str): The dot-bracket structure to check.
+
+    Returns:
+        bool: True if the structure is legal, False otherwise.
+    """
+    allowed_chars = {'(', ')', '.'}
+    
+    # Check for any invalid characters
+    for char in structure:
+        if char not in allowed_chars:
+            return False
+    
+    # Check for balanced parentheses
+    stack = []
+    for char in structure:
+        if char == '(':
+            stack.append('(')
+        elif char == ')':
+            if not stack:
+                return False  # Unmatched closing parenthesis
+            stack.pop()
+    
+    # If stack is empty, all opening parentheses were properly closed
+    return len(stack) == 0
+
 
 def split_into_modules(input_string):
     import re
@@ -28,7 +61,118 @@ def split_into_modules(input_string):
     
     return modules
 
+def drt_match(drt_out_struct, fp_struct, parameters, domain_seq):
+    print(f'{drt_out_struct = }')
+    print(f'{fp_struct = }')
+    
+    # First, split the structures into their domain-level substrings.
+    split_fp_struct = split_extend_structure(domain_seq, parameters['domain_lengths'], fp_struct)
+    split_drt_struct = split_extend_structure(domain_seq, parameters['domain_lengths'], drt_out_struct)
 
+    print(f'{split_fp_struct = }')
+    print(f'{split_drt_struct = }')
+
+    # Iterate over each corresponding pair of substrings.
+    for fp_sub_struct, drt_sub_struct in zip(split_fp_struct, split_drt_struct):
+        # If the domain's fp substring contains 'x', perform a character-by-character check.
+        print(fp_sub_struct,drt_sub_struct)
+        if 'x' in fp_sub_struct:
+            if len(drt_sub_struct) != len(fp_sub_struct):
+                return False
+            for drt_char, fp_char in zip(drt_sub_struct, fp_sub_struct):
+                if drt_char == "." and fp_char == 'x':
+                    continue
+                elif drt_char != fp_char:
+                    return False
+        else:
+            # If the fp substring contains a dot, verify that the drt substring is a legal dot-bracket.
+            if '.' in fp_sub_struct:
+                if not is_legal_dotbracket(drt_sub_struct):
+                    print('not legal db and .')
+                    return False
+            # Otherwise, if there are no dots in fp_sub_struct, the two substrings must match exactly.
+            elif fp_sub_struct != drt_sub_struct:
+                print('here')
+                return False
+    return True
+
+
+
+def structure_to_pairtable(structure):
+    """
+    Convert a dot-bracket structure into a pair table.
+
+    Args:
+        structure (str): Dot-bracket string representation of an RNA secondary structure.
+
+    Returns:
+        list: A pair table where:
+              - pair_table[0] is the number of bases.
+              - For each i >= 1, pair_table[i] is the index of the base paired with i,
+                or 0 if the base is unpaired.
+                
+    Raises:
+        ValueError: If the structure contains unbalanced parentheses.
+    """
+    n = len(structure)
+    pair_table = [0] * (n + 1)
+    pair_table[0] = n  # Store the length at index 0
+    stack = []
+
+    # Iterate over the structure (using 1-indexing for the pair table)
+    for i, char in enumerate(structure, start=1):
+        if char == '(':
+            # Push the position onto the stack
+            stack.append(i)
+        elif char == ')':
+            # Pop the last opening bracket's index and form a pair
+            if not stack:
+                raise ValueError(f"Invalid structure{structure = }: Unbalanced parentheses (extra closing bracket at position {i = })")
+            j = stack.pop()
+            pair_table[i] = j
+            pair_table[j] = i
+        elif char == '.':
+            # Unpaired base
+            pair_table[i] = 0
+        else:
+            # If the character is unexpected, raise an error
+            raise ValueError("Invalid character '{}' in structure at position {}".format(char, i))
+    
+    if stack:
+        raise ValueError("Invalid structure: Unbalanced parentheses (extra opening bracket(s) remain)")
+
+    return pair_table
+
+
+def pairtablepath_to_dotbracket(path_pairtable):
+    """
+    Converts a pairtable path (list of pairtable representations) 
+    into a dot-bracket path (list of strings).
+
+    Args:
+        path_pairtable (list): List of pairtable representations.
+            Each pairtable is a list of integers, where:
+                - The first element is the length (n)
+                - Elements 1..n indicate the pairing partner (or 0 if unpaired)
+
+    Returns:
+        list: A list of dot-bracket strings corresponding to each pairtable.
+    """
+    dotbracket_path = []
+    for pt in path_pairtable:
+        # pt[0] holds the number of positions in this structure.
+        n = pt[0]
+        # Initialize an array to hold the dot-bracket characters.
+        structure_chars = [''] * n
+        for i in range(1, n+1):
+            if pt[i] == 0:
+                structure_chars[i-1] = '.'
+            elif pt[i] > i:
+                structure_chars[i-1] = '('
+            else:
+                structure_chars[i-1] = ')'
+        dotbracket_path.append("".join(structure_chars))
+    return dotbracket_path
 
 
 def path_to_pairtablepath(path):
@@ -41,29 +185,30 @@ def path_to_pairtablepath(path):
 
     """
     pairtable_path = [[] for x in path]
-    pairtable_path[0] = [1,0]
-    for x in range(1,len(path)):
-        pairtable_path[x] = [0 for i in range(len(path[x])+1)]
-        pairtable_path[x][0] = len(path[x]) 
-        for z in range(len(path[x])):
-            if path[x] == ".":
-                pairtable_path[x][z] = 0
-            o = 1
-            i = 0
-            match = False
-            if path[x][z] == "(":
-                while match == False:
-                    i += 1
-                    if path[x][z+i] == "(":
-                        o += 1
-                    elif path[x][z+i] == ")" and o != 0:
-                        o -= 1
-
-                    if path[x][z+i] == ")" and o == 0:
-                        
-                        pairtable_path[x][z+1] = z + i + 1
-                        pairtable_path[x][z+i+1] = z + 1
-                        match = True
+    #pairtable_path[0] = [1,0]
+    for x in range(len(path)):
+        pairtable_path[x] = structure_to_pairtable(path[x])
+        #pairtable_path[x] = [0 for i in range(len(path[x])+1)]
+        #pairtable_path[x][0] = len(path[x]) 
+        #for z in range(len(path[x])):
+        #    if path[x] == ".":
+        #        pairtable_path[x][z] = 0
+        #    o = 1
+        #    i = 0
+        #    match = False
+        #    if path[x][z] == "(":
+        #        while match == False:
+        #            i += 1
+        #            if path[x][z+i] == "(":
+        #                o += 1
+        #            elif path[x][z+i] == ")" and o != 0:
+        #                o -= 1
+#
+        #            if path[x][z+i] == ")" and o == 0:
+        #                
+        #                pairtable_path[x][z+1] = z + i + 1
+        #                pairtable_path[x][z+i+1] = z + 1
+        #                match = True
                     
     return pairtable_path
 
@@ -304,7 +449,7 @@ def acfp_to_domainfp(acfp,d_seq):
 
         for i,domain in enumerate(d_seq):
             #print(f'{path = }, {domain = }, {cur_path[module_index]}')
-            if domain[0] == "S":    
+            if domain[0] == "Z":    
                 module_index += 1
 
                 if module_index == x + 1:
@@ -319,7 +464,7 @@ def acfp_to_domainfp(acfp,d_seq):
             elif cur_path[module_index] == ".":
                 path += "."
                 
-            elif cur_path[module_index] == "(" and domain[0] != "S": 
+            elif cur_path[module_index] == "(" and domain[0] != "Z": 
                 j = i
                 k = module_index
                 #print(f'{k = },{domain = }')
@@ -341,7 +486,7 @@ def acfp_to_domainfp(acfp,d_seq):
 
                             break
 
-                    if d_seq[j][0] == "S":
+                    if d_seq[j][0] == "Z":
                         k += 1 
                     j += 1
 
@@ -350,7 +495,7 @@ def acfp_to_domainfp(acfp,d_seq):
                     path += "."
                     
 
-            elif cur_path[module_index] == ")" and domain[0] != "S":
+            elif cur_path[module_index] == ")" and domain[0] != "Z":
                 j = i 
                 k = module_index
                 added_notation = False 
@@ -434,17 +579,65 @@ def call_findpath(seq, ss1, ss2, md, fpw, mxb = float('inf')):
     return None, None
 
 
+
+def split_extend_structure(domain_seq, domain_lengths, extend_structure):
+    """
+    Splits the extend_structure string into chunks based on the lengths provided for each domain.
+    
+    Parameters:
+        domain_seq (str or list): A domain level sequence, either as a space-separated string (e.g., "a b c d e")
+                                  or as a list of domain names (e.g., ["a", "b", "c", "d", "e"]).
+        domain_lengths (dict): A dictionary mapping each domain (e.g., 'a', 'b', etc.) to its length (int).
+        extend_structure (str): A string representing the extended structure (e.g., "(((....)))....").
+        
+    Returns:
+        list: A list of substrings of extend_structure corresponding to each domain.
+    """
+    # If domain_seq is a string, split it into a list
+    if isinstance(domain_seq, str):
+        domains = domain_seq.split()
+    else:
+        domains = domain_seq
+
+    chunks = []
+    start = 0
+
+    for domain in domains:
+        # Get the length for the current domain
+        length = domain_lengths.get(domain)
+        if length is None:
+            raise ValueError(f"Length for domain '{domain}' is not provided in the dictionary.")
+        
+        # Slice the extend_structure for the current domain
+        end = start + length
+        chunk = extend_structure[start:end]
+        chunks.append(chunk)
+        start = end
+
+    return chunks
+
 if __name__=="__main__":
-    d_seq = 'a* b* c* L0* d* e* f* S0 d L0 c S1  L0*  S2 e d L0 c b S3 g f e d L0 c b a h S4 h* a* b* c* L0* d* e* f* g* S5'
+    
+    domain_seq = 'a b c d e' 
+    fp_struct = '...........'
+    drt_struct = '().(((.))).'
+    domain_lengths = {
+        'a': 3,
+        'b': 3,
+        'c': 1,
+        'd': 3,
+        'e': 1
+    }
+    parameters = {'domain_lengths':domain_lengths}
+    print(drt_match(drt_struct,fp_struct,parameters,domain_seq))
 
-    acfp = ['.','()','().','()()','(().)','()()()']
-    acfp_to_domainfp(acfp,d_seq)
 
-    """ print(' ')
-    seq = "CGGUUAUGGAACACUAAUUUCGUAAAUAUCAAGAUGUGUUCUAUGACCGACGUCGCUAUUCGUUGGUCGUAGGACGCGUUGCAAACUAAAAC 
-    ss1 = "((((((((((((((.....................)))))))))))))).((((.((((.(....)..))))))))................ 
-    ss2 = "...((((((((......)))))))).......((((((((((((((((((((........))))))))))))))))))))............"        
-    mypath,barrier = call_findpath(seq,ss1,ss2,md=20,fpw = 20)
-    for path in mypath:
-        print(path)
-    print(barrier)"""
+    '''
+        print(' ')
+        seq = "AAUACAUGCCCAAUCAUGUAUUUUAUCAUUUAUUGAAAUACAUGAUUCCUAAAAAACGCAAGGAAUCAUGUAUUUUAAUGCGCUCCUUCUCCCCUGCGUAUUGAAAUACAUGAUUCCUUGUAUCGCCACCCACCCCUAGAUGCAAGGAAUCAUGUAUUUUAAUGCGCAGGACCACUUUAUUUUUUC" 
+        ss1 = '...........((((((((((((((........))))))))))))))..........((((((((((((((((((((((((((............)))))))))))))))))))))))))).................................................................' 
+        ss2 = '((((((((......))))))))........((((((((((((((((((((..........))))))))))))))))))))............((((((((((((((((((((((((((((((((..............))))))))))))))))))))))))))))))))................'        
+        mypath,barrier = call_findpath(seq,ss1,ss2,md=20,fpw = 20)
+        for path in mypath:
+            print(path)
+        print(barrier)'''

@@ -250,12 +250,60 @@ def test_4_different_substructures(configure_logger):
 def test_5_different_substructures(configure_logger):
     
     with pytest.raises(SystemExit):
-        path = [".","()",".()","()()",".()()"]
+        path = [".","()",".()","()()","().()"]
 
         acfp_graph = build_graph(path)
         acfp_graph.verify_weights(path)
 
+# List of favorable aCFPs (each is a list of dot-bracket strings)
+favorable_acfps = [
+    # Simple favorable path
+    [".", "()", ".()"],
+    # A more extended favorable path (example taken from one of your tests)
+    [".", "()", ".()", "()()", ".()()"],
+    
 
+]
+
+# List of unfavorable aCFPs
+unfavorable_acfps = [
+    # Example designed to trigger pseudoknot attack detection
+    [".", "()", ".()", "(())", "()().", "()(())"],
+    [".", "()", ".()", "().."],
+    [".", "()", ".()", "..()"],
+    [".", "()", "(.)", ".(.)"],
+    [".", "()", ".()", "(())","(.())"],
+    [".", "()", "(.)", ".(.)"],
+    [".", "()", "(.)", "(.).", ".(())"],
+    [".", "()", "(.)", "()()", "((.))"]
+]
+
+@pytest.mark.parametrize("acfp", favorable_acfps)
+def test_acfp_favorable(acfp):
+    """
+    For each favorable aCFP the graph should be built successfully and a valid domain level sequence returned.
+    """
+    try:
+        graph_obj = build_graph(acfp)
+    except SystemExit as e:
+        pytest.fail(f"Favorable aCFP {acfp} failed with SystemExit: {e}")
+    
+    # Check that a domain level sequence is produced.
+    domain_seq = graph_obj.get_domain_seq()
+    assert isinstance(domain_seq, list) and len(domain_seq) > 0, \
+        f"Domain sequence for {acfp} is not valid: {domain_seq}"
+    
+    # Optionally, verify that each domain string contains expected markers (e.g., "L" and "S")
+    for ds in domain_seq:
+        assert "L" in ds and "S" in ds, f"Domain sequence entry '{ds}' missing expected markers."
+
+@pytest.mark.parametrize("acfp", unfavorable_acfps)
+def test_acfp_unfavorable(acfp):
+    """
+    For each unfavorable aCFP the build_graph process should fail (raise a SystemExit).
+    """
+    with pytest.raises(SystemExit):
+        build_graph(acfp)
 
 def test_1_create_domain_seq(configure_logger):
        
