@@ -38,14 +38,14 @@ length f = 4
 length g = 4
 length h = 4
 length L0 = 8
-length S0 = 0
-length S1 = 3
-length S2 = 6
-length S3 = 9
-length S4 = 12
+length Z0 = 0
+length Z1 = 3
+length Z2 = 6
+length Z3 = 9
+length Z4 = 12
 
 
-test_1 = L0*  S0 a L0 b S1 c* b* L0* a* d* S2 d a L0 b c S3
+test_1 = L0*  Z0 a L0 b Z1 c* b* L0* a* d* Z2 d a L0 b c Z3
 """
 
 # Helper function to create a temporary .pil file
@@ -93,14 +93,14 @@ length f = 4
 length g = 4
 length h = 4
 length L0 = 8
-length S0 = 0
-length S1 = 3
-length S2 = 6
-length S3 = 9
-length S4 = 12
+length Z0 = 0
+length Z1 = 3
+length Z2 = 6
+length Z3 = 9
+length Z4 = 12
 
 
-test_1 = a* b* L0* c* d* S0 c L0 b S1  L0*  S2 d c L0 b a S3
+test_1 = a* b* L0* c* d* Z0 c L0 b Z1  L0*  Z2 d c L0 b a Z3
 """
 
 # Helper function to create a temporary .pil file

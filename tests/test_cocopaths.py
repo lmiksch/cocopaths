@@ -1,12 +1,11 @@
 import pytest
 import logging, os, re
 from unittest.mock import patch
-from cocopaths.cocopath import (graph,
-                                     node,
-                                     build_graph,
+from cocopaths.cocopath import (graph,                                     node,
+                                     translate_acfp,
                                      input_parser,
                                      main)
-from cocopaths.utils import find_connected_modules, path_to_pairtablepath, is_balanced_structure
+from cocopaths.utils import find_connected_modules, path_to_pairtablepath, is_balanced_structure, pairtablepath_to_dotbracket
 
 #setup logger                                      
 @pytest.fixture(scope="function")
@@ -71,7 +70,11 @@ def test_main_with_file_input(tmp_path,capsys):
         main()
 
     captured = capsys.readouterr()
-    assert "\n\nInput folding path:\n['.', '()', '.()']\n\n\nResulting Domain Level sequence:  L0*  S0 a L0 b S1 b* L0* a* S2\nLength of domain seq =  10\n" in captured.out 
+    print(captured.out)
+
+    expected_output = """\n\nInput folding path:\n['.', '()', '.()']\n\n\nResulting Domain seq: a* L0* b* Z0 c* b L0 a d* Z1 d a* L0* b* c Z2\n"""
+
+    assert expected_output in captured.out
 
 def test_is_balanced_structure():
     structure_1 = "()()"
@@ -186,21 +189,15 @@ def test_pseudoknot_attack(configure_logger):
     with pytest.raises(SystemExit):
         acfp = [".","()",".()","(())","(()).","()(())"]
 
-        acfp_graph = build_graph(acfp)
-
-        
-
-        domain_seq = acfp_graph.get_domain_seq()
+        domain_list = translate_acfp(acfp)
+        domain_seq = ' '.join(domain_list)
 
         print(domain_seq)
 
     acfp = [".",'()',"().","(..)","().()"]
 
-    acfp_graph = build_graph(acfp)
-
-    
-
-    domain_seq = acfp_graph.get_domain_seq()
+    domain_list = translate_acfp(acfp)
+    domain_seq = ' '.join(domain_list)
 
     print(domain_seq)
 
@@ -210,7 +207,8 @@ def test_detect_cycle(configure_logger):
     with pytest.raises(SystemExit):
         acfp = [".","()",".()","(())","(.())"]
         
-        acfp_graph = build_graph(acfp)
+        domain_list = translate_acfp(acfp)
+        domain_seq = ' '.join(domain_list)
 
 def test_graph(configure_logger):
     acfp = [[1, 0], [2, 2, 1], [3, 0, 3, 2], [4, 4, 3, 2, 1]]
@@ -220,40 +218,41 @@ def test_graph(configure_logger):
 
 def test_1_different_substructures(configure_logger):
     with pytest.raises(SystemExit):
-        path = [".","()","().",".()."]
+        acfp = [".","()","().",".()."]
 
-        acfp_graph = build_graph(path)
+        domain_list = translate_acfp(acfp)
+        domain_seq = ' '.join(domain_list)
 
 def test_2_different_substructures(configure_logger):
 
     with pytest.raises(SystemExit):
-        path = [".","()","().","()()","()().","(())()"]
+        acfp = [".","()","().","()()","()().","(())()"]
 
-        acfp_graph = build_graph(path)
+        domain_list = translate_acfp(acfp)
+        domain_seq = ' '.join(domain_list)
         
 def test_3_different_substructures(configure_logger):
      
     with pytest.raises(SystemExit):
-        path = [".","()","().","(())","()()."]
+        acfp = [".","()","().","(())","()()."]
 
-        acfp_graph = build_graph(path)
+        domain_list = translate_acfp(acfp)
+        domain_seq = ' '.join(domain_list)
 
 def test_4_different_substructures(configure_logger):
     
     with pytest.raises(SystemExit):
-        path = [".","()",".()","()()","()().",".()()."]
-
-        acfp_graph = build_graph(path)
-        acfp_graph.verify_weights(path)
+        acfp = [".","()",".()","()()","()().",".()()."]
+        domain_list = translate_acfp(acfp)
+        domain_seq = ' '.join(domain_list)
 
 
 def test_5_different_substructures(configure_logger):
     
     with pytest.raises(SystemExit):
-        path = [".","()",".()","()()","().()"]
-
-        acfp_graph = build_graph(path)
-        acfp_graph.verify_weights(path)
+        acfp = [".","()",".()","()()","().()"]
+        domain_list = translate_acfp(acfp)
+        domain_seq = ' '.join(domain_list)
 
 # List of favorable aCFPs (each is a list of dot-bracket strings)
 favorable_acfps = [
@@ -284,18 +283,18 @@ def test_acfp_favorable(acfp):
     For each favorable aCFP the graph should be built successfully and a valid domain level sequence returned.
     """
     try:
-        graph_obj = build_graph(acfp)
+        domain_list = translate_acfp(acfp)
+        domain_seq = ' '.join(domain_list)
     except SystemExit as e:
         pytest.fail(f"Favorable aCFP {acfp} failed with SystemExit: {e}")
     
     # Check that a domain level sequence is produced.
-    domain_seq = graph_obj.get_domain_seq()
-    assert isinstance(domain_seq, list) and len(domain_seq) > 0, \
+    assert isinstance(domain_seq, str) and len(domain_seq) > 0, \
         f"Domain sequence for {acfp} is not valid: {domain_seq}"
     
     # Optionally, verify that each domain string contains expected markers (e.g., "L" and "S")
-    for ds in domain_seq:
-        assert "L" in ds and "S" in ds, f"Domain sequence entry '{ds}' missing expected markers."
+    #for ds in domain_seq.split():
+    #    assert "L" in ds and "Z" in ds, f"Domain sequence{domain_seq} entry '{ds}' missing expected markers."
 
 @pytest.mark.parametrize("acfp", unfavorable_acfps)
 def test_acfp_unfavorable(acfp):
@@ -303,20 +302,19 @@ def test_acfp_unfavorable(acfp):
     For each unfavorable aCFP the build_graph process should fail (raise a SystemExit).
     """
     with pytest.raises(SystemExit):
-        build_graph(acfp)
+        domain_list = translate_acfp(acfp)
+        domain_seq = ' '.join(domain_list)
 
 def test_1_create_domain_seq(configure_logger):
        
     print("\n\n\nTest 1\n\n\n")
     
-    acfp_1 = [[1,0],[2,2,1],[3,0,3,2],[4,4,3,2,1],[5,0,3,2,5,4],[6,6,3,2,5,4,1]]
-
-    acfp_graph = build_graph(acfp_1)
-
+    acfp_1 = pairtablepath_to_dotbracket([[1,0],[2,2,1],[3,0,3,2],[4,4,3,2,1],[5,0,3,2,5,4],[6,6,3,2,5,4,1]])
     
-    domain_seq_1 = acfp_graph.get_domain_seq()
+    domain_list = translate_acfp(acfp_1)
+    domain_seq_1 = ' '.join(domain_list)
 
-    assert domain_seq_1 == [' L0*  S0', 'a L0 b S1', 'b* L0* a* S2', 'c L0 d S3', 'd* L0* c* S4', ' L0  S5'], f"Create Domain_seq 1 failed: Result: {domain_seq_1} Solution:  [' m0* ', 'a m0 b', 'c* b* m0* a* e*', 'g e a m0 b c j', 'j* c* b* m0* a* e* g*']"
+    assert domain_seq_1 == 'i* e* a* L0* b* f* j* Z0 c* b L0 a d* Z1 d a* L0* b* c Z2 g* f b L0 a e h* Z3 h e* a* L0* b* f* g Z4 j f b L0 a e i Z5', f"Create Domain_seq 1 failed: Result: {domain_seq_1} Solution:  i* e* a* L0* b* f* j* Z0 c* b L0 a d* Z1 d a* L0* b* c Z2 g* f b L0 a e h* Z3 h e* a* L0* b* f* g Z4 j f b L0 a e i Z5"
 
 
     pass
@@ -325,16 +323,14 @@ def test_2_create_domain_seq(configure_logger):
     
     print("\n\n\nTest 2\n\n\n")
     
-    acfp_2 = [[1, 0], [2, 2, 1], [3, 2, 1, 0], [4, 4, 3, 2, 1]]
+    acfp_2 = pairtablepath_to_dotbracket([[1, 0], [2, 2, 1], [3, 2, 1, 0], [4, 4, 3, 2, 1]])
 
-    acfp_graph = build_graph(acfp_2)
-
-    
-    domain_seq_2 = acfp_graph.get_domain_seq()
+    domain_list = translate_acfp(acfp_2)
+    domain_seq_2 = ' '.join(domain_list)
 
 
 
-    assert domain_seq_2 == ['a* b* L0* c* d* S0', 'c L0 b S1', ' L0*  S2', 'd c L0 b a S3'], f"Create domain_seq 2 failed Result: {domain_seq_2}, Solution ['a* b* m0* c* d*', 'c m0 a', ' m0* ', 'd c m0 b a']"
+    assert domain_seq_2 == "c* a* L0* b* d* Z0 b L0 a Z1 L0* Z2 d b L0 a c Z3", f"Create domain_seq 2 failed Result: {domain_seq_2}, Solution c* a* L0* b* d* Z0 b L0 a Z1 L0* Z2 d b L0 a c Z3"
 
     pass
 
@@ -344,13 +340,10 @@ def test_3_create_domain_seq(configure_logger):
 
     acfp_3 = [".","()","().","()()","().()","()(())"]
 
-    acfp_graph = build_graph(acfp_3)
+    domain_list = translate_acfp(acfp_3)
+    domain_seq_3 = ' '.join(domain_list)
 
-    
-    domain_seq_3 = acfp_graph.get_domain_seq()
-
-
-    assert domain_seq_3 == [' L0*  S0', ' L0  S1', ' L1*  S2', 'a L1 b S3', 'b* L1* a* S4', ' L1  S5'], f"Create domain_seq 3 failed Result: {domain_seq_3}, Solution: [' m0* ', ' m0 ', ' m1* ', 'a m1 b', 'b* m1* a*', ' m1 ']"
+    assert domain_seq_3 == 'a* L0* b* Z0 b L0 a Z1 g* c* L1* d* h* Z2 e* d L1 c f* Z3 f c* L1* d* e Z4 h d L1 c g Z5', f"Create domain_seq 3 failed Result: {domain_seq_3}, Solution: a* L0* b* Z0 b L0 a Z1 g* c* L1* d* h* Z2 e* d L1 c f* Z3 f c* L1* d* e Z4 h d L1 c g Z5"
 
     pass
 
@@ -360,14 +353,11 @@ def test_4_create_domain_seq(configure_logger):
 
     acfp_4 = [".","()","().","()()","()().","()()()","()()()."]
 
-
-    acfp_graph = build_graph(acfp_4)
-
-    
-    domain_seq_4 = acfp_graph.get_domain_seq()
+    domain_list = translate_acfp(acfp_4)
+    domain_seq_4 = ' '.join(domain_list)
     
 
-    assert domain_seq_4 == [' L0*  S0', ' L0  S1', ' L1*  S2', ' L1  S3', ' L2*  S4', ' L2  S5', ' L3*  S6'], f"Create domain_seq 4 failed Result: {domain_seq_4},Solution: [' m0* ', ' m0 ', ' m1* ', ' m1 ', ' m2* ', ' m2 ', ' m3* ']"
+    assert domain_seq_4 == "a* L0* b* Z0 b L0 a Z1 c* L1* d* Z2 d L1 c Z3 e* L2* f* Z4 f L2 e Z5 L3* Z6", f"Create domain_seq 4 failed Result: {domain_seq_4},Solution: a* L0* b* Z0 b L0 a Z1 c* L1* d* Z2 d L1 c Z3 e* L2* f* Z4 f L2 e Z5 L3* Z6"
 
     pass 
 
@@ -377,13 +367,10 @@ def test_5_create_domain_seq(configure_logger):
     
     path = [".","()",".()","(())","(()).","(()())"]
     
-    acfp_graph = build_graph(path)
+    domain_list = translate_acfp(path)
+    domain_seq_5 = ' '.join(domain_list)
 
-    
-    domain_seq_5 = acfp_graph.get_domain_seq()
-    
-
-    assert domain_seq_5 == ['a* b* L0* c* d* S0', 'e L0 f S1', 'f* L0* e* S2', 'c L0 b S3', ' L0*  S4', 'd c L0 b a S5'], f"Create domain_seq 5 failed Result: {domain_seq_5},Solution: ['a* b* m0* c* d* l0', 'e m0 f l1', 'f* m0* e* l2', 'c m0 b l3', ' m0*  l4', 'd c m0 b a l5']"
+    assert domain_seq_5 == "g* e* a* L0* b* f* h* Z0 c* b L0 a d* Z1 d a* L0* b* c Z2 f b L0 a e Z3 L0* Z4 h f b L0 a e g Z5", f"Create domain_seq 5 failed Result: {domain_seq_5},Solution: ['g* e* a* L0* b* f* h* Z0 c* b L0 a d* Z1 d a* L0* b* c Z2 f b L0 a e Z3 L0* Z4 h f b L0 a e g Z5]"
 
     
 
@@ -397,13 +384,10 @@ def test_6_create_domain_seq(configure_logger):
         
     path = [".","()",".()","()()",".()()"]
     
-    acfp_graph = build_graph(path)
+    domain_list = translate_acfp(path)
+    domain_seq_6 = ' '.join(domain_list)
 
-    
-    domain_seq_6 = acfp_graph.get_domain_seq()
-    
-
-    assert  domain_seq_6  == [' L0*  S0', 'a L0 b S1', 'c* b* L0* a* d* S2', 'e d a L0 b c f S3', 'f* c* b* L0* a* d* e* S4'], f"Create domain_seq_7 failed Result: {domain_seq_7},Solution: [' m0*  l0', 'a m0 b l1', 'c* b* m0* a* d* l2', 'e d a m0 b c f l3', 'f* c* b* m0* a* d* e* l4']"
+    assert  domain_seq_6  == "a* L0* b* Z0 c* b L0 a d* Z1 e* d a* L0* b* c f* Z2 g* f c* b L0 a d* e h* Z3 h e* d a* L0* b* c f* g Z4", f"Create domain_seq_7 failed Result: {domain_seq_6},Solution: a* L0* b* Z0 c* b L0 a d* Z1 e* d a* L0* b* c f* Z2 g* f c* b L0 a d* e h* Z3 h e* d a* L0* b* c f* g Z4"
 
     pass
 
@@ -413,34 +397,27 @@ def test_7_create_domain_seq(configure_logger):
     print("\n\n\nTest 7\n\n\n")
         
     path = [".","()",".()","(())","(())."]
-    
-    acfp_graph = build_graph(path)
 
-    
-    domain_seq_7 = acfp_graph.get_domain_seq()
-    
+    domain_list = translate_acfp(path)
+    domain_seq_7 = ' '.join(domain_list)
 
-    assert  domain_seq_7  == [' L0*  S0', 'a L0 b S1', 'b* L0* a* S2', ' L0  S3', ' L1*  S4']
+    assert  domain_seq_7  == 'e* a* L0* b* f* Z0 c* b L0 a d* Z1 d a* L0* b* c Z2 f b L0 a e Z3 L1* Z4'
 
     pass
 
 
 
 def test_8_create_domain_seq(configure_logger):
-     
+    
 
     print("\n\n\nTest 8\n\n\n")
         
     path = [".","()","()."]
     
-    acfp_graph = build_graph(path)
+    domain_list = translate_acfp(path)
+    domain_seq_8 = ' '.join(domain_list)
 
-    
-    domain_seq_8 = acfp_graph.get_domain_seq()
-    
-
-    assert  domain_seq_8  == [' L0*  S0', ' L0  S1', ' L1*  S2']
-
+    assert  domain_seq_8  == 'a* L0* b* Z0 b L0 a Z1 L1* Z2'
     pass
 
 

@@ -136,7 +136,8 @@ def structure_to_pairtable(structure):
             pair_table[i] = 0
         else:
             # If the character is unexpected, raise an error
-            raise ValueError("Invalid character '{}' in structure at position {}".format(char, i))
+            print(f"{structure = }")
+            raise ValueError(f"Invalid character '{char }' in structure {structure} at position {i}")
     
     if stack:
         raise ValueError("Invalid structure: Unbalanced parentheses (extra opening bracket(s) remain)")

@@ -666,7 +666,7 @@ def get_base_pairings_dict(dot_bracket):
 
 def main():
 
-    folder_num = "13"
+    folder_num = "12"
     out_folder = 'output_' + folder_num + '/stat_figures/'
 
     sort_and_print_missing_tsv('output_' + folder_num + '/6_steps_out.txt',folder_num)
