@@ -86,6 +86,8 @@ cocopath also checks stdin and accepts if each step is seperated by a ','.
 
 Cocosim can be used separately from cocopaths. It accepts input either through the terminal or in .pil format. An example of the correct .pil format can be found in the examples folder. 
 
+For more information about CocoSim, please refer to its dedicated GitHub repository: https://github.com/lmiksch/CocoSim
+
 ## CocoDesign
 
 CocoDesign is currently designed to operate independently. It accepts either a .pil format file as input, where the user can specify the domain lengths, or an input via the terminal, with the default parameters for domain lengths.
