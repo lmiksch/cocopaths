@@ -72,7 +72,7 @@ def run_sim(d_seq, parameters):
     #Print continous output
     if parameters["logic"]:
         for x, complex in complexes.items():
-            print(f'Transcription Step | Occupancy  |  Logic domain pairing | Structure	 \n')
+            print(f'Transcription Step | Occupancy  |  Long domain pairing | Structure	 \n')
             kernel_string = kernel_to_dot_bracket(complex.kernel_string)
             db_struct = (only_logic_domain_struct(d_seq.split(),kernel_string))
             #occupancy = np.float128(complex.occupancy)
@@ -852,7 +852,7 @@ def write_output(final_structures,d_seq,parameters = None):
             data_output += "\n"
     
     ts = 0
-    data_output += ("\n\nOnly Logic Domain pairings:\n\n")
+    data_output += ("\n\nOnly Long Domain pairings:\n\n")
     data_output += "Transcription Step | Occupancy  |  Structure	 \n"
 
     struct_list = []

@@ -177,16 +177,18 @@ def plot_split_normalized_domain(out_folder, df):
 
     
 def plot_domain_and_counts(out_folder, df):
+    import os
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
 
     # Ensure the output directory exists
     os.makedirs(out_folder, exist_ok=True)
 
     # Plot 1: Domain Success vs. Nucleotide Success
     success_by_domain = pd.crosstab(df['domain_success'], df['nucleotide_success'])
-    
     plt.figure(figsize=(10, 6), dpi=300)
     success_by_domain.plot(kind='bar', color=['lightcoral', 'cornflowerblue'], edgecolor='black')
-    
     plt.title('Domain Success vs. nucleotide success', fontsize=16)
     plt.xlabel('Domain success', fontsize=18)
     plt.ylabel('Count', fontsize=18)
@@ -194,10 +196,7 @@ def plot_domain_and_counts(out_folder, df):
     plt.grid(True)
     plt.xticks(fontsize=20)
     plt.yticks(fontsize=20)
-    
-    # Adjust y-axis to always go from 0 to 1 for comparison
-    plt.ylim(0, 1)
-    
+    plt.ylim(0, 1)  # Adjust y-axis to always go from 0 to 1 for comparison
     plt.tight_layout()
     plt.savefig(os.path.join(out_folder, '04_domain_vs_nucleotide_success.png'))
     plt.close()
@@ -218,8 +217,6 @@ def plot_domain_and_counts(out_folder, df):
 
     # Plot: Split bars for Domain Success and Nucleotide Outcomes
     plt.figure(figsize=(10, 6), dpi=300)
-
-    # Define bar width and positions
     bar_width = 0.3
     domain_levels = sorted(normalized_counts['domain_success'].unique())
     x_positions = np.arange(1, len(domain_levels) + 1)  # Start at 1
@@ -228,7 +225,7 @@ def plot_domain_and_counts(out_folder, df):
         color = 'lightcoral' if outcome == 'Failure' else 'cornflowerblue'
         subset = normalized_counts[normalized_counts['Nucleotide Outcome'] == outcome]
         plt.bar(
-            x_positions + i * bar_width - bar_width / 2,  # Shift bar positions
+            x_positions + i * bar_width - bar_width / 2,  # Adjust bar positions
             subset['Proportion'],
             width=bar_width,
             color=color,
@@ -239,39 +236,74 @@ def plot_domain_and_counts(out_folder, df):
     plt.title('Domain success vs. nucleotide success/failure (normalized)', fontsize=18)
     plt.xlabel('Domain success', fontsize=20)
     plt.ylabel('Proportion', fontsize=20)
-    plt.xticks(x_positions, ['Failure', 'Success'], fontsize=20)  # Start at 1
-    plt.ylim(0, 1)  # Force y-axis to 1 for comparability
+    plt.xticks(x_positions, ['Failure', 'Success'], fontsize=20)
+    plt.ylim(0, 1)
     plt.yticks(fontsize=16)
     plt.legend(loc='best', fontsize=16)
     plt.grid(axis='y', linestyle='--', alpha=0.5)
-
     plt.tight_layout()
     plt.savefig(os.path.join(out_folder, '04_split_normalized_domain_vs_nucleotide_success.png'))
     plt.close()
 
-    # Filter success and failure
+    # Compute normalized counts from the full crosstab
+    total_sum = success_by_domain.values.sum()
+    normalized_counts = success_by_domain / total_sum
+
+    # Rearrange data for grouped bar plotting
+    normalized_counts = normalized_counts.reset_index().melt(
+        id_vars='domain_success',
+        var_name='Nucleotide Outcome',
+        value_name='Proportion'
+    )
+    # Convert binary outcome to labels
+    normalized_counts['Nucleotide Outcome'] = normalized_counts['Nucleotide Outcome'].map({False: 'Failure', True: 'Success'})
+
+    # --- New: Plot for Domain Success Only (Split Normalized) ---
+    # Filter to only include rows where domain_success is True
+    ds_norm = normalized_counts[normalized_counts['domain_success'] == True].copy()
+
+    # Order the outcomes so that 'Failure' comes first, then 'Success'
+    order = ['Failure', 'Success']
+    ds_norm['Nucleotide Outcome'] = pd.Categorical(ds_norm['Nucleotide Outcome'], categories=order, ordered=True)
+    ds_norm = ds_norm.sort_values('Nucleotide Outcome')
+
+    plt.figure(figsize=(10, 6), dpi=300)
+    x_positions = np.arange(len(ds_norm))  # This will be 0 and 1 for the two outcomes
+    bar_width = 0.5
+    # Define colors based on the outcome
+    colors = ['lightcoral' if outcome == 'Failure' else 'cornflowerblue' for outcome in ds_norm['Nucleotide Outcome']]
+
+    # Plot the bars for each nucleotide outcome
+    plt.bar(x_positions, ds_norm['Proportion'], color=colors, edgecolor='black', width=bar_width)
+
+    # New title and labels for the figure
+    plt.title('Normalized Nucleotide Outcomes for Domain Success Only', fontsize=18)
+    plt.xlabel('Nucleotide Outcome', fontsize=20)
+    plt.ylabel('Proportion', fontsize=20)
+    plt.xticks(x_positions, ds_norm['Nucleotide Outcome'], fontsize=20)
+    plt.ylim(0, 1)
+    plt.yticks(fontsize=16)
+    plt.grid(axis='y', linestyle='--', alpha=0.5)
+    plt.tight_layout()
+    plt.savefig(os.path.join(out_folder, '04_split_normalized_domain_success_only.png'))
+    plt.close()
+
+
+    # Filter success and failure data frames for the per try plots
     success_df = df[(df['nucleotide_success']) & (df['domain_success'] == True)]
     failure_df = df[(df['nucleotide_success']) & (df['domain_success'] == False)]
 
     # Calculate and print medians
     success_median = success_df['tries'].median() if not success_df.empty else None
     failure_median = failure_df['tries'].median() if not failure_df.empty else None
-
     print(f"Median number of tries for Domain Success = True: {success_median}")
     print(f"Median number of tries for Domain Success = False: {failure_median}")
 
-    # Group data for plotting
+    # Group data for plotting (per number of tries)
     success_counts = success_df.groupby('tries').size()
     failure_counts = failure_df.groupby('tries').size()
 
-    # Normalize counts (divide by total for proportion)
-    success_counts = success_counts / success_counts.sum()
-    failure_counts = failure_counts / failure_counts.sum()
-
-    success_counts = success_df.groupby('tries').size()
-    failure_counts = failure_df.groupby('tries').size()
-
-    # Normalize counts
+    # Normalize counts for proportion calculation
     success_counts = success_counts / success_counts.sum()
     failure_counts = failure_counts / failure_counts.sum()
 
@@ -280,12 +312,8 @@ def plot_domain_and_counts(out_folder, df):
     success_counts = success_counts.reindex(full_try_range, fill_value=0)
     failure_counts = failure_counts.reindex(full_try_range, fill_value=0)
 
-    # Ensure x-axis starts at 1
-    success_x_labels = range(1, len(success_counts) + 1)
-    failure_x_labels = range(1, len(failure_counts) + 1)
-
-    # Main Plot: Successful Domain Success (Normalized)
-    fig, ax_main = plt.subplots(figsize=(10, 6), dpi=300)
+    # Main Plot: Normalized nucleotide success per try (domain success)
+    fig, ax_main = plt.subplots(figsize=(10, 4), dpi=300)
     success_counts.plot(kind='bar', color='#55a868', edgecolor='black', ax=ax_main)
     ax_main.set_facecolor('white')
     ax_main.set_title('Normalized nucleotide success per try (domain success)', fontsize=16)
@@ -293,36 +321,16 @@ def plot_domain_and_counts(out_folder, df):
     ax_main.set_ylabel('Proportion of successes', fontsize=18)
     ax_main.grid(False)
     ax_main.tick_params(axis='both', labelsize=14)
-
-    # Ensure y-axis max is 1 for comparison
     ax_main.set_ylim(0, 1)
-
-    # Ensure x-ticks align with bar positions
     ax_main.set_xticks(np.arange(len(success_counts)))
     ax_main.set_xticklabels(success_counts.index, rotation=0)
 
-
-    # Inset Plot: Failed Domain Success (Normalized)
-    ax_inset = inset_axes(ax_main, width="70%", height="70%", loc='center right', borderpad=2)
-    failure_counts.plot(kind='bar', color='#8172b2', edgecolor='black', ax=ax_inset)
-    ax_inset.set_title('Normalized nucleotide success (domain failure)', fontsize=14)
-
-    ax_inset.set_facecolor('white')
-    ax_inset.set_xlabel('')
-    ax_inset.set_ylabel('')
-    ax_inset.tick_params(axis='both', labelsize=14)
-
-    # Ensure y-axis max is 1 for comparison
-    ax_inset.set_ylim(0, 1)
-
-    ax_inset.set_xticks(np.arange(len(failure_counts)))
-    ax_inset.set_xticklabels(failure_counts.index, rotation=0)
-
+    # Note: Inset section removed. You can create a separate plot for domain failure if needed.
     plt.tight_layout()
-    plt.savefig(os.path.join(out_folder, '04_normalized_counts_success_per_try_by_domain_with_inset.png'))
+    plt.savefig(os.path.join(out_folder, '04_normalized_counts_success_per_try.png'))
     plt.close()
 
-        # --- New Section: Plotting Crosstab Table in Matplotlib ---
+    # --- New Section: Plotting Crosstab Table in Matplotlib ---
     # Ensure the nt_success_bool column exists (successful if value > 0.5)
     if 'nt_success_bool' not in df.columns:
         df['nt_success_bool'] = df['nucleotide_success'] > 0.5
@@ -348,6 +356,8 @@ def plot_domain_and_counts(out_folder, df):
     plt.tight_layout()
     plt.savefig(os.path.join(out_folder, '05_crosstab_domain_vs_nucleotide_table.png'))
     plt.close()
+
+
 
 def plot_output(out_folder, df):
     # Plot 1: Distribution of nt_success
@@ -449,7 +459,19 @@ def plot_output(out_folder, df):
     plt.savefig(os.path.join(out_folder, 'counts_success_per_try.png'))
     plt.close()
 
-    
+    plt.figure(figsize=(10, 6), dpi=300)
+    success_by_domain_only.plot(kind='bar', color=['lightcoral', 'cornflowerblue'], edgecolor='black')
+    plt.title('Only Domain Success: Nucleotide Success vs. Failure', fontsize=16)
+    plt.xlabel('Domain Success', fontsize=18)
+    plt.ylabel('Count', fontsize=18)
+    plt.legend(['Nucleotide Failure', 'Nucleotide Success'], loc='best', fontsize=20)
+    plt.grid(True)
+    plt.xticks(fontsize=20)
+    plt.yticks(fontsize=20)
+    plt.tight_layout()
+    plt.savefig(os.path.join(out_folder, '04_domain_success_only.png'))
+    plt.close()
+
     custom_palette = {False: 'lightcoral', True: 'cornflowerblue'}
 
     plt.figure(figsize=(10, 6))
@@ -573,6 +595,7 @@ def plot_output(out_folder, df):
 
 
 
+
 def compare_data(folder_1,folder_2):
 
 
@@ -666,7 +689,7 @@ def get_base_pairings_dict(dot_bracket):
 
 def main():
 
-    folder_num = "12"
+    folder_num = "paper"
     out_folder = 'output_' + folder_num + '/stat_figures/'
 
     sort_and_print_missing_tsv('output_' + folder_num + '/6_steps_out.txt',folder_num)

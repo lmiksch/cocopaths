@@ -37,7 +37,7 @@ def coco_suite(folding_path,output,steps,parameters):
     #creation of parameters using the default parameters 
     
     parameters['steps'] = steps
-    parameters['hard_constraint'] = True
+    parameters['hard_constraint'] = False
     
     #CocoDesign
     #for now force each folding path 
@@ -527,6 +527,79 @@ def eval_nt_seq(nt_sequence,acfp,domain_seq):
     print(evaluate_nt_fp(nt_sequence,domain_fp,domain_seq,parameters,output = "eval_nt_seq"))
 
 
+def design_from_acfp_and_domain_seq(acfp, domain_seq, output_file, out_folder, file_path, index=0, tries_per_fp=20):
+    """
+    Designs an nt-sequence based on a given aCFP and domain sequence (skipping simulation),
+    evaluates it with DrTransformer, and writes the result to output_file.
+    
+    Args:
+        acfp (list): abstract cotranscriptional folding path
+        domain_seq (str): precomputed domain-level sequence
+        output_file (str): path to output .tsv
+        out_folder (str): folder to store intermediate outputs
+        index (int): ID of the folding path
+        tries_per_fp (int): number of design attempts
+    """
+    from statistics import mean
+
+    parameters = get_default_parameters()
+    obj_fun = objective_function(0, 0, 0, 0, 0, 0)[1]
+
+    os.makedirs(out_folder, exist_ok=True)
+    acfp_folder = os.path.join(out_folder, f"{index}_acfp")
+    os.makedirs(acfp_folder, exist_ok=True)
+
+
+    # Init logs
+    with FileLock(output_file + ".lock"):
+        if not os.path.exists(output_file):
+            with open(output_file, 'a') as out_file:
+                out_file.write('Id\tacfp\tnt_success\ttries\tavg_occ\tdomain_success\n')
+
+    domain_fp = acfp_to_domainfp(acfp, domain_seq)
+    total_score = []
+    total_pop = []
+
+    score_list = []
+    occ_list = []
+    
+    parameters['steps'] = 2000
+    parameters['hard_constraint'] = False
+
+    for tries in range(tries_per_fp):
+        output = os.path.join(acfp_folder, f"{index}")
+        try:
+            ext_fp = domain_path_to_nt_path(domain_fp, domain_seq, parameters)
+            nt_sequence, score = rna_design(domain_seq, ext_fp, parameters, acfp, domain_fp)
+
+            populations = evaluate_nt_fp(nt_sequence, domain_fp, domain_seq, parameters, output)
+            min_pop = min(populations)
+
+            score_list.append(score)
+            occ_list.append(min_pop)
+
+            if min_pop > 0.5:
+                break
+
+        except Exception as e:
+            print(f"Error in design try {tries}: {e}")
+            break
+
+    if not occ_list:
+        occ_list.append(-1)
+
+    total_score += score_list
+    total_pop += occ_list
+
+    input_tsv = pd.read_csv(file_path, sep='\t', comment='#', skiprows=0)
+    row = input_tsv.iloc[index]
+
+    with FileLock(output_file + ".lock"):
+        with open(output_file, 'a') as output_f:
+            output_f.write(f'{index}\t{acfp}\t{max(occ_list):.6f}\t{tries}\t{mean(occ_list):.6f}\t{row["domain_success"]}\n')
+
+
+
 if __name__ == "__main__":
 
 
@@ -543,4 +616,22 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     
-    analyze_single_fp(args.file_path, args.index, args.output_file,"test/")
+    #analyze_single_fp(args.file_path, args.index, args.output_file,"test_relax/")
+
+
+    df = pd.read_csv("/home/mescalin/miksch/Documents/cocopaths/analysis/sim_results_len6.tsv", sep="\t", )
+
+    acfp_str = df.loc[args.index, "AFP"]
+    acfp = ast.literal_eval(acfp_str)
+
+    out_folder = "test_paper"
+
+
+    output_file = args.output_file
+    index = args.index
+    print(f'{args.index = }\n {acfp =}')
+
+    file_path = args.file_path
+    
+    domain_seq = df.loc[args.index, "d_seq"]
+    design_from_acfp_and_domain_seq(acfp, domain_seq, output_file, out_folder, file_path, index,  tries_per_fp=20)

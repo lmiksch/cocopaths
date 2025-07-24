@@ -13,8 +13,8 @@ echo "Starting job $SLURM_ARRAY_TASK_ID"  # Debug statement
 
 QUEUE_FILE="/home/mescalin/miksch/Documents/cocopaths/analysis/slurm/queue_file.txt"
 LOCK_FILE="/home/mescalin/miksch/Documents/cocopaths/analysis/slurm/queue_file.lock"
-FILE_PATH="/home/mescalin/miksch/Documents/cocopaths/analysis/23_run/6_steps_out_new_alog.tsv"
-OUTPUT_FILE="/home/mescalin/miksch/Documents/cocopaths/analysis/slurm/output/6_steps_out.txt"
+FILE_PATH="/home/mescalin/miksch/Documents/cocopaths/analysis/sim_results_len6.tsv"
+OUTPUT_FILE="/home/mescalin/miksch/Documents/cocopaths/analysis/slurm/output_paper/6_steps_out.txt"
 CONDA_ENV="bioinf"
 
 CONDA_BASE=$(conda info --base)

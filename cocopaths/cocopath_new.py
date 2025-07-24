@@ -1,8 +1,7 @@
 from typing import Any
 import re,argparse, logging, sys, copy
-from itertools import product
 from cocopaths import __version__
-from .utils import (pairtablepath_to_dotbracket,structure_to_pairtable, path_to_pairtablepath, find_connected_modules,is_balanced_structure,acfp_terminal_input, structure_to_pairtable, is_legal_dotbracket)
+from .utils import (pairtablepath_to_dotbracket,path_to_pairtablepath, find_connected_modules,is_balanced_structure,acfp_terminal_input, structure_to_pairtable, is_legal_dotbracket)
 import string
 
 #______define_logger______#
@@ -14,7 +13,7 @@ logger.addHandler(console_handler)
 
 
 class node():
-    def __init__(self,name,prefix ="",suffix ="",complement= False,max_weight = 0,neighbors = None,connected = None):
+    def __init__(self,name,prefix ="",suffix ="",complement= False,max_weight = 1,neighbors = None,connected = None):
         self.name = name
         self.prefix = prefix
         self.middle = ""
@@ -552,8 +551,8 @@ class graph():
             The new structure (str) after binding, or None if no valid binding is detected.
         """
         # Ensure the last-character condition.
-        #if prev_step[-1] != '.' or curr_step[-1] != ')':
-        #    return None
+        if prev_step[-1] != '.' or curr_step[-1] != ')':
+            return None
 
         candidate_index = None
         # Look for the first candidate position (except the last) where prev_step is '.' and curr_step is '('.
@@ -659,7 +658,7 @@ class graph():
         ]
         logger.debug(f"\nCurrent structure: {current}")
         for rule_name, rule_func in rules:
-            #logger.debug("\nTrying rule:", rule_name)
+            logger.debug("\nTrying rule:", rule_name)
             outcomes = rule_func(current)
             if outcomes is None:
                 outcomes = []
@@ -709,7 +708,7 @@ class graph():
         logger.debug(f"New step \n\n{curr_step = } {prev_step = }")
         r0 = self.apply_R0(curr_step, modified_structure)
         if r0 is not None:
-            rule_seq.append(("R0"))
+            rule_seq.append(("R0",))
             if r0 != modified_structure:
                 modified_structure = r0
             else:
@@ -721,7 +720,9 @@ class graph():
             rule_seq.append(("R1", r1))
             modified_structure = r1
 
-        #if check_unpaired_complements()
+      
+         
+        
                 
         logger.debug(f"R1 post {modified_structure = }")
 
@@ -750,9 +751,8 @@ class graph():
         Checks whether an acfp is favorable by verifying that a valid sequence of rules exists
         to move from one folding step to the next.
         """
-        logger.debug('begin traver')
+
         if self.pseudoknot_attack_detection(path_to_pairtablepath(acfp)):
-            logger.debug(f'Pseudoknot detected exit')
             return False
         
         rule_seq_overall = []
@@ -764,8 +764,6 @@ class graph():
                 logger.debug(f"Path at step:{i} going from {acfp[i-1]} {acfp[i]} is not favorable\n{rule_seq_overall = }")
                 return False
             if len(curr_rule_seq) == 0:
-                logger.debug(f'curr_rule_seq is empty')
-
                 return False
         logger.debug(f"{rule_seq_overall = }")
         return rule_seq_overall
@@ -776,7 +774,7 @@ class graph():
             if edge[1] <= step_number + 1:
                 current_edges.append(edge)
         return current_edges
-    '''
+    """
     def get_weights(self, acfp):
         assigned_edges = {}
         for x, step in enumerate(acfp[1:], start=1):
@@ -821,20 +819,20 @@ class graph():
                 if not active_edges:
                     for edge in inactive_edges:
                         if edge not in assigned_edges:
-                            assigned_edges[edge] = 0
-                            self.edges[edge] = 0
+                            assigned_edges[edge] = 1
+                            self.edges[edge] = 1
                     break
                 
                 current_edge = active_edges.pop()
                 logger.debug(f"Current Edge: {current_edge}")
                 
-                inactive_flag = True
-                #for edge in inactive_edges:
-                #    # Check if the current active edge influences this inactive edge.
-                #    if edge[0] in current_edge or edge[1] in current_edge:
-                #        inactive_flag = True
-                #        logger.debug(f"Inactive edge influences edge {edge}")
-                #
+                inactive_flag = False
+                for edge in inactive_edges:
+                    # Check if the current active edge influences this inactive edge.
+                    if edge[0] in current_edge or edge[1] in current_edge:
+                        inactive_flag = True
+                        logger.debug(f"Inactive edge influences edge {edge}")
+                
                 if current_edge not in assigned_edges and inactive_flag:
                     l_node = self.get_node_by_name(current_edge[0])
                     r_node = self.get_node_by_name(current_edge[1])
@@ -842,7 +840,7 @@ class graph():
                     logger.debug(f"Right weight {r_node.max_weight, r_node}")
                     edge_weight = max(l_node.max_weight, r_node.max_weight) + 1
                     self.edges[current_edge] = edge_weight
-                    logger.debug(f"Assigned Edge Weight: {edge_weight} for edge: {current_edge}")
+                    logger.debug(f"Edge Weight: {edge_weight} for edge: {current_edge}")
                     
                     l_node.max_weight = edge_weight
                     r_node.max_weight = edge_weight
@@ -865,57 +863,49 @@ class graph():
                         logger.debug(f"New edge assignment: {assigned_edges}")
                         
             logger.debug("--" * 50)
-        logger.debug(self.edges)'''
-
+        logger.debug(self.edges)"""
 
     def get_weights(self, acfp):
-        """
-        Phase 1: Weight assignment
-
-        For each constraint step in the abstract CFP (aCFP), obtain its corresponding subgraph.
-        For each active edge e in that subgraph that has not been assigned a weight yet,
-        do the following:
-            l <- getNode(e[0])
-            r <- getNode(e[1])
-            edge_weight <- max(l.max_weight, r.max_weight) + 1
-            Set l.max_weight and r.max_weight to edge_weight.
-            Assign edge weight W[e] <- edge_weight.
+        assigned_edges = {}
+        for x, step in enumerate(acfp[1:], start=1):
+            # Assume step is an ordered list of nodes;
+            # the last element is the newly appended node.
+            if len(step) < 2:
+                # Not enough nodes to form an edge
+                continue
+            
+            # Identify the edge that connects the new node with its predecessor.
+            predecessor = step[-2]
+            new_node = step[-1]
+            edge = (predecessor, new_node)
+            
+            # Retrieve node objects.
+            l_node = self.get_node_by_name(predecessor)
+            r_node = self.get_node_by_name(new_node)
+            
+            # Determine the new edge weight.
+            # If the edge already exists (i.e. being reapplied/replacing), increment its weight by 1.
+            # Otherwise, set its weight based on the max_weight of the two nodes.
+            if edge in self.edges:
+                new_weight = self.edges[edge] + 1
+            else:
+                new_weight = max(l_node.max_weight, r_node.max_weight) + 1
+            
+            # Update the edge weight and update the nodes' max_weight.
+            self.edges[edge] = new_weight
+            l_node.max_weight = new_weight
+            r_node.max_weight = new_weight
+            
+            assigned_edges[edge] = new_weight
+            logger.debug(f"Step {x}: Edge {edge} assigned weight {new_weight}")
+            
+        logger.debug("Final edge weights: " + str(self.edges))
         
-        This method updates self.edges accordingly.
-        """
-        assigned_edges = {}  # dictionary to track edges that have been assigned a weight
-        # Loop over each constraint step i (0-indexed) in the aCFP.
-        for i, step in enumerate(acfp):
-            # Get the subgraph corresponding to constraint C_i.
-            # (Assumes get_current_edges(i) returns all edges for bases up to index i+1.)
-            current_edges = self.get_current_edges(i)
-            logger.debug("--" * 50)
-            logger.debug(f"\nStep index: {i} with step: {step}")
-            # Process each edge in the subgraph.
-            for e in current_edges:
-                # Check if the edge e is active in this step.
-                # Active means: at position e[0] the pairing is e[1] and vice versa.
-                if step[e[0]] == e[1] and step[int(e[1])] == int(e[0]):
-                    # Process only if e has not yet been assigned a weight.
-                    if e not in assigned_edges:
-                        l = self.get_node_by_name(e[0])
-                        r = self.get_node_by_name(e[1])
-                        # Compute the new weight.
-                        edge_weight = max(l.max_weight, r.max_weight) + 1
-                        # Update the nodes.
-                        l.max_weight = edge_weight
-                        r.max_weight = edge_weight
-                        # Update the edge’s weight in the global dictionary.
-                        self.edges[e] = edge_weight
-                        assigned_edges[e] = edge_weight
-                        logger.debug(f"Assigned weight {edge_weight} for active edge {e}")
-        logger.debug("Final edge weights:")
-        logger.debug(self.edges)
-        def get_node_by_name(self, node_name):
-            for node in self.graph:
-                if node.name == node_name:
-                    return node
-            return None
+    def get_node_by_name(self, node_name):
+        for node in self.graph:
+            if node.name == node_name:
+                return node
+        return None
 
     def verify_weights(self,acfp):
         """
@@ -926,7 +916,6 @@ class graph():
         for x,step in enumerate(acfp[1:],start=1): 
             collected_edges = self.get_current_edges(x)
             logger.debug("--"*50)
-            logger.debug(f"Current {step = }")
             logger.debug(f"\nAssigned Edges: {assigned_edges}\n")
             logger.debug(f"\nCollected Edges: {collected_edges}")
             logger.debug(f"Current Step: {step}")
@@ -948,15 +937,13 @@ class graph():
                 current_neighbors = [neighbor for neighbor in self.edge_neighbors[curr_edge] if neighbor in active_edges]
                 max_weight = float("-inf")
                 max_weight = max([self.edges[neighbor] for neighbor in current_neighbors], default=float("-inf"))
-                logger.debug(f"{max_weight = }")
-                logger.debug(f"{curr_edge = } {self.edges[curr_edge] = }")
-                if self.edges[curr_edge] >= max_weight:# and self.edges[curr_edge] != 1:
+
+                if self.edges[curr_edge] > max_weight and self.edges[curr_edge] != 1:
                     logger.debug(f"{self.edges[curr_edge] = } , {max_weight = }")
                     logger.debug(f"\n{active_edges = }")
                     logger.debug(f"\n{inactive_edges = }")
                     logger.debug(f"Verify Weights: Folding path not possible in this step: {step}\n\n Goodbye")
                     return False 
-
         return True
           
     #_________Weights______#
@@ -970,63 +957,13 @@ class graph():
         domain_seq = []
 
         for x,node in enumerate(self.graph):
-            domain_seq.append(str(" ".join(node.prefix) + " " + node.middle + " " + " ".join(node.suffix) + " " + "Z" + str(x)))
+            domain_seq.append(str(" ".join(node.prefix) + " " + node.middle + " " + " ".join(node.suffix) + " " + "S" + str(x)))
         
         logger.debug(f"Resulting domain seq: {domain_seq}")
         logger.debug(f"{self.edges}")
 
         return domain_seq
-
-
-    def verify_nussinov(self,acfp):
-        """Takes the graph produced from the get weights function and calculates the optimal structure based on the weights.
-        
-        Args:
-            acfp(list): list form of an aCFP 
-
-        Returns:
-            bool: Returns true if the graph produces the structures required from the acfp
-        """
-        #print(acfp)
-        for step in acfp[1:]:
-            n = step[0]
-            #print(f"{n = }")
-            allowed_pairs = set()
-            weights = {}
-
-            for (i, j), weight in self.edges.items():
-                # Convert 1-indexed to 0-indexed
-                #print(f"{(i,j) = } {weight = }")
-                if i <= n and j <= n:
-                    i0, j0 = i - 1, j - 1
-                    allowed_pairs.add((i0, j0))
-                    weights[(i0, j0)] = weight
-                    weights[(j0, i0)] = weight  # make symmetrical
-
-
-            print(f"{allowed_pairs = }")
-            print(f"{weights = }")
-
-            M, DP_traceback = weighted_nussinov(n, allowed_pairs, weights)
-            all_solutions = traceback_all(0, n-1, M, allowed_pairs, weights)
-
-            
-            optimal_pairtables = [convert_to_pairtable(sol, n) for sol in all_solutions]
-
-            for struct in optimal_pairtables:
-                logger.debug(struct)
-            if len(optimal_pairtables) > 1:
-                logger.debug(f'Multiple solutions')
-                return False
-            if not any(pt_pred == step for pt_pred in optimal_pairtables):
-                logger.debug(f"Nussinov mismatch on step {step}")
-                logger.debug(f"Expected: {step}")
-                logger.debug(f"Predicted: {optimal_pairtables}")
-                return False
-
-        return True
-
-
+    
     def create_domain_seq(self):
         logger.debug(f"************************Begin create_domain_seq****************************")
         domains = list(string.ascii_lowercase)
@@ -1136,8 +1073,6 @@ class graph():
         If all complementary unpaired pairs are "interfered" with by an external pairing (or no such pair exists),
         return True.
         """
-
-        #print(f'\nCheck unpaired complements{acfp = }')
         for step in acfp:
             n = step[0]
             for x in range(1, n + 1):
@@ -1151,21 +1086,19 @@ class graph():
                         continue
                     node_y = self.get_node_by_name(y)
                     # Check if x and y are complementary and in the same connected component.
-                    #print(f'{node_x.connected = } {node_y.connected = } {node_x.complement} {node_y.complement}')
                     if node_x.connected == node_y.connected and node_x.complement != node_y.complement:
-                        return False
-                        #interfering_found = False
-                        ## Check all indices between x and y.
-                        #for j in range(x + 1, y):
-                        #    if step[j] != 0:
-                        #        partner = step[j]
-                        #        # If the partner is outside the [x, y] range, we mark that interference.
-                        #        if partner < x or partner > y:
-                        #            interfering_found = True
-                        #            break
-                        ## If no interfering pairing is found, then this pair of unpaired, complementary domains is "isolated."
-                        #if not interfering_found:
-                        #    return False
+                        interfering_found = False
+                        # Check all indices between x and y.
+                        for j in range(x + 1, y):
+                            if step[j] != 0:
+                                partner = step[j]
+                                # If the partner is outside the [x, y] range, we mark that interference.
+                                if partner < x or partner > y:
+                                    interfering_found = True
+                                    break
+                        # If no interfering pairing is found, then this pair of unpaired, complementary domains is "isolated."
+                        if not interfering_found:
+                            return False
         return True
 
     def consistency_check(self,acfp):
@@ -1185,11 +1118,8 @@ class graph():
         pairtable_acfp = path_to_pairtablepath(acfp)
         self.get_weights(acfp=pairtable_acfp)
 
-        if not self.verify_nussinov(acfp = pairtable_acfp):
+        if not self.verify_weights(acfp=pairtable_acfp):
             return False
-
-        #if not self.verify_weights(acfp=pairtable_acfp):
-        #    return False
 
 
         return True
@@ -1258,161 +1188,6 @@ class graph():
                         return False
         return True
 
-#________Nussinov________#
-def weighted_nussinov(n, allowed_pairs, weights):
-    """
-    Parameters:
-    - n: Length of the sequence (number of domains)
-    - allowed_pairs: Set of tuples (i, j) indicating allowed base pairs
-    - weights: Dictionary mapping (i, j) -> weight
-    Returns:
-    - M: DP table with maximum weight from i to j
-    - traceback: Table to reconstruct structure
-    """
-    M = [[0 for _ in range(n)] for _ in range(n)]
-    traceback = [[None for _ in range(n)] for _ in range(n)]
-
-    for length in range(1, n):
-        for i in range(n - length):
-            j = i + length
-
-            # Option 1: i unpaired
-            best = M[i+1][j]
-            trace = (i+1, j, "i_unpaired")
-
-            # Option 2: j unpaired
-            if M[i][j-1] > best:
-                best = M[i][j-1]
-                trace = (i, j-1, "j_unpaired")
-
-
-            # Option 3; i,j paired
-            if (i, j) in allowed_pairs:
-                pair_score = M[i+1][j-1] + weights.get((i, j), 0)
-                if pair_score > best:
-                    best = pair_score
-                    trace = (i+1, j-1, "paired", i, j)
-
-            # Option 4: bifurcation
-            for k in range(i+1, j):
-                combined = M[i][k] + M[k+1][j]
-                if combined > best:
-                    best = combined
-                    trace = (i, k, j, "bifurcation")
-
-            M[i][j] = best
-            traceback[i][j] = trace
-    print("Row")
-    for row in M:
-        print(row)
-    print(f"{trace = }")
-    return M, traceback
-
-def reconstruct_structure(i, j, traceback, structure):
-    if i >= j:
-        return structure  # fix 1: return early
-
-    info = traceback[i][j]
-    print(f"{info = }")
-    if info is None:
-        return structure  # fix 2: safe fallback
-
-    if info[-1] == "i_unpaired":
-        return reconstruct_structure(info[0], info[1], traceback, structure)
-
-    elif info[-1] == "j_unpaired":
-        return reconstruct_structure(info[0], info[1], traceback, structure)
-
-    elif info[-3] == "paired":
-        # now info is expected to be (i+1, j-1, "paired", i, j)
-        _, _, _, pair_i, pair_j = info
-        structure.append((pair_i, pair_j))
-        return reconstruct_structure(info[0], info[1], traceback, structure)
-
-    elif info[-1] == "bifurcation":
-        i1, k, j1, _ = info
-        reconstruct_structure(i1, k, traceback, structure)
-        reconstruct_structure(k+1, j1, traceback, structure)
-        return structure  
-
-
-def traceback_all(i, j, DP, allowed_pairs, weights):
-    """
-    Recursively backtracks from DP[i][j] to retrieve all optimal pairing structures.
-    Each structure is represented as a list of pairs, where each pair is (i, j) in 0-indexed form.
-    
-    Parameters:
-        i, j: current indices in the sequence (0-indexed)
-        DP: The DP matrix computed by weighted_nussinov
-        allowed_pairs: Set of allowed pairing tuples (0-indexed)
-        weights: Dictionary mapping (i, j) -> weight, with both (i,j) and (j,i) entries
-        
-    Returns:
-        A list of solutions, where each solution is a list of pairs.
-        (If no pairs are made, returns a list containing an empty list.)
-    """
-    if i > j:
-        return [[]]  # one solution: no pairs
-    if i == j:
-        return [[]]
-    
-    solutions = []
-    
-    # Option 1: base i is unpaired
-    if i + 1 <= j and DP[i][j] == DP[i+1][j]:
-        for sol in traceback_all(i+1, j, DP, allowed_pairs, weights):
-            solutions.append(sol)
-    
-    # Option 2: base j is unpaired
-    if i <= j-1 and DP[i][j] == DP[i][j-1]:
-        for sol in traceback_all(i, j-1, DP, allowed_pairs, weights):
-            solutions.append(sol)
-    
-    # Option 3: i and j are paired (if allowed and optimal)
-    if (i, j) in allowed_pairs:
-        inner_score = 0
-        if i+1 <= j-1:
-            inner_score = DP[i+1][j-1]
-        if DP[i][j] == inner_score + weights.get((i, j), 0):
-            for sol in traceback_all(i+1, j-1, DP, allowed_pairs, weights):
-                solutions.append(sol + [(i, j)])
-            # In case the inner region is empty
-            if i+1 > j-1:
-                solutions.append([(i,j)])
-                
-    # Option 4: Bifurcation (splitting at some k)
-    for k in range(i, j):
-        if DP[i][j] == DP[i][k] + DP[k+1][j]:
-            left_sols = traceback_all(i, k, DP, allowed_pairs, weights)
-            right_sols = traceback_all(k+1, j, DP, allowed_pairs, weights)
-            for left in left_sols:
-                for right in right_sols:
-                    solutions.append(left + right)
-    
-    # Remove duplicate solutions (order invariant)
-    unique = []
-    seen = set()
-    for sol in solutions:
-        # Use sorted tuple of pairs as key (since order of pairs does not matter)
-        key = tuple(sorted(sol))
-        if key not in seen:
-            seen.add(key)
-            unique.append(sol)
-    return unique
-
-def convert_to_pairtable(sol, n):
-    """
-    Converts a solution (a list of pairs with 0-indexed positions) into a pairtable.
-    The pairtable is a list of length n+1, where the first element is n (the length),
-    and for each position i (1-indexed) the element is the paired index (or 0 if unpaired).
-    """
-    pt = [0] * (n + 1)
-    pt[0] = n
-    for (i, j) in sol:
-        pt[i+1] = j+1
-        pt[j+1] = i+1
-    return pt
-
 
 def preprocessing(acfp):
     """Takes an acfp and creates a graph based on it. Using the graph a domain level sequence can be created. 
@@ -1472,7 +1247,7 @@ def preprocessing(acfp):
     else:
         checks["assignable"] = False
         #raise SystemExit(f"aCFP {acfp} is not assignable")
-    logger.debug(f'\n\nBegin Traversability check ')
+
     if acfp_graph.is_favorable(db_acfp):
         logger.debug(f"{acfp} is favorable")
         checks["favorable"] = True
@@ -1503,85 +1278,22 @@ def preprocessing(acfp):
         assignment[i] = str(current_node.middle)
         i += 1
 
-    logger.debug(f"{assignment = }")
+    print(f"{assignment = }")
     return assignment
 
-def complement(d_list):
-    '''Takes a list of domains and returns the complement of it. 
-
-    Args:
-        d_list (list): List containing domains
-
-    Returns:
-        list: Complement of the input list
-    '''
-
-
-    n = len(d_list)
-    middle = [d_list[n // 2]]  # Middle needs to be in a list for concatenation
-    front = d_list[:n // 2]  # Front part
-    back = d_list[n // 2 + 1:]  # Back part
-
-    def complement_list(part):
-        
-        transformed = []
-
-        for element in reversed(part):  # Reverse order while iterating
-            if isinstance(element, list):
-                transformed.append(complement_list(element))  # Recursively process nested lists
-            else:
-                if '*' in element:
-                    transformed.append(element.replace('*', ''))
-                else:
-                    transformed.append(element + '*')
-        return transformed
-
-    comp_middle = complement_list(middle)  # Process middle correctly
-    comp_front = complement_list(front)  # No need to reverse here, already done in the loop
-    comp_back = complement_list(back)
-
-    logger.debug(f'complement = {comp_back + comp_middle + comp_front}')
-    return comp_back + comp_middle + comp_front  # Swap front and back
-
-
-    
-def flatten_list(nested_list):
-    """Flattens a nested list while preserving the order."""
-    flat_list = []
-    
-    for element in nested_list:
-        if isinstance(element, list):
-            flat_list.extend(flatten_list(element))  # Recursively flatten
-        else:
-            flat_list.append(element)  # Add non-list elements directly
-    
-    return flat_list
 
 def translate_acfp(acfp):
     
     A = preprocessing(acfp)    
     pt_path = path_to_pairtablepath(acfp)
-
     S = [[] for _ in acfp]
     x = 0 
-    d = list(string.ascii_lowercase)
-    d.extend("".join(pair) for pair in product(d, repeat=2))
+
     for i in range(len(acfp)):
         S[i].append(A[i])
         pt = pt_path[i]
-        logger.debug(f'\nStep: {acfp[i]} pt  {pt} \n current seq: {S = } ')
-        if pt[-1] > 0:  # Ensure valid reference (not 0)
-            ref_index = pt[-1] - 1  # Convert 1-based index to 0-based
-
-            S[i] = complement(S[ref_index])  
-            S[i] = [d[x+1], S[i], d[x]]
-            S[ref_index] = [str(d[x] + '*'), S[ref_index], str(d[x+1] + '*')]
-            x += 2
-
-    for j in range(len(acfp)):
-        S[j].append(str('Z' + str(j)))
-
-    return flatten_list(S)
+        if pt[-1] != -1 and pt[pt[-1]] != -1:
+            S[i] = comp
 
 def set_verbosity(console_handler,verbosity):
     if verbosity == 0:
@@ -1654,9 +1366,8 @@ The acfp must have following propperties to be translated to a domain level sequ
         logger.debug(acfp)
         
 
-        domain_list = translate_acfp(acfp)
-        domain_seq = ' '.join(domain_list)
-        print(f'Resulting Domain seq: {domain_seq}')
+        domain_seq = translate_acfp()
+
 
 
 if __name__ == "__main__":

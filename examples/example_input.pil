@@ -1,0 +1,15 @@
+length L0 = 8
+length S0 = 1
+length S1 = 1
+length S2 = 1
+length S3 = 400
+length a = 4
+length b = 4
+length c = 4
+length d = 4
+length e = 4
+
+# Resting complexes (3) 
+S7 = a* b* L0* c* d* S0 c L0 b S1 L0* S2 d c L0 b a S3
+
+
