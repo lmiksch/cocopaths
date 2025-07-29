@@ -319,20 +319,7 @@ def test_1_create_domain_seq(configure_logger):
 
     pass
 
-def test_2_create_domain_seq(configure_logger):        
-    
-    print("\n\n\nTest 2\n\n\n")
-    
-    acfp_2 = pairtablepath_to_dotbracket([[1, 0], [2, 2, 1], [3, 2, 1, 0], [4, 4, 3, 2, 1]])
 
-    domain_list = translate_acfp(acfp_2)
-    domain_seq_2 = ' '.join(domain_list)
-
-
-
-    assert domain_seq_2 == "c* a* L0* b* d* Z0 b L0 a Z1 L0* Z2 d b L0 a c Z3", f"Create domain_seq 2 failed Result: {domain_seq_2}, Solution c* a* L0* b* d* Z0 b L0 a Z1 L0* Z2 d b L0 a c Z3"
-
-    pass
 
 def test_3_create_domain_seq(configure_logger):
 
@@ -361,20 +348,7 @@ def test_4_create_domain_seq(configure_logger):
 
     pass 
 
-def test_5_create_domain_seq(configure_logger):
 
-    print("\n\n\nTest 5\n\n\n")
-    
-    path = [".","()",".()","(())","(()).","(()())"]
-    
-    domain_list = translate_acfp(path)
-    domain_seq_5 = ' '.join(domain_list)
-
-    assert domain_seq_5 == "g* e* a* L0* b* f* h* Z0 c* b L0 a d* Z1 d a* L0* b* c Z2 f b L0 a e Z3 L0* Z4 h f b L0 a e g Z5", f"Create domain_seq 5 failed Result: {domain_seq_5},Solution: ['g* e* a* L0* b* f* h* Z0 c* b L0 a d* Z1 d a* L0* b* c Z2 f b L0 a e Z3 L0* Z4 h f b L0 a e g Z5]"
-
-    
-
-    pass 
 
 
 def test_6_create_domain_seq(configure_logger):

@@ -2,8 +2,6 @@ import re
 import string
 import os
 import pandas as pd
-import csv
-import ast
 
 from cocopaths.cocosim import run_sim, write_output
 from cocopaths.utils import is_balanced_structure
@@ -11,46 +9,9 @@ from peppercornenumerator.objects import clear_memory
 from cocopaths.cocosim import kernel_to_dot_bracket, only_logic_domain_struct
 
 
-
-def write_afp_lists(tsv_file: str):
+def summarize_results(tsv_file: str):
     try:
-        # Read tab-separated file with quoting protection
         df = pd.read_csv(tsv_file, sep='\t', quotechar='"', comment='#', engine='python')
-
-        # Convert AFP column to actual Python lists
-        df['AFP'] = df['AFP'].apply(ast.literal_eval)
-
-        # Filter rows
-        successful = df[df['domain_success'] == True]['AFP'].tolist()
-        unsuccessful = df[df['domain_success'] == False]['AFP'].tolist()
-
-        # Write successful AFPs
-        with open("successful_afps.txt", "w") as f:
-            for afp in successful:
-                f.write(f"{afp}\n")
-
-        # Write unsuccessful AFPs
-        with open("unsuccessful_afps.txt", "w") as f:
-            for afp in unsuccessful:
-                f.write(f"{afp}\n")
-
-        print(f"✅ {len(successful)} successful AFPs written.")
-        print(f"❌ {len(unsuccessful)} unsuccessful AFPs written.")
-
-    except Exception as e:
-        print(f"[ERROR] Could not proceed")
-
-
-def summarize_results(tsv_file: str, print_failures: bool = True, save_to_file: bool = True):
-    try:
-        df = pd.read_csv(tsv_file, sep='\t', comment='#', quoting=csv.QUOTE_MINIMAL)
-
-        # Clean and convert columns
-        df['avg_occupancy'] = df['avg_occupancy'].astype(str).str.strip().astype(float)
-        df['last_step_occ'] = df['last_step_occ'].astype(str).str.strip().astype(float)
-        df['dominating_struct'] = df['dominating_struct'].astype(str).str.strip().map(lambda x: x == "True")
-        df['domain_success'] = df['domain_success'].astype(str).str.strip().map(lambda x: x == "True")
-
         total = len(df)
         dom_success = df['dominating_struct'].sum()
         domain_success = df['domain_success'].sum()
@@ -59,44 +20,22 @@ def summarize_results(tsv_file: str, print_failures: bool = True, save_to_file: 
         avg_occ = df['avg_occupancy'].mean()
         avg_last_occ = df['last_step_occ'].mean()
 
-        print(f"\n📊 Summary of {tsv_file}")
+        print(f"\n Summary of {tsv_file}")
         print("-" * 40)
         print(f"Total entries           : {total}")
-        print(f"Target dominant (True)  : {dom_success}")
+        #print(f"Target dominant (True)  : {dom_success}")
         print(f"Domain success (True)   : {domain_success}")
-        print(f"Both conditions True    : {both_success}")
-        print(f"Success rate (joint)    : {both_success / total:.2%}")
+        #print(f"Both conditions True    : {both_success}")
+        print(f"Success rate            : {domain_success / total:.2%}")
         print(f"Average occupancy       : {avg_occ:.4f}")
         print(f"Average last step occ.  : {avg_last_occ:.4f}")
         print("-" * 40)
-
-        if print_failures:
-            # Failures: at least one of the conditions is False
-            failures = df[~((df['dominating_struct']) & (df['domain_success']))]
-            dom_only = failures[failures['dominating_struct'] & ~failures['domain_success']]
-
-            print(f"\n{len(failures)} paths failed (dominance or domain success):")
-            for _, row in failures.iterrows():
-                print(f"AFP: {row['AFP']} | dom: {row['dominating_struct']} | domain: {row['domain_success']}")
-
-            print(f"\n {len(dom_only)} paths where target is dominant but domain failed:")
-            for _, row in dom_only.iterrows():
-                print(f" AFP: {row['AFP']} | seq: {row['d_seq']}")
-
-            if save_to_file:
-                with open("failed_paths.txt", "w") as f:
-                    f.write("# Failed paths (dominance or domain failure)\n")
-                    for _, row in failures.iterrows():
-                        f.write(f"✗ AFP: {row['AFP']} | dom: {row['dominating_struct']} | domain: {row['domain_success']}\n")
-                with open("dominant_but_failed.txt", "w") as f:
-                    f.write("# Dominant but not domain successful\n")
-                    for _, row in dom_only.iterrows():
-                        f.write(f"AFP: {row['AFP']} | seq: {row['d_seq']}\n")
 
     except FileNotFoundError:
         print(f"[ERROR] File '{tsv_file}' not found.")
     except Exception as e:
         print(f"[ERROR] Could not process file: {e}")
+
 
 
 def analyze_cocosim_output(simulated_structures,afp,d_seq):
@@ -253,5 +192,6 @@ if __name__ == "__main__":
     input_tsv = "designable_sequences_len6.txt"
     output_tsv = "sim_results_len6.tsv"
     #simulate_from_sequence_file(input_tsv, output_tsv)
-    #summarize_results("sim_results_len6.tsv")
-    write_afp_lists("sim_results_len6.tsv")
+
+
+    summarize_results("sim_results_len6.tsv")

@@ -24,8 +24,10 @@ requires-python = ">=3.8"
 dynamic = ["version"]
 
 dependencies = [
-    "Infrared",
-    "peppercornenumerator"  
+    "peppercornenumerator",
+    "crnsimulator",
+    "pytest",
+    "viennarna"
 ]
 
 

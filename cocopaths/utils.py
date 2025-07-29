@@ -362,39 +362,36 @@ def only_logic_domain_struct(seq,path):
     return logic_domain_struct
 
 def acfp_terminal_input():
-
-    '''Function to let user put in an abstract folding path in the terminal while checking if it's viable
     '''
-    acfp = []
+    Function to input an abstract cotranscriptional folding path (aCFP)
+    in one line, with each full dot-bracket structure separated by spaces.
+    '''
     while True:
-        print("\n")
-        print(f"Current Input: {acfp}")
-        print("Please input a folding path in dot-bracket annotation or use '$' to exit input and continue use 'r' to reset input:")
-        user_input = input()
-        # Check for exit conditions
-        if user_input == "$":
-            print(f"\n\nFinal Input:\n{acfp}\n\n")
-            break
-        elif user_input == "r" or user_input == "R":
-            acfp = []
-            print("Input cleared")
+        print("\nPlease input the full folding path as space-separated dot-bracket structures.")
+        print("Example: . () .() (())")
+
+        user_input = input().strip()
+
+
+        steps = user_input.split()
+
+        # Basic validation
+        if not all(all(c in ".()" for c in step) for step in steps):
+            print("Error: One or more steps contain invalid characters (only '.', '(', ')' allowed).")
             continue
-        
-        if is_balanced_structure(user_input):
 
-            # Check if the user input contains only ".", "(", and ")"
-            
-            if all(char == "." or char in ("(", ")") for char in user_input):
-                if len(user_input) == len(acfp) + 1:
-                    acfp.append(user_input)
-                else:
-                    print("Please add 1 character per step")
-            else:
-                print("Error: Invalid character in the folding path. Only '.', '(', and ')' are allowed.")
-        else:
-            print("Structure is not balanced -> closing/opening brackets don't match")
+        if not all(is_balanced_structure(step) for step in steps):
+            print("Error: One or more steps are unbalanced (mismatched parentheses).")
+            continue
 
-    return acfp
+        if not all(len(steps[i]) == i + 1 for i in range(len(steps))):
+            print("Error: Each structure must be one character longer than the previous (lengths 1, 2, 3, ...).")
+            continue
+
+        print("\nFinal input accepted:")
+        print(steps)
+        return steps
+
 
 def couple(pair):
 	if pair[0][0].upper() == pair[1][0].upper() and pair[0] != pair[1]:
