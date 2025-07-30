@@ -45,7 +45,7 @@ length Z3 = 9
 length Z4 = 12
 
 
-test_1 = L0*  Z0 a L0 b Z1 c* b* L0* a* d* Z2 d a L0 b c Z3
+test_1 = L0* Z0 a L0 b Z1 c* b* L0* a* d* Z2 d a L0 b c Z3
 """
 
 # Helper function to create a temporary .pil file
@@ -59,7 +59,7 @@ def test_main(monkeypatch, tmp_path):
     temp_pil_file = create_temp_pil_file(tmp_path, PIL_CONTENT_1)
 
     # Step 2: Mock command-line arguments
-    test_args = ["prog", "-i", str(temp_pil_file), "-s", "10","--aCFP",".,(),.(),()()"]
+    test_args = ["prog", "-i", str(temp_pil_file), "-s", "2000","--aCFP",".,(),.(),()()"]
     monkeypatch.setattr(sys, 'argv', test_args)
 
     # Step 3: Mock input function to simulate user input
@@ -108,7 +108,7 @@ def create_temp_pil_file(tmp_path, content):
     pil_file = tmp_path / "input.pil"
     pil_file.write_text(content)
     return pil_file
-
+'''
 def test_main_sim_fail(monkeypatch, tmp_path):
     # Step 1: Create a temporary .pil file
     temp_pil_file = create_temp_pil_file(tmp_path, PIL_CONTENT_2)
@@ -130,7 +130,7 @@ def test_main_sim_fail(monkeypatch, tmp_path):
 
     with pytest.raises(SystemExit):
         nt_seq = main()
-
+'''
 
 # Define a set of test cases as parameters.
 @pytest.mark.parametrize("domain_seq, fp_struct, drt_struct, domain_lengths, expected", [

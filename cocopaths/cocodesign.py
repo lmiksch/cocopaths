@@ -28,6 +28,7 @@ def objective_function(cefe,fe,efe,c_barrier,barrier=0,ensemble_defect=0):
     #obj_fun =  "abs(cefe - fe) + 0.1*barrier + ensemble_defect"#potential other obj function which forces a fixed structure
     obj_fun = "abs(efe - cefe) + 0.1*c_barrier"
     score = eval(obj_fun.format(cefe=cefe,fe=fe,barrier=barrier,ensemble_defect=ensemble_defect))
+    #print(f"\n\n {abs(efe - cefe) = }  {c_barrier = }")
     return score,obj_fun
 
 def couple(pair):
@@ -54,9 +55,9 @@ def domain_path_to_nt_path(path,d_seq,parameters):
         ex_step_path = ""
         for nt,domain in zip(list(step),split_seq):
             if domain[0] != 'Z':
-                extendo = nt * parameters["d_length"][domain]
+                extendo = nt * (parameters["d_length"][domain] + parameters["gap_length"])
             else:
-                extendo = 'x' * parameters["d_length"][domain] 
+                extendo = 'x' * (parameters["d_length"][domain] + parameters["gap_length"])
             ex_step_path += extendo
         ext_path.append(ex_step_path)
     return ext_path
@@ -241,6 +242,22 @@ def identical_domains_constraint(domain,split_seq,model,parameters):
                 i_pointer += 1
                 j_pointer += 1
 
+def add_domainwise_ending_gap_constraints(model, domain_seq, parameters):
+    """
+    Adds EndingGap(i) constraints within each domain span.
+    A domain may span multiple nucleotide positions as given by parameters["d_length"].
+
+    domain_seq: list of domain names (e.g. ["a", "b", "c"])
+    parameters["d_length"]: dict mapping domain name to length
+    """
+    d_lengths = parameters["d_length"]
+    
+    idx = 0  # index into sequence
+    for domain in domain_seq:
+        length = d_lengths[domain] + parameters["gap_length"]
+        for i in range(idx, idx + length - 1):
+            model.add_constraints(EndingGap(i))
+        idx += length
 
 def extend_domain_seq(d_seq,parameters):
 
@@ -253,13 +270,13 @@ def extend_domain_seq(d_seq,parameters):
 
     for UL_domain,domain in zip(UL_split_seq,split_domain_seq):
         if UL_domain[0] == "L":
-            extended_domain_seq += "L" * int(parameters["d_length"][domain])
+            extended_domain_seq += "L" * (int(parameters["d_length"][domain]) + parameters["gap_length"])
         elif UL_domain[0] == "l":
-            extended_domain_seq += "l" * int(parameters["d_length"][domain])
+            extended_domain_seq += "l" * (int(parameters["d_length"][domain]) + parameters["gap_length"])
         elif UL_domain[0] == "Z":
-            extended_domain_seq += "Z" * int(parameters["d_length"][domain])
-        else:
-            extended_domain_seq += UL_domain * int(parameters["d_length"][domain])
+            extended_domain_seq += "Z" * (int(parameters["d_length"][domain]) + parameters["gap_length"])
+        else: 
+            extended_domain_seq += UL_domain * (int(parameters["d_length"][domain]) + parameters["gap_length"])
 
     return extended_domain_seq
 
@@ -316,7 +333,7 @@ def mc_optimize(model, objective, steps, temp, start=None):
             cc = random.choices(ccs,weights)[0]
             new = sampler.resample(cc, cur)
             newval = objective(new)
-            #print("\rCurrent Score: ",newval, end="")
+            print("\rCurrent Score: ",newval, "Step:", i, end="")
             if (newval >= curval
                 or random.random() <= math.exp((newval-curval)/temp)):
                 cur, curval = new, newval
@@ -424,7 +441,6 @@ def score_sequence(seq,d_seq,parameters,acfp,domain_fp):
         prob = fc.pr_structure(ext_path[x])
 
         output_matrix.append([obj_score,prob,abs(efe - cefe),c_barrier,len(mypath),ensemble_defect])
-
     mean_efe_fe_squared = sum(row[2] for row in output_matrix) / len(output_matrix)
     mean_ensemble_defect = sum(row[5] for row in output_matrix) / len(output_matrix)
 
@@ -476,11 +492,15 @@ def nt_path_to_acfp(nt_path,domain_seq,parameters):
     return acfp 
 
 
+
 def rna_design(seq,path,parameters,acfp,domain_fp):
 
+
     split_seq = seq.split()
-    d_seq_len = sum([int(parameters["d_length"][x]) for x in split_seq])
+    d_seq_len = sum([int(parameters["d_length"][x]) + parameters["gap_length"] for x in split_seq])# Allow the sequence to be a bit longer to make domain size variable
+
     
+
     # define constraints
     #Identical Domains
     ir.def_constraint_class(
@@ -490,11 +510,35 @@ def rna_design(seq,path,parameters,acfp,domain_fp):
             module  = __name__ 
         )
 
-    model = ir.Model(d_seq_len,4)
+    ir.def_constraint_class(
+        "EndingGap",
+        lambda i: [i, i + 1],
+        lambda x, y: y == 4 if x == 4 else True,
+        module=__name__
+    )
 
+    ir.def_constraint_class( 
+            'BPCompGap',
+            lambda i,j: [i,j],
+            lambda x,y: rna.values_to_seq([x,y])  in ["AU","CG","GC","GU","UA","UG","--"],
+            module  = __name__ 
+        )    
+
+
+    model = ir.Model(d_seq_len,5) # extend this to 5 where 5 = gap(-) 
+    #make sure that gaps only are added at the end do this by creating a new constraint which just checks that if a gap is placed alll other chars must be gaps for this domain this is done by checking xi and xi +1 must be = if gap 
+    # add to BPcomp that gap must always pair with gap and can pair
+
+
+    #Ending Gap constraint
+    add_domainwise_ending_gap_constraints(model, split_seq, parameters)
+
+    #IdenticalDomainsConstraint
     for domain in set(parameters["d_length"]):
         if domain != "l":
             identical_domains_constraint(domain,split_seq,model,parameters)
+
+
 
     ext_path = path
 
@@ -502,7 +546,7 @@ def rna_design(seq,path,parameters,acfp,domain_fp):
     for x in ext_path: 
         cons = []
         bps = rna.parse(x)
-        cons = [rna.BPComp(i,j) for (i,j) in bps]
+        cons = [BPCompGap(i,j) for (i,j) in bps]
         model.add_constraints(cons)
 
     objective = lambda x: -score_sequence(rna.ass_to_seq(x),seq,parameters,acfp,domain_fp)[0]
@@ -606,7 +650,7 @@ def main():
             else: 
                 d_length[domain] = 3 
 
-    parameters = {"k_slow": args.k_slow,'k_fast': args.k_fast, "cutoff": args.cutoff,"d_length":d_length,"d_seq":d_seq,"logic":args.logic,'steps':args.steps,'hard_constraint':args.hard_constraint}
+    parameters = {"k_slow": args.k_slow,'k_fast': args.k_fast, "cutoff": args.cutoff,"d_length":d_length,"d_seq":d_seq,"logic":args.logic,'steps':args.steps,'hard_constraint':args.hard_constraint, "gap_length": 2}
 
     #___simulate_domain-level-foldingpath______# 
 
