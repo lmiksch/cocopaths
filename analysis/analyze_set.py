@@ -191,7 +191,7 @@ if __name__ == "__main__":
 
     input_tsv = "designable_sequences_len6.txt"
     output_tsv = "sim_results_len6.tsv"
-    #simulate_from_sequence_file(input_tsv, output_tsv)
+    simulate_from_sequence_file(input_tsv, output_tsv)
 
 
     summarize_results("sim_results_len6.tsv")

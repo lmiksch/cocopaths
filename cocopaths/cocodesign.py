@@ -552,9 +552,9 @@ def main():
     parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
     parser.add_argument("-l", "--logic", action="store_true", default=False,help="Visualizes Logic domain pairings. Best used when analyzing cocopaths generated sequences. (default = False)")
     parser.add_argument("-f", "--force", action="store_true", default=False,help="Forces the design disregarding the outcome of the simulation (default = False)")
-    parser.add_argument("-cutoff", "--cutoff", action="store", type=valid_cutoff, default=float('-inf'),help="Cutoff value at which structures won't get accepted (default: -inf, valid range: 0 to 1)")
-    parser.add_argument("-aCFP", "--aCFP", action="store", type=str, default=None,help="aCFP where each step is seperated by a comma. If not specified the user needs to use the Terminal as input.")
-    parser.add_argument("-h_c", "--hard_constraint", action="store_true", default=False,help="While checking wether a sequence is succesfull or not all unpaired regions must stay unpaired.")
+    parser.add_argument("-c", "--cutoff", action="store", type=valid_cutoff, default=float('-inf'),help="Cutoff value at which structures won't get accepted (default: -inf, valid range: 0 to 1)")
+    parser.add_argument("-a", "--aCFP", action="store", type=str, default=None,help="aCFP where each step is seperated by a comma. If not specified the user needs to use the Terminal as input.")
+    parser.add_argument("-hc", "--hard_constraint", action="store_true", default=False,help="While checking wether a sequence is succesfull or not all unpaired regions must stay unpaired.")
 
     args = parser.parse_args()
     #_________________Set_logger_verbosity________________#
