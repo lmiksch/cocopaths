@@ -12,6 +12,7 @@ from scipy.stats import pearsonr, spearmanr
 from statistics import mean
 import pandas as pd
 import ast
+import traceback
 from filelock import FileLock
 import string
 from check_drt_output import drt_match
@@ -205,7 +206,7 @@ def get_default_parameters():
         else: 
             d_length[domain] = 3
     
-    parameters = {"k_slow": 0.00001,'k_fast': 20, "cutoff": 0.05,"d_length":d_length,"d_seq":domain_seq,"logic":True}
+    parameters = {"k_slow": 0.00001,'k_fast': 20, "cutoff": 0.05,"d_length":d_length,"d_seq":domain_seq,"logic":True, "gap_length" : 3}
 
     return parameters
 
@@ -583,6 +584,7 @@ def design_from_acfp_and_domain_seq(acfp, domain_seq, output_file, out_folder, f
 
         except Exception as e:
             print(f"Error in design try {tries}: {e}")
+            traceback.print_exc()
             break
 
     if not occ_list:
@@ -619,7 +621,7 @@ if __name__ == "__main__":
     #analyze_single_fp(args.file_path, args.index, args.output_file,"test_relax/")
 
 
-    df = pd.read_csv("/home/mescalin/miksch/Documents/cocopaths/analysis/sim_results_len6.tsv", sep="\t", )
+    df = pd.read_csv("/home/mescalin/miksch/Documents/data/cocopaths/paper_cocopath/sim_results_len6.tsv", sep="\t", )
 
     acfp_str = df.loc[args.index, "AFP"]
     acfp = ast.literal_eval(acfp_str)

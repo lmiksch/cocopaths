@@ -266,9 +266,7 @@ def add_bp_constraints(model, ext_path, domain_seq, parameters):
             pos_core[idx + i] = False
             nogaps += "-"
         idx += total_len
-    print(nogaps)
     model.add_constraints(cons)
-    print(f"Core Index:{pos_core}" )
 
 
     for path in ext_path:
