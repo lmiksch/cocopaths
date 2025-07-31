@@ -298,7 +298,31 @@ def add_domainwise_ending_gap_constraints(model, domain_seq, parameters):
             model.add_constraints(EndingGap(i))
         idx += length
 
+def remove_gaps(seq, extended_fp):
+    """
+    Removes all gap positions from the sequence and from each corresponding dot-bracket structure 
+    in extended_fp.
 
+    Parameters:
+        seq (str): The nucleotide sequence (with '-' as gap).
+        extended_fp (list of str): List of dot-bracket strings.
+
+    Returns:
+        tuple: (new_seq, new_extended_fp)
+    """
+    # Identify indices of gaps in the sequence
+    gap_indices = [i for i, nt in enumerate(seq) if nt == '-']
+
+    # Remove gap indices from the sequence
+    new_seq = ''.join(nt for i, nt in enumerate(seq) if i not in gap_indices)
+
+    # Remove gap indices from each folding path
+    new_extended_fp = [
+        ''.join(struct[i] for i in range(len(struct)) if i not in gap_indices)
+        for struct in extended_fp
+    ]
+
+    return new_seq, new_extended_fp
 
 def extend_domain_seq(d_seq,parameters):
 
@@ -411,26 +435,30 @@ def score_sequence(seq,d_seq,parameters,acfp,domain_fp):
     
     ext_path = domain_path_to_nt_path(domain_fp,d_seq,parameters)
     nt_path = []
-    
-    for x in ext_path:    
-        nt_path.append("".join(seq[:len(x)]))
-    nt_path.append(seq)
+
+
+    new_seq,new_ext_path = remove_gaps(seq,ext_path)
+
+
+    for x in new_ext_path:    
+        nt_path.append("".join(new_seq[:len(x)]))
+    nt_path.append(new_seq)
 
     total = []
     output_matrix = []
 
-    for x in range(0,len(ext_path)):
+    for x in range(0,len(new_ext_path)):
         #prepare input for finpath 
         mse = 0
         if x == 0: 
-            ss1 = ext_path[x] 
+            ss1 = new_ext_path[x] 
         else:
-            ss1 = ext_path[x-1] + ("." * (len(nt_path[x])-len(nt_path[x-1])))
+            ss1 = new_ext_path[x-1] + ("." * (len(nt_path[x])-len(nt_path[x-1])))
 
         if parameters['hard_constraint']:
             ss1.replace('.','x')
 
-            ext_path = [s.replace(".", "x") for s in ext_path]
+            new_ext_path = [s.replace(".", "x") for s in new_ext_path]
             nt_path = [s.replace(".", "x") for s in nt_path]
         
 
@@ -438,11 +466,11 @@ def score_sequence(seq,d_seq,parameters,acfp,domain_fp):
         
         efe = fc.pf()[1]
 
-        fe = fc.eval_structure(ext_path[x])
+        fe = fc.eval_structure(new_ext_path[x])
 
-        fc.hc_add_from_db(ext_path[x])
+        fc.hc_add_from_db(new_ext_path[x])
         
-        tfe = fc.eval_structure(ext_path[x])
+        tfe = fc.eval_structure(new_ext_path[x])
         
         cefe = fc.pf()[1]
         
@@ -463,7 +491,7 @@ def score_sequence(seq,d_seq,parameters,acfp,domain_fp):
         fc_2 = RNA.fold_compound(nt_path[x])
 
       
-        fc_2.hc_add_from_db(ext_path[x])
+        fc_2.hc_add_from_db(new_ext_path[x])
 
         c_mfe_2 = fc_2.mfe()[0]
 
@@ -475,11 +503,11 @@ def score_sequence(seq,d_seq,parameters,acfp,domain_fp):
             c_barrier = 99
         global factor
 
-        ensemble_defect = fc.ensemble_defect(ext_path[x])
+        ensemble_defect = fc.ensemble_defect(new_ext_path[x])
         obj_score,obj_function = objective_function(cefe,fe,efe,c_barrier,barrier,ensemble_defect)
         total.append(obj_score) 
 
-        prob = fc.pr_structure(ext_path[x])
+        prob = fc.pr_structure(new_ext_path[x])
 
         output_matrix.append([obj_score,prob,abs(efe - cefe),c_barrier,len(mypath),ensemble_defect])
     mean_efe_fe_squared = sum(row[2] for row in output_matrix) / len(output_matrix)
@@ -588,7 +616,19 @@ def rna_design(seq,path,parameters,acfp,domain_fp):
 
 
     #Ending Gap constraint
-    add_domainwise_ending_gap_constraints(model, split_seq, parameters)
+    #add_domainwise_ending_gap_constraints(model, split_seq, parameters)
+    d_lengths = parameters["d_length"]
+    
+    end_gap = ""
+    idx = 0  # index into sequence
+    for domain in split_seq:
+        length = d_lengths[domain] + parameters["gap_length"]
+        for i in range(idx, idx + length - 1):
+            end_gap += "-"
+            model.add_constraints(EndingGap(i))
+        idx += length
+
+
 
     #IdenticalDomainsConstraint
     for domain in set(parameters["d_length"]):
