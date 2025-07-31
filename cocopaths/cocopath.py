@@ -1004,8 +1004,8 @@ class graph():
                     weights[(j0, i0)] = weight  # make symmetrical
 
 
-            print(f"{allowed_pairs = }")
-            print(f"{weights = }")
+            logger.debug(f"{allowed_pairs = }")
+            logger.debug(f"{weights = }")
 
             M, DP_traceback = weighted_nussinov(n, allowed_pairs, weights)
             all_solutions = traceback_all(0, n-1, M, allowed_pairs, weights)
@@ -1302,10 +1302,7 @@ def weighted_nussinov(n, allowed_pairs, weights):
 
             M[i][j] = best
             traceback[i][j] = trace
-    print("Row")
-    for row in M:
-        print(row)
-    print(f"{trace = }")
+
     return M, traceback
 
 def reconstruct_structure(i, j, traceback, structure):
@@ -1313,7 +1310,6 @@ def reconstruct_structure(i, j, traceback, structure):
         return structure  # fix 1: return early
 
     info = traceback[i][j]
-    print(f"{info = }")
     if info is None:
         return structure  # fix 2: safe fallback
 
@@ -1620,12 +1616,8 @@ def main():
             formatter_class = argparse.RawDescriptionHelpFormatter,
             description=f"""Copaths path_to_seq version {__version__}: generates a domain level sequence based on an abstract folding path 
 
-
-The acfp must have following propperties to be translated to a domain level sequence:
-            - Pseudoknot-Free
-            - Structure must be fully saturated
-            - If a structure was defined it cant be changed if no additional step influences the defined substructure"""
-                        )
+                Either input by just running cocopath or use a txt file.
+                        """)
 
         parser.add_argument("-i","--input",help="Reads txt file as input if not specified user can input via console.")
         parser.add_argument("-v", "--verbose",action="count", default = 0,

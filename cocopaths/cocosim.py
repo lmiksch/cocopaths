@@ -1031,9 +1031,8 @@ def main():
     parser.add_argument("--k-fast", type=float, help="Specify k-fast. Determines the cutoffpoint for fast reactions.", default=20)
     parser.add_argument("-v", "--verbose", action="count", default=0, help="Increase verbosity level. -v only shows peppercorn output")
     parser.add_argument("-l", "--logic", action="store_true", default=False,help="Visualizes Logic domain pairings. Best used when analyzing cocopaths generated sequences. (default = False)")
-    parser.add_argument("-cutoff", "--cutoff", action="store", type=valid_cutoff, default=float('-inf'),help="Cutoff value at which structures won't get accepted (default: -inf, valid range: 0 to 1)")
-    parser.add_argument("-aCFP", "--aCFP", action="store", type=str, default=None,help="aCFP where each step is seperated by a comma. If not specified the user needs to use the Terminal as input.")
-    
+    parser.add_argument("-c", "--cutoff", action="store", type=valid_cutoff, default=float('-inf'),help="Cutoff value at which structures won't get accepted (default: -inf, valid range: 0 to 1)")
+    parser.add_argument("-a", "--aCFP", nargs="?", const=True, type=str, default=None, help="aCFP where each step is separated by a comma. If not specified or given without value, terminal input will be used.")    
     args = parser.parse_args()
     args.cutoff = float(args.cutoff)
     set_verbosity(cocosim_logger,console_handler,args.verbose)
@@ -1091,9 +1090,15 @@ def main():
     cocosim_logger.warning(parameters)
 
     print("Given Domain Sequence:", d_seq)
-   
-    if acfp == None:
-        acfp = acfp_terminal_input()  
+    
+    if acfp is None:
+        if isinstance(args.aCFP, str):
+            # Case: --aCFP ".,(),.()" → parse string
+            acfp = args.aCFP.split(",")
+        elif args.aCFP is True:
+            # Case: --aCFP with no argument → use terminal input
+            acfp = acfp_terminal_input()
+
 
     #______Running_Simulation___________# 
     simulated_structures = run_sim(d_seq, parameters)
@@ -1119,19 +1124,18 @@ def main():
     #_____Writing_and_printing_output___# 
     if args.logic:
         output = ""
-        d_seq
-        ts = 2
+
         if 'Z' in d_seq:
             output += write_output(simulated_structures,d_seq)
         output += f"\n\nFollowing sequence was simulated:\n{d_seq}"
         if acfp: 
-            output += f"\n\nFollowing acfp was given for Sequence design"
+            output += f"\n\nFollowing acfp was given for Sequence design\n"
             for step in acfp:
                 output += f"{step}\n"
         print(output)
 
     #______Verify_Simulation
-    if len(acfp) > 1:
+    if acfp:
         dominant_path = verify_domain_foldingpath(acfp,d_seq,parameters,simulated_structures)
 
     cocosim_logger.removeHandler(file_handler)  # Remove the file handler from the cocosim_logger

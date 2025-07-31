@@ -1,6 +1,5 @@
-#Script to analysis capabilities of cocopahts and cocosim 
+#Script to analyze capabilities of cocopaths and cocosim 
 #Should analyse all possible legal folding paths and do some statistics of the outcomes
-
 
 
 
