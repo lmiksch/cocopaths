@@ -242,6 +242,45 @@ def identical_domains_constraint(domain,split_seq,model,parameters):
                 i_pointer += 1
                 j_pointer += 1
 
+def add_bp_constraints(model, ext_path, domain_seq, parameters):
+    """
+    Adds BPComp constraints for core domain positions (no gaps),
+    and BPCompGap constraints for variable (tail) positions.
+    """
+    d_lengths = parameters["d_length"]
+    gap_len = parameters["gap_length"]
+    cons = []
+    # Map each position to whether it is in core or variable part
+    pos_core = {}
+    idx = 0
+
+    nogaps = ""
+    for domain in domain_seq:
+        core_len = d_lengths[domain]
+        total_len = core_len + gap_len
+        for i in range(core_len):
+            pos_core[idx + i] = True
+            cons.append(NoGap(i))
+            nogaps += "T"
+        for i in range(core_len, total_len):
+            pos_core[idx + i] = False
+            nogaps += "-"
+        idx += total_len
+    print(nogaps)
+    model.add_constraints(cons)
+    print(f"Core Index:{pos_core}" )
+
+
+    for path in ext_path:
+        bps = rna.parse(path)
+        cons = []
+        for (i, j) in bps:
+            if pos_core.get(i, False) and pos_core.get(j, False):
+                cons.append(BPComp(i, j))
+            else:
+                cons.append(BPCompGap(i, j))
+        model.add_constraints(cons)
+
 def add_domainwise_ending_gap_constraints(model, domain_seq, parameters):
     """
     Adds EndingGap(i) constraints within each domain span.
@@ -254,10 +293,12 @@ def add_domainwise_ending_gap_constraints(model, domain_seq, parameters):
     
     idx = 0  # index into sequence
     for domain in domain_seq:
-        length = d_lengths[domain] + parameters["gap_length"]
+        length = d_lengths[domain]
         for i in range(idx, idx + length - 1):
             model.add_constraints(EndingGap(i))
         idx += length
+
+
 
 def extend_domain_seq(d_seq,parameters):
 
@@ -499,7 +540,6 @@ def rna_design(seq,path,parameters,acfp,domain_fp):
     split_seq = seq.split()
     d_seq_len = sum([int(parameters["d_length"][x]) + parameters["gap_length"] for x in split_seq])# Allow the sequence to be a bit longer to make domain size variable
 
-    
 
     # define constraints
     #Identical Domains
@@ -514,8 +554,24 @@ def rna_design(seq,path,parameters,acfp,domain_fp):
         "EndingGap",
         lambda i: [i, i + 1],
         lambda x, y: y == 4 if x == 4 else True,
-        module=__name__
+        module  =   __name__
     )
+
+    ir.def_constraint_class(
+        "NoGap",
+        lambda i: [i],
+        lambda x: x != 4,
+        module  =   __name__
+    )
+
+
+    ir.def_constraint_class( 
+            'BPComp',
+            lambda i,j: [i,j],
+            lambda x,y: rna.values_to_seq([x,y])  in ["AU","CG","GC","GU","UA","UG"],
+            module  = __name__ 
+        )    
+
 
     ir.def_constraint_class( 
             'BPCompGap',
@@ -523,6 +579,7 @@ def rna_design(seq,path,parameters,acfp,domain_fp):
             lambda x,y: rna.values_to_seq([x,y])  in ["AU","CG","GC","GU","UA","UG","--"],
             module  = __name__ 
         )    
+
 
 
     model = ir.Model(d_seq_len,5) # extend this to 5 where 5 = gap(-) 
@@ -543,11 +600,12 @@ def rna_design(seq,path,parameters,acfp,domain_fp):
     ext_path = path
 
     # Folding path constraint
-    for x in ext_path: 
-        cons = []
-        bps = rna.parse(x)
-        cons = [BPCompGap(i,j) for (i,j) in bps]
-        model.add_constraints(cons)
+    add_bp_constraints(model, ext_path, split_seq, parameters)
+    #for x in ext_path: 
+    #    cons = []
+    #    bps = rna.parse(x)
+    #    cons = [BPCompGap(i,j) for (i,j) in bps]
+    #    model.add_constraints(cons)
 
     objective = lambda x: -score_sequence(rna.ass_to_seq(x),seq,parameters,acfp,domain_fp)[0]
 
